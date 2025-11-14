@@ -7,34 +7,40 @@
 
     <title><?= $title ?? 'Home' ?></title>
 
-    <!-- Latest compiled and minified CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/css/admin.css">
 
-    <!-- Latest compiled JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 
 <body>
 
-    <nav class="navbar navbar-expand-xxl bg-light justify-content-center">
-        <ul class="navbar-nav">
-            <li class="nav-item">
-                <a class="nav-link text-uppercase" href="<?= BASE_URL ?>"><b>Home</b></a>
-            </li>
-        </ul>
-    </nav>
+    <?php if (empty($hideNavbar)) : ?>
+        <nav class="navbar navbar-expand-xxl bg-light justify-content-center">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link text-uppercase" href="<?= BASE_URL ?>?action=admin"><b>Admin</b></a>
+                </li>
+            </ul>
+        </nav>
 
-    <div class="container">
-        <h1 class="mt-3 mb-3"><?= $title ?? 'Home' ?></h1>
-
-        <div class="row">
-            <?php
-            if (isset($view)) {
-                require_once PATH_VIEW . $view . '.php';
-            }
-            ?>
+        <div class="container">
+            <div class="row">
+                <?php
+                if (isset($view)) {
+                    require_once PATH_VIEW . $view . '.php';
+                }
+                ?>
+            </div>
         </div>
-    </div>
+    <?php else: ?>
+        <?php require_once PATH_VIEW . 'layouts/sidebar.php'; ?>
+        <?php
+        if (isset($view)) {
+            require_once PATH_VIEW . $view . '.php';
+        }
+        ?>
+    <?php endif; ?>
 
 </body>
 

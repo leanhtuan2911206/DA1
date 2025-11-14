@@ -1,0 +1,74 @@
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f7f6; 
+    min-height: 100vh; 
+    overflow-x: hidden;
+}
+
+.sidebar {
+    background-color: #5e9bd4;
+    color: #ffffff;
+    height: 100vh;
+    position: fixed;
+    width: 250px;
+    padding-top: 16px;
+    top: 0;
+    left: 0;
+    border-right: 1px solid #2f333d;
+    box-shadow: 0 0 24px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.sidebar h4 {
+    font-size: 1.1rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+}
+
+.sidebar a {
+    color: #ffffff; /* Màu chữ nhạt */
+    padding: 10px 14px;
+    display: block;
+    text-decoration: none;
+    border-radius: 8px;
+    margin: 2px 8px;
+    transition: background-color .2s ease, color .2s ease;
+}
+
+.sidebar a:hover, .sidebar a.active {
+    background-color: #2d333b;
+    color: #ffffff;
+}
+
+.main-content {
+    margin-left: 250px; /* Bằng chiều rộng của sidebar */
+    padding: 20px;
+}
+
+.sidebar::-webkit-scrollbar {
+    width: 8px;
+}
+.sidebar::-webkit-scrollbar-track {
+    background: #1f2329;
+}
+.sidebar::-webkit-scrollbar-thumb {
+    background: #3a3f45;
+    border-radius: 8px;
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        border-right: none;
+        box-shadow: none;
+    }
+    .main-content {
+        margin-left: 0;
+        padding-top: 8px;
+    }
+}
