@@ -66,6 +66,12 @@ body {
     margin: 10px 0 18px;
 }
 
+.section-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 6px 0 12px;
+}
+
 .stat-card {
     display: flex;
     align-items: center;
@@ -97,6 +103,28 @@ body {
 
 .flag {font-size:18px}
 .avatar {width:32px;height:32px}
+
+.filter-bar {gap: 12px; flex-wrap: nowrap; overflow-x: auto; background: #f6f8fc; border: 1px solid #eef2f7; border-radius: 16px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.04); justify-content: space-between}
+.filter-inputs {gap: 12px; flex-wrap: nowrap; overflow-x: auto}
+.filter-actions {gap: 12px}
+.filter-bar .form-control,
+.filter-bar .form-select {
+    min-width: 170px;
+    height: 40px;
+    border-radius: 12px;
+    border-color: #e6ebf2;
+    background: #fff;
+    box-shadow: 0 3px 12px rgba(0,0,0,.04);
+    padding: 8px 12px;
+}
+.filter-bar .form-control:focus,
+.filter-bar .form-select:focus {
+    box-shadow: 0 0 0 3px rgba(76,110,245,.15);
+    border-color: #4c6ef5;
+}
+.filter-bar .btn {border-radius: 12px; padding: 0 16px; height: 40px; font-weight: 600}
+.filter-bar .btn-warning {background-color:#ffb020; border:none; color:#fff}
+.filter-bar .btn-success {background-color:#22c55e; border:none; color:#fff}
 
 .table thead th {
     background: #f8fafc;

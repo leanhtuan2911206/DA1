@@ -60,34 +60,39 @@
     <div class="card-like mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div class="fw-semibold">Số tour được đặt</div>
-            <select class="form-select form-select-sm w-auto"><option>Tháng 11</option></select>
+            <form class="d-flex gap-2" method="get" action="<?= BASE_URL ?>">
+                <input type="hidden" name="action" value="admin" />
+                <input type="hidden" name="year" value="<?= isset($selectedYear) ? (int)$selectedYear : (int)date('Y') ?>" />
+                <select name="month" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                    <?php for ($m=1; $m<=12; $m++): ?>
+                        <option value="<?= $m ?>" <?= isset($selectedMonth) && (int)$selectedMonth === $m ? 'selected' : '' ?>>Tháng <?= $m ?></option>
+                    <?php endfor; ?>
+                </select>
+            </form>
         </div>
         <canvas id="bookingsChart" height="100"></canvas>
     </div>
 
-    <?php
-        $topTours = [
-            ['name' => 'Du lịch Hội An', 'type' => 'Trong nước', 'place' => 'Phố cổ Hội An - Đà Nẵng - VN', 'price' => '1.200.000đ', 'revenue' => '480.000.000đ', 'status' => 'Hoạt động'],
-            ['name' => 'Du lịch Cao Bằng', 'type' => 'Trong nước', 'place' => 'Danh lam Cao Bằng', 'price' => '1.900.000đ', 'revenue' => '10.000.000đ', 'status' => 'Tạm dừng'],
-            ['name' => 'Du lịch Miền tây', 'type' => 'Trong nước', 'place' => 'Chợ nổi Cần Thơ', 'price' => '1.000.000đ', 'revenue' => '40.000.000đ', 'status' => 'Hoạt động'],
-            ['name' => 'Du lịch Thái Lan', 'type' => 'Quốc tế', 'place' => 'Thủ đô Băng Cốc', 'price' => '5.200.000đ', 'revenue' => '70.000.000đ', 'status' => 'Hoạt động'],
-            ['name' => 'Du lịch Lai Châu', 'type' => 'Trong nước', 'place' => 'Núi Tam Đường - Lai Châu', 'price' => '700.000đ', 'revenue' => '30.000.000đ', 'status' => 'Hoạt động'],
-        ];
-    ?>
+    <?php $tourRows = isset($tours) && is_array($tours) ? $tours : []; ?>
 
-    <div class="card-like">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="fw-semibold">Quản lý danh sách Tour</div>
-            <div class="d-flex gap-2">
+    <h3 class="section-title">Quản lý danh sách Tour</h3>
+
+    <div class="card-like mb-3">
+        <div class="filter-bar d-flex align-items-center">
+            <div class="filter-inputs d-flex gap-2 flex-grow-1">
                 <input class="form-control form-control-sm" placeholder="Nhập từ khóa tìm kiếm"/>
                 <select class="form-select form-select-sm"><option>Chọn loại tour</option></select>
                 <input class="form-control form-control-sm" placeholder="Nhập địa điểm tour"/>
                 <select class="form-select form-select-sm"><option>Giá cao nhất</option></select>
+            </div>
+            <div class="filter-actions d-flex gap-2">
                 <button class="btn btn-sm btn-warning">Tìm kiếm</button>
                 <button class="btn btn-sm btn-success">+ Thêm tour</button>
             </div>
         </div>
+    </div>
 
+    <div class="card-like">
         <div class="table-responsive">
             <table class="table align-middle">
                 <thead>
@@ -102,18 +107,29 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($topTours as $t): ?>
+                    <?php foreach ($tourRows as $t): ?>
                     <tr>
                         <td>
                             <span class="flag me-2">🇻🇳</span>
-                            <?= $t['name'] ?>
+                            <?= htmlspecialchars($t['name'] ?: '—') ?>
                         </td>
-                        <td><?= $t['type'] ?></td>
-                        <td><?= $t['place'] ?></td>
-                        <td><?= $t['price'] ?></td>
-                        <td><?= $t['revenue'] ?></td>
+                        <td><?= htmlspecialchars($t['type'] ?: '—') ?></td>
+                        <td><?= htmlspecialchars($t['place'] ?: '—') ?></td>
                         <td>
-                            <span class="badge rounded-pill <?= $t['status']==='Hoạt động' ? 'bg-success' : 'bg-warning text-dark' ?>"><?= $t['status'] ?></span>
+                            <?php
+                                $price = $t['price'];
+                                echo is_numeric($price) ? number_format((float)$price, 0, ',', '.') . 'đ' : htmlspecialchars($price ?: '—');
+                            ?>
+                        </td>
+                        <td>
+                            <?php
+                                $rev = $t['revenue'] ?? null;
+                                echo is_numeric($rev) ? number_format((float)$rev, 0, ',', '.') . 'đ' : '—';
+                            ?>
+                        </td>
+                        <td>
+                            <?php $st = strtolower((string)$t['status']); ?>
+                            <span class="badge rounded-pill <?= $st==='hoạt động' || $st==='active' ? 'bg-success' : ($st==='tạm dừng' || $st==='paused' ? 'bg-warning text-dark' : 'bg-secondary') ?>"><?= htmlspecialchars($t['status'] ?: '—') ?></span>
                         </td>
                         <td>
                             <button class="btn btn-sm btn-outline-secondary">✏️</button>
@@ -129,8 +145,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script>
         const ctx = document.getElementById('bookingsChart');
-        const labels = Array.from({length: 30}, (_, i)=> String(i+1).padStart(2,'0'));
-        const data = [20,25,30,45,50,40,55,84,38,42,51,60,74,68,48,70,82,66,55,64,40,52,58,46,62,59,49,54,57,60];
+        const labels = <?= json_encode($chartLabels ?? []) ?>;
+        const data = <?= json_encode($chartValues ?? []) ?>;
         new Chart(ctx, {
             type: 'line',
             data: {
