@@ -48,6 +48,63 @@ body {
     padding: 20px;
 }
 
+.topbar {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+}
+
+.search-wrap input {
+    border-radius: 20px;
+}
+
+.page-title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 10px 0 18px;
+}
+
+.stat-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+    padding: 16px;
+}
+.stat-icon {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 22px;
+}
+.stat-content .stat-label {font-size: 13px;color:#6c757d}
+.stat-content .stat-value {font-size: 20px;font-weight:700}
+.stat-content .stat-trend {font-size:12px}
+
+.card-like {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 6px 20px rgba(0,0,0,.06);
+    padding: 16px;
+}
+
+.flag {font-size:18px}
+.avatar {width:32px;height:32px}
+
+.table thead th {
+    background: #f8fafc;
+    border-bottom: none;
+}
+.table tbody tr {border-top: 1px solid #eef2f7}
+.table td, .table th {padding: 14px 12px}
+
 .sidebar::-webkit-scrollbar {
     width: 8px;
 }
