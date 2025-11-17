@@ -7,15 +7,15 @@ body {
 }
 
 .sidebar {
-    background-color: #5e9bd4;
-    color: #ffffff;
+    background-color: #ffffff;
+    color: #1f2d3d;
     height: 100vh;
     position: fixed;
     width: 250px;
     padding-top: 16px;
     top: 0;
     left: 0;
-    border-right: 1px solid #2f333d;
+    border-right: 1px solid #eef2f7;
     box-shadow: 0 0 24px rgba(0,0,0,0.15);
     display: flex;
     flex-direction: column;
@@ -29,7 +29,7 @@ body {
 }
 
 .sidebar a {
-    color: #ffffff; /* Màu chữ nhạt */
+    color: #1f2d3d;
     padding: 10px 14px;
     display: block;
     text-decoration: none;
@@ -39,9 +39,12 @@ body {
 }
 
 .sidebar a:hover, .sidebar a.active {
-    background-color: #2d333b;
-    color: #ffffff;
+    background-color: #f1f5f9;
+    color: #1f2d3d;
 }
+
+.sidebar .btn {color: #ffffff}
+.sidebar .btn:hover {color: #ffffff}
 
 .main-content {
     margin-left: 250px; /* Bằng chiều rộng của sidebar */
@@ -137,10 +140,10 @@ body {
     width: 8px;
 }
 .sidebar::-webkit-scrollbar-track {
-    background: #1f2329;
+    background: #f1f5f9;
 }
 .sidebar::-webkit-scrollbar-thumb {
-    background: #3a3f45;
+    background: #cbd5e1;
     border-radius: 8px;
 }
 
