@@ -157,3 +157,60 @@ body {
         padding-top: 8px;
     }
 }
+/* Thiết lập cho Trang Đăng nhập */
+/* --------------------------------- */
+/* CSS Dành riêng cho Trang Đăng Nhập */
+/* --------------------------------- */
+
+.login-page {
+    /* Nền toàn màn hình màu xanh, đồng bộ với sidebar */
+    background-color: #5e9bd4; /* Màu xanh giống sidebar */
+    min-height: 100vh;
+    width: 100%;
+    /* Sử dụng flex để căn giữa tuyệt đối */
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    border-radius: 12px; /* Đồng bộ với các card trong admin */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); /* Shadow đậm trên nền tối */
+    background-color: #ffffff; /* Card màu trắng nổi bật */
+}
+
+.login-card form {
+    text-align: left;
+}
+
+.login-card .card-title {
+    color: #2c3e50; 
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+/* Đồng bộ màu nút Đăng nhập với màu Sidebar (#5e9bd4) */
+.login-card .btn-primary {
+    background-color: #5e9bd4;
+    border-color: #5e9bd4;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.login-card .btn-primary:hover {
+    background-color: #4a8ac2; /* Màu đậm hơn khi hover */
+    border-color: #4a8ac2;
+}
+
+.login-card a {
+    color: #5e9bd4; /* Màu link đồng bộ với thương hiệu */
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}

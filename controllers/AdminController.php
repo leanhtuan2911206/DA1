@@ -4,6 +4,14 @@ class AdminController
 {
     public function index()
     {
+        if(session_status() === PHP_SESSION_NONE){
+            session_start();
+        }
+        // kiểm tra đăng nhâp 
+        if(!isset($_SESSION['user'])){
+            header('Location:' .BASE_URL .'?action=login');
+            exit;
+        }
         $view = 'admin/index'; 
         // $title = 'Trang Quản Trị';
 
@@ -55,22 +63,5 @@ class AdminController
 
         require_once PATH_VIEW . 'main.php'; 
     }
-    public function tourCategories()
-    {
-        $view = 'admin/tour-categories'; // Tên view mới
-        
-        // Dữ liệu mẫu (tạm thời) cho 3 danh mục theo yêu cầu
-        $categories = [
-            ['id' => 1, 'name' => 'Tour trong nước', 'description' => 'Tour tham quan, du lịch các địa điểm trong nước.'],
-            ['id' => 2, 'name' => 'Tour quốc tế', 'description' => 'Tour tham quan, du lịch các nước ngoài.'],
-            ['id' => 3, 'name' => 'Tour theo yêu cầu', 'description' => 'Tour thiết kế riêng theo yêu cầu khách hàng.'],
-        ];
-        
-        $hideNavbar = true; // Giữ nguyên sidebar/footer
-        
-        // Cần truyền biến $categories và $hideNavbar vào view.
-        // Trong cấu trúc MVC đơn giản, có thể dùng extract($data) hoặc
-        // require_once PATH_VIEW . 'main.php' (nếu main.php là layout chính)
-        require_once PATH_VIEW . 'main.php'; 
-    }
+
 }

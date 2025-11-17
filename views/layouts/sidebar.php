@@ -21,7 +21,7 @@
             <a class="nav-link" href="#">Cài đặt</a>
         </li>
         <li class="nav-item mt-4 px-3">
-            <a class="btn btn-sm btn-danger w-100" href="#">Đăng xuất</a>
+            <a class="btn btn-sm btn-danger w-100" href="<?= BASE_URL ?>?action=logout">Đăng xuất</a>
         </li>
     </ul>
 </aside>

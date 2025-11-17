@@ -14,7 +14,19 @@
 </head>
 
 <body>
-
+    <?php 
+    // Dùng session_status() để kiểm tra nếu session chưa hoạt động, thì mới bắt đầu
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+    
+    $isLoggedIn = isset($_SESSION['user']);
+    ?>
+    <?php 
+    $currentAction = $_GET['action'] ?? '/';
+    $isLoginPage = ($currentAction === 'login');
+    ?>
+    
     <?php if (empty($hideNavbar)) : ?>
         <nav class="navbar navbar-expand-xxl bg-light justify-content-center">
             <ul class="navbar-nav">
@@ -34,7 +46,9 @@
             </div>
         </div>
     <?php else: ?>
-        <?php require_once PATH_VIEW . 'layouts/sidebar.php'; ?>
+        <?php if (!$isLoginPage && $isLoggedIn) : ?>
+            <?php require_once PATH_VIEW . 'layouts/sidebar.php'; ?>
+        <?php endif; ?>
         <?php
         if (isset($view)) {
             require_once PATH_VIEW . $view . '.php';
