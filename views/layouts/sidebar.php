@@ -6,7 +6,7 @@
             <a class="nav-link active" href="<?= BASE_URL ?>?action=admin">Báo cáo</a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link" href="#">Danh mục tour</a>
+            <a class="nav-link" href="<?= BASE_URL ?>?action=tour-categories">Danh mục tour</a>
         </li>
         <li class="nav-item mb-2">
             <a class="nav-link" href="#">Danh sách tour</a>
