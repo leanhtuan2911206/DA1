@@ -107,8 +107,8 @@ body {
 .flag {font-size:18px}
 .avatar {width:32px;height:32px}
 
-.filter-bar {gap: 12px; flex-wrap: nowrap; overflow-x: auto; background: #f6f8fc; border: 1px solid #eef2f7; border-radius: 16px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.04); justify-content: space-between}
-.filter-inputs {gap: 12px; flex-wrap: nowrap; overflow-x: auto}
+.filter-bar {gap: 12px; flex-wrap: wrap; overflow: visible; background: #f6f8fc; border: 1px solid #eef2f7; border-radius: 16px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.04); justify-content: space-between}
+.filter-inputs {gap: 12px; flex-wrap: wrap; overflow: visible}
 .filter-actions {gap: 12px}
 .filter-bar .form-control,
 .filter-bar .form-select {
@@ -126,6 +126,10 @@ body {
     border-color: #4c6ef5;
 }
 .filter-bar .btn {border-radius: 12px; padding: 0 16px; height: 40px; font-weight: 600}
+.filter-inputs .form-control,
+.filter-inputs .form-select {
+    width: 100%;
+}
 .filter-bar .btn-warning {background-color:#ffb020; border:none; color:#fff}
 .filter-bar .btn-success {background-color:#22c55e; border:none; color:#fff}
 
@@ -135,6 +139,13 @@ body {
 }
 .table tbody tr {border-top: 1px solid #eef2f7}
 .table td, .table th {padding: 14px 12px}
+.tour-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.08);
+}
 
 .sidebar::-webkit-scrollbar {
     width: 8px;
@@ -159,4 +170,61 @@ body {
         margin-left: 0;
         padding-top: 8px;
     }
+}
+/* Thiết lập cho Trang Đăng nhập */
+/* --------------------------------- */
+/* CSS Dành riêng cho Trang Đăng Nhập */
+/* --------------------------------- */
+
+.login-page {
+    /* Nền toàn màn hình màu xanh, đồng bộ với sidebar */
+    background-color: #5e9bd4; /* Màu xanh giống sidebar */
+    min-height: 100vh;
+    width: 100%;
+    /* Sử dụng flex để căn giữa tuyệt đối */
+    display: flex;
+    justify-content: center; 
+    align-items: center;
+    padding: 20px;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 400px;
+    padding: 30px;
+    border-radius: 12px; /* Đồng bộ với các card trong admin */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4); /* Shadow đậm trên nền tối */
+    background-color: #ffffff; /* Card màu trắng nổi bật */
+}
+
+.login-card form {
+    text-align: left;
+}
+
+.login-card .card-title {
+    color: #2c3e50; 
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+/* Đồng bộ màu nút Đăng nhập với màu Sidebar (#5e9bd4) */
+.login-card .btn-primary {
+    background-color: #5e9bd4;
+    border-color: #5e9bd4;
+    font-weight: 600;
+    padding: 10px;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
+}
+
+.login-card .btn-primary:hover {
+    background-color: #4a8ac2; /* Màu đậm hơn khi hover */
+    border-color: #4a8ac2;
+}
+
+.login-card a {
+    color: #5e9bd4; /* Màu link đồng bộ với thương hiệu */
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
 }
