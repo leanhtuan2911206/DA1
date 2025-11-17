@@ -1,9 +1,7 @@
 <?php 
-
-// class BaseModel phải được định nghĩa trước đó
 class TourCategory extends BaseModel 
 {
-    protected $table = 'tour_categories'; // Tên bảng danh mục
+    protected $table = 'tour_categories';
 
     /**
      * Lấy danh sách danh mục và số lượng tour liên quan.
@@ -12,29 +10,26 @@ class TourCategory extends BaseModel
     public function getAll()
     {
         try {
-            // Query đơn giản: SELECT * FROM tour_categories
-            $sql = "SELECT * FROM `tour_categories`";
+            // Tối ưu hóa: Sử dụng LEFT JOIN và GROUP BY để đếm số tour trong MỘT truy vấn duy nhất.
+            $sql = "
+                SELECT 
+                    TC.*, 
+                    COUNT(T.id) AS tour_count
+                FROM 
+                    `tour_categories` AS TC
+                LEFT JOIN 
+                    `tours` AS T ON TC.id = T.category_id
+                GROUP BY 
+                    TC.id, TC.name, TC.description, TC.slug, TC.status, TC.created_at, TC.updated_at
+                ORDER BY 
+                    TC.id ASC
+            ";
+            
             $stmt = $this->pdo->query($sql);
             $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-            // Thêm tour_count cho mỗi danh mục
-            foreach ($categories as &$category) {
-                $tourCount = 0;
-                try {
-                    // Đếm số tour thuộc danh mục này
-                    $countSql = "SELECT COUNT(*) FROM tours WHERE category_id = :id";
-                    $countStmt = $this->pdo->prepare($countSql);
-                    $countStmt->bindValue(':id', $category['id'], PDO::PARAM_INT);
-                    $countStmt->execute();
-                    $tourCount = (int) $countStmt->fetchColumn();
-                } catch (PDOException $e) {
-                    // Nếu lỗi, giữ tour_count = 0
-                    error_log("Error counting tours for category {$category['id']}: " . $e->getMessage());
-                }
-                $category['tour_count'] = $tourCount;
-            }
-            
             return $categories;
+            
         } catch (PDOException $e) {
             error_log("TourCategory::getAll() error: " . $e->getMessage());
             return [];

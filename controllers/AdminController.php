@@ -15,6 +15,7 @@ class AdminController
         $view = 'admin/index'; 
         // $title = 'Trang Quản Trị';
 
+
         // Thêm biến để ẩn navbar
         $hideNavbar = true;
 
@@ -95,5 +96,6 @@ class AdminController
         // Biến $listCategories PHẢI được truyền vì file view cần nó.
         require_once PATH_VIEW . 'main.php'; 
     }
+    
 
 }

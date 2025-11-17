@@ -8,6 +8,7 @@ match ($action) {
     'login'     => (new AuthController)->login(),
     'logout'    => (new AuthController)->logout(),
     'tour-categories'  => (new TourCategoryController)->index(),
+    'tours'             => (new TourController)->index(),
 
     'tour-categories-create'  => (new TourCategoryController)->create(),
     'tour-categories-store'   => (new TourCategoryController)->store(),
