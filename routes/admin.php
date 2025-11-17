@@ -11,4 +11,7 @@ match ($action) {
 
     'tour-categories-create'  => (new TourCategoryController)->create(),
     'tour-categories-store'   => (new TourCategoryController)->store(),
+    'tour-categories-edit'    => (new TourCategoryController)->edit(),
+    'tour-categories-update'  => (new TourCategoryController)->update(),
+    'tour-categories-delete'  => (new TourCategoryController)->delete(),
 };

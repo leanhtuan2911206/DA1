@@ -46,13 +46,62 @@ class TourCategory extends BaseModel
      * @param string $name Tên danh mục.
      * @return void
      */
-    public function insert($name)
+    public function insert($name, $description = null)
     {
-        $sql = "INSERT INTO {$this->table} (name) VALUES (?)";
+        $sql = "INSERT INTO {$this->table} (name, description) VALUES (?, ?)";
         $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$name]); 
+        $stmt->execute([
+            $name,
+            $description
+        ]); 
     }
     
-    // ... Thêm các phương thức khác như getOne(), update(), delete() sau này
+    /**
+     * Lấy chi tiết một danh mục theo id.
+     *
+     * @param int $id
+     * @return array|false
+     */
+    public function find($id)
+    {
+        $sql = "SELECT * FROM {$this->table} WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Xóa danh mục theo id.
+     *
+     * @param int $id
+     * @return bool
+     */
+    public function delete($id)
+    {
+        $sql = "DELETE FROM {$this->table} WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$id]);
+    }
+
+    /**
+     * Cập nhật danh mục.
+     *
+     * @param int $id
+     * @param string $name
+     * @param string|null $description
+     * @return bool
+     */
+    public function update($id, $name, $description = null)
+    {
+        $sql = "UPDATE {$this->table} SET name = ?, description = ?, updated_at = NOW() WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([
+            $name,
+            $description,
+            $id
+        ]);
+    }
+    
+    // ... Thêm các phương thức khác như getOne(), update() sau này
 }
 

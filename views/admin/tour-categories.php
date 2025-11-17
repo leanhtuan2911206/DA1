@@ -1,6 +1,6 @@
 <div class="main-content p-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Quản lý Danh mục Tour</h3>
+        <h3> 📋 Quản lý Danh mục Tour</h3>
         <a href="<?= BASE_URL ?>?action=tour-categories-create" class="btn btn-primary">
             <i class="fas fa-plus"></i> Thêm Danh mục
         </a>
@@ -11,6 +11,7 @@
             <tr class="table-primary">
                 <th width="5%">ID</th>
                 <th>Tên Danh mục</th>
+                <th>Mô tả</th>
                 <th width="15%">Số Tour</th>
                 <th width="15%">Hành động</th>
             </tr>
@@ -21,6 +22,7 @@
                     <tr>
                         <td><?= $category['id'] ?></td>
                         <td><?= htmlspecialchars($category['name']) ?></td>
+                        <td><?= !empty($category['description']) ? htmlspecialchars($category['description']) : '<span class="text-muted">Chưa có</span>' ?></td>
                         <td><?= $category['tour_count'] ?></td>
                         <td>
                             <a href="<?= BASE_URL ?>?action=tour-categories-edit&id=<?= $category['id'] ?>" class="btn btn-sm btn-warning">Sửa</a>
