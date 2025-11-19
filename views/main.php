@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title><?= $title ?? 'Home' ?></title>
-<<<<<<< HEAD
+
     <link rel="stylesheet" href="/assets/css/admin.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-=======
+
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= BASE_URL ?>assets/css/admin.css">
->>>>>>> 78c7e164b78eff2de26171c57faf511b5a584228
+
 
    
 </head>
