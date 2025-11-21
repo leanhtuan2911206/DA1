@@ -7,7 +7,7 @@ body {
 }
 
 .sidebar {
-    background-color: #ffffff;
+    background-color: #5e9bd4 !important;
     color: #1f2d3d;
     height: 100vh;
     position: fixed;
@@ -107,7 +107,16 @@ body {
 .flag {font-size:18px}
 .avatar {width:32px;height:32px}
 
-.filter-bar {gap: 12px; flex-wrap: wrap; overflow: visible; background: #f6f8fc; border: 1px solid #eef2f7; border-radius: 16px; padding: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.04); justify-content: space-between}
+.filter-bar {gap: 12px; 
+    flex-wrap: wrap; 
+    overflow: visible;
+     background: #f6f8fc; 
+     border: 1px solid #eef2f7; 
+     border-radius: 16px; 
+     padding: 12px; 
+     box-shadow: 0 6px 20px rgba(0,0,0,.04);
+      justify-content: space-between
+    }
 .filter-inputs {gap: 12px; flex-wrap: wrap; overflow: visible}
 .filter-actions {gap: 12px}
 .filter-bar .form-control,
@@ -228,4 +237,3 @@ body {
     font-weight: 600;
     transition: color 0.2s ease;
 }
-/* fifjnefndigsdjfdsionbdsf */
