@@ -49,7 +49,7 @@ class TourController
             ];
 
             if ($foundInList) {
-                $debug['message'] = "Tour id {$newId} được tìm thấy trong danh sách.";
+                $debug['message'] = "Thêm tour thành công.";
                 error_log('TourController: ' . $debug['message']);
             } else {
                 $debug['message'] = "Tour id {$newId} KHÔNG tìm thấy trong danh sách, sẽ kiểm tra trực tiếp.";
@@ -143,7 +143,42 @@ class TourController
 
         try {
             $tourModel = new Tour();
-            $tourModel->update($id, $name, $category_id, $price, $description ?: null, $itinerary ?: null, $policy ?: null);
+            $existing = $tourModel->find($id);
+            $imageDbPath = null;
+            if (!empty($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+                $file = $_FILES['image'];
+                if ($file['error'] !== UPLOAD_ERR_OK) {
+                    $_SESSION['error'] = 'Lỗi upload ảnh.';
+                    header('Location: ' . BASE_URL . '?action=tours-edit&id=' . $id);
+                    exit;
+                }
+                $originalName = $file['name'];
+                $ext = pathinfo($originalName, PATHINFO_EXTENSION);
+                $ext = $ext ? strtolower($ext) : '';
+                $allowed = ['jpg','jpeg','png','gif','webp'];
+                if ($ext && !in_array($ext, $allowed)) {
+                    $_SESSION['error'] = 'Định dạng ảnh không hợp lệ.';
+                    header('Location: ' . BASE_URL . '?action=tours-edit&id=' . $id);
+                    exit;
+                }
+                if (!is_dir(PATH_ASSETS_UPLOADS)) {
+                    @mkdir(PATH_ASSETS_UPLOADS, 0777, true);
+                }
+                $filename = time() . '_' . bin2hex(random_bytes(6)) . ($ext ? ('.' . $ext) : '');
+                $target = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
+                if (!move_uploaded_file($file['tmp_name'], $target)) {
+                    $_SESSION['error'] = 'Không thể lưu file ảnh.';
+                    header('Location: ' . BASE_URL . '?action=tours-edit&id=' . $id);
+                    exit;
+                }
+                $imageDbPath = 'assets/uploads/' . $filename;
+            }
+
+            $tourModel->update($id, $name, $category_id, $price, $description ?: null, $itinerary ?: null, $policy ?: null, $imageDbPath);
+            if ($imageDbPath && !empty($existing['image'])) {
+                $oldFile = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($existing['image']);
+                if (file_exists($oldFile)) { @unlink($oldFile); }
+            }
             $_SESSION['success'] = 'Cập nhật tour thành công.';
         } catch (Throwable $e) {
             error_log('TourController::update error: ' . $e->getMessage());

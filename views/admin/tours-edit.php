@@ -8,7 +8,7 @@
         <div class="alert alert-warning">Tour không tìm thấy.</div>
     <?php else: ?>
         <div class="container">
-        <form action="<?= BASE_URL ?>?action=tours-update" method="POST">
+        <form action="<?= BASE_URL ?>?action=tours-update" method="POST" enctype="multipart/form-data">
             <input type="hidden" name="id" value="<?= $tour['id'] ?>">
 
             <div class="mb-3">
@@ -33,6 +33,15 @@
             <div class="mb-3">
                 <label class="form-label">Giá</label>
                 <input type="number" name="price" class="form-control" step="0.01" min="0" value="<?= htmlspecialchars($tour['price']) ?>">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Ảnh đại diện</label>
+                <?php $thumb = !empty($tour['image']) ? BASE_URL . ltrim($tour['image'], '/') : BASE_ASSETS_UPLOADS . 'img/1.jpg'; ?>
+                <div class="d-flex align-items-center gap-3">
+                    <img src="<?= htmlspecialchars($thumb) ?>" alt="" class="tour-thumb rounded">
+                    <input type="file" name="image" class="form-control" accept="image/*">
+                </div>
             </div>
 
             <div class="mb-3">

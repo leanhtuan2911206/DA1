@@ -44,11 +44,11 @@ class Tour extends BaseModel
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function update($id, $name, $category_id, $price, $description = null, $itinerary = null, $policy = null)
+    public function update($id, $name, $category_id, $price, $description = null, $itinerary = null, $policy = null, $image = null)
     {
-        $sql = "UPDATE {$this->table} SET name = ?, category_id = ?, price = ?, description = ?, itinerary = ?, policy = ?, updated_at = NOW() WHERE id = ?";
+        $sql = "UPDATE {$this->table} SET name = ?, category_id = ?, price = ?, description = ?, itinerary = ?, policy = ?, image = COALESCE(?, image), updated_at = NOW() WHERE id = ?";
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$name, $category_id, $price, $description, $itinerary, $policy, $id]);
+        return $stmt->execute([$name, $category_id, $price, $description, $itinerary, $policy, $image, $id]);
     }
 
     public function delete($id)

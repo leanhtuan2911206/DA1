@@ -14,7 +14,14 @@ $isActive = function(string $key) use ($currentAction, $activeMap) {
 ?>
 
 <aside class="sidebar">
-    <h4 class="mb-4 text-center">Quản trị</h4>
+    <?php $__logoUrl = BASE_ASSETS_UPLOADS . 'logo.png'; $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logo.png'; ?>
+    <div class="mb-4 text-center">
+        <?php if (file_exists($__logoFs)): ?>
+            <img src="<?= $__logoUrl ?>" alt="Travel Company" style="max-height:120px">
+        <?php else: ?>
+            <h4 class="mb-0">Quản trị</h4>
+        <?php endif; ?>
+    </div>
 
     <ul class="nav flex-column">
         <li class="nav-item mb-2">

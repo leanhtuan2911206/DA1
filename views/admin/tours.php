@@ -34,6 +34,14 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
     </div>
 
     <?php if (session_status() === PHP_SESSION_NONE) { session_start(); } ?>
+    <?php if (!empty($_SESSION['success'])): ?>
+        <div class="alert alert-success mb-3"><?= htmlspecialchars($_SESSION['success']) ?></div>
+        <?php unset($_SESSION['success']); ?>
+    <?php endif; ?>
+    <?php if (!empty($_SESSION['error'])): ?>
+        <div class="alert alert-danger mb-3"><?= htmlspecialchars($_SESSION['error']) ?></div>
+        <?php unset($_SESSION['error']); ?>
+    <?php endif; ?>
     <?php if (!empty($_SESSION['new_tour_debug'])): $dbg = $_SESSION['new_tour_debug']; ?>
         <div class="mb-3">
             <?php if ($dbg['foundInList']): ?>
