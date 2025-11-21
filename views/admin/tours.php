@@ -29,9 +29,27 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
             <h2 class="page-title mb-0">Quản lý danh sách Tour</h2>
         </div>
         <div>
-            <a href="#" class="btn btn-success rounded-pill px-4">+ Thêm tour</a>
+            <a href="<?= BASE_URL ?>?action=tours-create" class="btn btn-success rounded-pill px-4">+ Thêm tour</a>
         </div>
     </div>
+
+    <?php if (session_status() === PHP_SESSION_NONE) { session_start(); } ?>
+    <?php if (!empty($_SESSION['new_tour_debug'])): $dbg = $_SESSION['new_tour_debug']; ?>
+        <div class="mb-3">
+            <?php if ($dbg['foundInList']): ?>
+                <div class="alert alert-success"><?= htmlspecialchars($dbg['message']) ?></div>
+            <?php else: ?>
+                <div class="alert alert-warning">
+                    <?= htmlspecialchars($dbg['message']) ?>
+                    <?php if (!empty($dbg['direct'])): ?>
+                        <div class="small mt-2">Dữ liệu lưu trực tiếp: <pre style="white-space:pre-wrap"><?= htmlspecialchars(json_encode($dbg['direct'], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT)) ?></pre></div>
+                    <?php else: ?>
+                        <div class="small mt-2 text-muted">Không tìm thấy bản ghi trong CSDL.</div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php unset($_SESSION['new_tour_debug']); endif; ?>
 
     <div class="card-like mb-4">
         <form class="filter-bar" method="get" action="<?= BASE_URL ?>">
@@ -154,8 +172,8 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <button class="btn btn-sm btn-outline-secondary" type="button" disabled>✏️</button>
-                                        <button class="btn btn-sm btn-outline-danger" type="button" disabled>🗑️</button>
+                                        <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
+                                        <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
                                     </div>
                                 </td>
                             </tr>

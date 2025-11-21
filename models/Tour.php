@@ -3,6 +3,7 @@
 class Tour extends BaseModel
 {
     protected $table = 'tours';
+    protected $lastError = null;
 
     public function countAll(): int
     {
@@ -33,6 +34,85 @@ class Tour extends BaseModel
         $stmt->execute();
 
         return $stmt->fetchAll();
+    }
+
+    public function find($id)
+    {
+        $sql = "SELECT * FROM {$this->table} WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function update($id, $name, $category_id, $price, $description = null, $itinerary = null, $policy = null)
+    {
+        $sql = "UPDATE {$this->table} SET name = ?, category_id = ?, price = ?, description = ?, itinerary = ?, policy = ?, updated_at = NOW() WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$name, $category_id, $price, $description, $itinerary, $policy, $id]);
+    }
+
+    public function delete($id)
+    {
+        $sql = "DELETE FROM {$this->table} WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        return $stmt->execute([$id]);
+    }
+
+    public function insert($name, $category_id, $price = 0, $description = null, $itinerary = null, $policy = null, $image = null)
+    {
+        // Note: the `tours` table in this project contains columns: id, category_id, name, description, price, image, policy, itinerary, created_at
+        // We insert only the columns that exist (set created_at to NOW()) and do not assume updated_at exists.
+        $sql = "INSERT INTO {$this->table} (name, category_id, price, description, itinerary, policy, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $params = [$name, $category_id, $price, $description, $itinerary, $policy, $image];
+            $res = $stmt->execute($params);
+            if ($res) {
+                return (int) $this->pdo->lastInsertId();
+            }
+
+            $this->lastError = $stmt->errorInfo();
+            error_log('Tour::insert - execute returned false; errorInfo: ' . json_encode($this->lastError));
+            return false;
+        } catch (PDOException $e) {
+            $this->lastError = ['exception' => $e->getMessage(), 'params' => ['name' => $name, 'category_id' => $category_id, 'price' => $price, 'image' => $image]];
+            error_log('Tour::insert exception: ' . $e->getMessage() . ' | params: ' . json_encode([
+                'name' => $name,
+                'category_id' => $category_id,
+                'price' => $price,
+                'image' => $image,
+            ]));
+            return false;
+        }
+    }
+
+    public function getLastError()
+    {
+        return $this->lastError;
+    }
+
+    /**
+     * Resequence primary key ids so they become contiguous starting at 1.
+     * WARNING: This rewrites primary keys and will break foreign keys if other tables reference `tours.id`.
+     * Use only if there are no FK dependencies.
+     * @return bool
+     */
+    public function resequenceIds(): bool
+    {
+        try {
+            $this->pdo->beginTransaction();
+            // reset user variable then update ids in order
+            $this->pdo->exec("SET @i = 0");
+            $this->pdo->exec("UPDATE {$this->table} SET id = (@i := @i + 1) ORDER BY id");
+            // reset auto-increment to next value
+            $this->pdo->exec("ALTER TABLE {$this->table} AUTO_INCREMENT = 1");
+            $this->pdo->commit();
+            return true;
+        } catch (PDOException $e) {
+            try { $this->pdo->rollBack(); } catch (Throwable $_) {}
+            error_log('Tour::resequenceIds error: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

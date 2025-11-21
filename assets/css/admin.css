@@ -7,7 +7,7 @@ body {
 }
 
 .sidebar {
-    background-color: #5e9bd4 !important;
+    background-color: #5e9bd4;
     color: #1f2d3d;
     height: 100vh;
     position: fixed;
