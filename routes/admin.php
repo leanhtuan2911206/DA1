@@ -29,4 +29,10 @@ match ($action) {
     'bookings-update'        => (new BookingController)->update(),
     'bookings-update-status' => (new BookingController)->updateStatus(),
     'bookings-delete'        => (new BookingController)->delete(),
+    'users'                  => (new UserController)->index(),
+    'users-create'           => (new UserController)->create(),
+    'users-store'            => (new UserController)->store(),
+    'users-edit'             => (new UserController)->edit(),
+    'users-update'           => (new UserController)->update(),
+    'users-delete'           => (new UserController)->delete(),
 };
