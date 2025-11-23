@@ -4,7 +4,8 @@ $currentAction = $currentAction ?? ($_GET['action'] ?? '/');
 $activeMap = [
     'admin'            => ['/', 'admin'],
     'tour-categories'  => ['tour-categories', 'tour-categories-create', 'tour-categories-store', 'tour-categories-edit', 'tour-categories-update'],
-    'tours'            => ['tours'],
+    'tours'            => ['tours', 'tours-create', 'tours-store', 'tours-edit', 'tours-update'],
+    'bookings'         => ['bookings', 'bookings-create', 'bookings-store', 'bookings-edit', 'bookings-update', 'bookings-update-status'],
 ];
 
 $isActive = function(string $key) use ($currentAction, $activeMap) {
@@ -14,7 +15,7 @@ $isActive = function(string $key) use ($currentAction, $activeMap) {
 ?>
 
 <aside class="sidebar">
-    <?php $__logoUrl = BASE_ASSETS_UPLOADS . 'logo.png'; $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'logo.png'; ?>
+    <?php $__logoUrl = BASE_ASSETS_UPLOADS . 'img/logo.png'; $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'logo.png'; ?>
     <div class="mb-4 text-center">
         <?php if (file_exists($__logoFs)): ?>
             <img src="<?= $__logoUrl ?>" alt="Travel Company" style="max-height:120px">
@@ -34,7 +35,7 @@ $isActive = function(string $key) use ($currentAction, $activeMap) {
             <a class="nav-link <?= $isActive('tours'); ?>" href="<?= BASE_URL ?>?action=tours">Danh sách tour</a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link" href="#">Quản lý booking</a>
+            <a class="nav-link <?= $isActive('bookings'); ?>" href="<?= BASE_URL ?>?action=bookings">Quản lý booking</a>
         </li>
         <li class="nav-item mb-2">
             <a class="nav-link" href="#">Quản lý tài khoản</a>

@@ -21,4 +21,12 @@ match ($action) {
     'tours-edit'    => (new TourController)->edit(),
     'tours-update'  => (new TourController)->update(),
     'tours-delete'  => (new TourController)->delete(),
+
+    'bookings'              => (new BookingController)->index(),
+    'bookings-create'        => (new BookingController)->create(),
+    'bookings-store'         => (new BookingController)->store(),
+    'bookings-edit'          => (new BookingController)->edit(),
+    'bookings-update'        => (new BookingController)->update(),
+    'bookings-update-status' => (new BookingController)->updateStatus(),
+    'bookings-delete'        => (new BookingController)->delete(),
 };
