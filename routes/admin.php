@@ -35,4 +35,6 @@ match ($action) {
     'users-edit'             => (new UserController)->edit(),
     'users-update'           => (new UserController)->update(),
     'users-delete'           => (new UserController)->delete(),
+
+    'guides'                 => (new GuideController)->index(),
 };
