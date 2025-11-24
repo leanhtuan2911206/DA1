@@ -29,12 +29,11 @@ match ($action) {
     'bookings-update'        => (new BookingController)->update(),
     'bookings-update-status' => (new BookingController)->updateStatus(),
     'bookings-delete'        => (new BookingController)->delete(),
-    'users'                  => (new UserController)->index(),
-    'users-create'           => (new UserController)->create(),
-    'users-store'            => (new UserController)->store(),
-    'users-edit'             => (new UserController)->edit(),
-    'users-update'           => (new UserController)->update(),
-    'users-delete'           => (new UserController)->delete(),
 
-    'guides'                 => (new GuideController)->index(),
+    'guides'         => (new GuideController)->index(),
+    'guides-create'  => (new GuideController)->create(),
+    'guides-store'   => (new GuideController)->store(),
+    'guides-edit'    => (new GuideController)->edit(),
+    'guides-update'  => (new GuideController)->update(),
+    'guides-delete'  => (new GuideController)->delete(),
 };

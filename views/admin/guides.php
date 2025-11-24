@@ -1,26 +1,45 @@
 <?php
-$guidesPage = $guidesPage ?? ['guides' => [], 'stats' => []];
-$guides = $guidesPage['guides'] ?? [];
-$stats = array_merge([
-    'total' => 0,
-    'male' => 0,
-    'female' => 0,
-    'avgExperience' => 0,
-], $guidesPage['stats'] ?? []);
+$guideList = isset($guides) && is_array($guides) ? $guides : [];
+$filters = array_merge([
+    'keyword'  => '',
+    'language' => '',
+    'status'   => '',
+], $filters ?? []);
+$summary = array_merge([
+    'total'    => 0,
+    'active'   => 0,
+    'inactive' => 0,
+    'on_leave' => 0,
+], $summary ?? []);
+
+$statusBadges = [
+    'active'   => ['label' => 'Đang làm việc', 'class' => 'bg-success'],
+    'inactive' => ['label' => 'Tạm ngưng', 'class' => 'bg-secondary'],
+    'on_leave' => ['label' => 'Đang nghỉ phép', 'class' => 'bg-warning text-dark'],
+];
 ?>
 
 <main class="main-content">
     <div class="topbar d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
             <button class="btn btn-light d-lg-none" type="button">☰</button>
-            <div>
-                <p class="text-uppercase text-muted small mb-0">Quản lý nhân sự</p>
-                <h5 class="mb-0 fw-semibold">Hướng dẫn viên</h5>
+            <div class="search-wrap">
+                <input type="text" class="form-control" placeholder="Tìm kiếm nhanh" readonly/>
             </div>
         </div>
         <div class="d-flex align-items-center gap-3">
             <span class="badge bg-primary-subtle text-primary">VN</span>
             <div class="avatar rounded-circle bg-secondary-subtle"></div>
+        </div>
+    </div>
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+        <div>
+            <p class="text-uppercase text-muted small mb-1">Nguồn lực</p>
+            <h2 class="page-title mb-0">Quản lý nhân sự</h2>
+        </div>
+        <div>
+            <a href="<?= BASE_URL ?>?action=guides-create" class="btn btn-success rounded-pill px-4">+ Thêm nhân sự</a>
         </div>
     </div>
 
@@ -30,49 +49,78 @@ $stats = array_merge([
         <?php unset($_SESSION['success']); ?>
     <?php endif; ?>
     <?php if (!empty($_SESSION['error'])): ?>
-        <div class="alert alert-danger mb-3"><?= htmlspecialchars($_SESSION['error']) ?></div>
+        <div class="alert alert-danger mb-3"><?= $_SESSION['error'] ?></div>
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
 
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <p class="text-uppercase text-muted small mb-1">Danh sách</p>
-            <h2 class="page-title mb-0">Quản lý Hướng dẫn viên</h2>
-            <p class="text-muted mb-0 small">Theo dõi tình trạng nhân sự HDV trong hệ thống</p>
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Tổng nhân sự</p>
+                    <h4 class="mb-0"><?= (int)$summary['total'] ?></h4>
+                </div>
+            </div>
         </div>
-        <div class="d-flex gap-2">
-            <a href="<?= BASE_URL ?>?action=guides-create" class="btn btn-success rounded-pill px-4 d-flex align-items-center gap-2">
-                <span>＋</span> Thêm HDV mới
-            </a>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Đang làm việc</p>
+                    <h4 class="text-success mb-0"><?= (int)$summary['active'] ?></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Tạm dừng</p>
+                    <h4 class="text-secondary mb-0"><?= (int)$summary['inactive'] ?></h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="text-muted text-uppercase small mb-1">Nghỉ phép</p>
+                    <h4 class="text-warning mb-0"><?= (int)$summary['on_leave'] ?></h4>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Quick stats -->
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-md-3">
-            <div class="info-tile bg-primary-subtle text-primary">
-                <div class="fs-1 fw-bold"><?= number_format($stats['total']) ?></div>
-                <div class="small text-uppercase text-muted">Tổng số HDV</div>
+    <div class="card-like mb-4">
+        <form class="filter-bar" method="get" action="<?= BASE_URL ?>">
+            <input type="hidden" name="action" value="guides">
+            <div class="row g-3 align-items-center">
+                <div class="col-12 col-md-4">
+                    <input
+                        class="form-control form-control-sm"
+                        name="keyword"
+                        value="<?= htmlspecialchars($filters['keyword']) ?>"
+                        placeholder="Tên, số điện thoại, ngôn ngữ"
+                    />
+                </div>
+                <div class="col-12 col-md-4">
+                    <input
+                        class="form-control form-control-sm"
+                        name="language"
+                        value="<?= htmlspecialchars($filters['language']) ?>"
+                        placeholder="Lọc theo ngôn ngữ"
+                    />
+                </div>
+                <div class="col-12 col-md-3 col-lg-2">
+                    <select class="form-select form-select-sm" name="status">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="active" <?= $filters['status'] === 'active' ? 'selected' : '' ?>>Đang làm việc</option>
+                        <option value="inactive" <?= $filters['status'] === 'inactive' ? 'selected' : '' ?>>Tạm dừng</option>
+                        <option value="on_leave" <?= $filters['status'] === 'on_leave' ? 'selected' : '' ?>>Nghỉ phép</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-1 text-md-end">
+                    <button class="btn btn-warning btn-sm w-100" type="submit">Lọc</button>
+                </div>
             </div>
-        </div>
-        <div class="col-12 col-md-3">
-            <div class="info-tile bg-info-subtle text-info">
-                <div class="fs-1 fw-bold"><?= number_format($stats['male']) ?></div>
-                <div class="small text-uppercase text-muted">HDV Nam</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-3">
-            <div class="info-tile bg-pink-subtle text-danger">
-                <div class="fs-1 fw-bold"><?= number_format($stats['female']) ?></div>
-                <div class="small text-uppercase text-muted">HDV Nữ</div>
-            </div>
-        </div>
-        <div class="col-12 col-md-3">
-            <div class="info-tile bg-warning-subtle text-warning">
-                <div class="fs-2 fw-bold"><?= number_format($stats['avgExperience'], 1) ?> năm</div>
-                <div class="small text-uppercase text-muted">Kinh nghiệm TB</div>
-            </div>
-        </div>
+        </form>
     </div>
 
     <div class="card-like">
@@ -80,67 +128,62 @@ $stats = array_merge([
             <table class="table align-middle">
                 <thead>
                     <tr>
-                        <th style="width: 70px;">ID</th>
+                        <th width="70">Mã số</th>
                         <th>Họ tên</th>
-                        <th>Ngày sinh</th>
-                        <th>Giới tính</th>
                         <th>Liên hệ</th>
                         <th>Ngôn ngữ</th>
-                        <th>Địa chỉ</th>
-                        <th>Chứng chỉ </th>
-                        <th>Kinh nghiệm</th>
-                        <th>Điểm đánh giá</th>
-                        <th>Thao tác</th>
+                        <th class="text-center">Kinh nghiệm</th>
+                        <th>Sức khỏe</th>
+                        <th class="text-center">Điểm</th>
+                        <th>Trạng thái</th>
+                        <th width="130">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($guides)): ?>
+                    <?php if (empty($guideList)): ?>
                         <tr>
-                            <td colspan="11" class="text-center text-muted py-5">
-                                Hiện chưa có hướng dẫn viên nào trong hệ thống.
-                            </td>
+                            <td colspan="9" class="text-center text-muted py-5">Chưa có nhân sự nào khớp bộ lọc.</td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($guides as $guide): ?>
+                        <?php foreach ($guideList as $guide): ?>
                             <?php
-                                $gender = trim($guide['GioiTinh'] ?? 'N/A');
-                                $genderLower = strtolower($gender);
-                                $genderBadge = 'bg-secondary';
-                                if (in_array($genderLower, ['nam', 'male'], true)) {
-                                    $genderBadge = 'bg-primary';
-                                } elseif (in_array($genderLower, ['nữ', 'nu', 'female'], true)) {
-                                    $genderBadge = 'bg-danger';
-                                }
+                                $statusKey = strtolower($guide['status'] ?? '');
+                                $badge = $statusBadges[$statusKey] ?? ['label' => ucfirst($statusKey ?: 'khác'), 'class' => 'bg-secondary'];
                             ?>
                             <tr>
-                                <td class="text-muted fw-semibold"><?= htmlspecialchars($guide['HDV_ID']) ?></td>
+                                <td class="text-muted"><?= htmlspecialchars((string)($guide['HDV_ID'] ?? '')) ?></td>
                                 <td>
-                                    <div class="fw-semibold"><?= htmlspecialchars($guide['HoTen'] ?? 'N/A') ?></div>
-                                    <div class="text-muted small">ID nội bộ: HDV<?= str_pad((string)$guide['HDV_ID'], 3, '0', STR_PAD_LEFT) ?></div>
+                                    <div class="fw-semibold"><?= htmlspecialchars($guide['HoTen'] ?? '—') ?></div>
+                                    <div class="small text-muted">
+                                        <?php if (!empty($guide['NgaySinh'])): ?>
+                                            SN: <?= htmlspecialchars($guide['NgaySinh']) ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($guide['GioiTinh'])): ?>
+                                            · <?= htmlspecialchars($guide['GioiTinh']) ?>
+                                        <?php endif; ?>
+                                    </div>
                                 </td>
-                                <td><?= isset($guide['NgaySinh']) ? date('d/m/Y', strtotime($guide['NgaySinh'])) : 'N/A' ?></td>
                                 <td>
-                                    <span class="badge rounded-pill <?= $genderBadge ?>">
-                                        <?= $gender ?>
+                                    <div><?= htmlspecialchars($guide['LienHe'] ?? '—') ?></div>
+                                    <div class="small text-muted"><?= htmlspecialchars($guide['DiaChi'] ?? '') ?></div>
+                                </td>
+                                <td><?= htmlspecialchars($guide['NgonNgu'] ?? '—') ?></td>
+                                <td class="text-center"><?= htmlspecialchars($guide['KinhNghiem'] ?? '0') ?> năm</td>
+                                <td><?= htmlspecialchars($guide['TrangThaiSucKhoe'] ?? '—') ?></td>
+                                <td class="text-center"><?= htmlspecialchars($guide['DiemDanhGia'] ?? '—') ?></td>
+                                <td>
+                                    <span class="badge rounded-pill <?= $badge['class'] ?>">
+                                        <?= htmlspecialchars($badge['label']) ?>
                                     </span>
                                 </td>
                                 <td>
-                                    <div><?= htmlspecialchars($guide['LienHe'] ?? 'N/A') ?></div>
-                                    <?php if (!empty($guide['Email'])): ?>
-                                        <div class="text-muted small"><?= htmlspecialchars($guide['Email']) ?></div>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= htmlspecialchars($guide['NgonNgu'] ?? 'Đang cập nhật') ?></td>
-                                <td><?= htmlspecialchars($guide['DiaChi'] ?? 'N/A') ?></td>
-                                <td><?= htmlspecialchars($guide['ChungChiHDV'] ?? 'N/A') ?></td>
-                                <td>
-                                    <div class="fw-semibold"><?= htmlspecialchars($guide['KinhNghiem'] ?? 0) ?> năm</div>
-                                </td>
-                                <td><?= htmlspecialchars($guide['DiemDanhGia'] ?? 'Chưa có') ?></td>
-                                <td>
                                     <div class="d-flex gap-2">
                                         <a href="<?= BASE_URL ?>?action=guides-edit&id=<?= $guide['HDV_ID'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
-                                        <a href="<?= BASE_URL ?>?action=guides-delete&id=<?= $guide['HDV_ID'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa HDV <?= htmlspecialchars($guide['HoTen'] ?? '') ?>?')">🗑️</a>
+                                        <a
+                                            href="<?= BASE_URL ?>?action=guides-delete&id=<?= $guide['HDV_ID'] ?>"
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Bạn có chắc muốn xóa nhân sự này?');"
+                                        >🗑️</a>
                                     </div>
                                 </td>
                             </tr>
@@ -151,3 +194,4 @@ $stats = array_merge([
         </div>
     </div>
 </main>
+

@@ -7,7 +7,7 @@ $activeMap = [
     'tours'            => ['tours', 'tours-create', 'tours-store', 'tours-edit', 'tours-update'],
     'bookings'         => ['bookings', 'bookings-create', 'bookings-store', 'bookings-edit', 'bookings-update', 'bookings-update-status'],
     'users'            => ['users', 'users-create', 'users-store', 'users-edit', 'users-update', 'users-delete'],
-    'guides'           => ['guides'],
+    'guides'           => ['guides', 'guides-create', 'guides-store', 'guides-edit', 'guides-update', 'guides-delete'],
 ];
 
 $isActive = function(string $key) use ($currentAction, $activeMap) {
