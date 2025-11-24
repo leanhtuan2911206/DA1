@@ -21,7 +21,7 @@ $filters = [
         </div>
         <div class="d-flex align-items-center gap-3">
             <span class="badge bg-primary-subtle text-primary">VN</span>
-            <div class="avatar rounded-circle bg-secondary-subtle"></div>
+            <div class="avatar rounded-circle bg-secondary-subtle"></div>        
         </div>
     </div>
 

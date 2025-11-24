@@ -42,6 +42,12 @@ $isActive = function(string $key) use ($currentAction, $activeMap) {
             <a class="nav-link <?= $isActive('users'); ?>" href="<?= BASE_URL ?>?action=users">Quản lý tài khoản</a>
         </li>
         <li class="nav-item mb-2">
+            <a class="nav-link" href="#">Quản lý nhân sự</a>
+        </li>
+         <li class="nav-item mb-2">
+            <a class="nav-link" href="#">Quản lý khởi hành và phân bổ nhân sự</a>
+        </li>
+         <li class="nav-item mb-2">
             <a class="nav-link" href="#">Cài đặt</a>
         </li>
         <li class="nav-item mt-4 px-3">
