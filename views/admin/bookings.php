@@ -105,8 +105,8 @@ $filters = [
                 </div>
                 <div class="col-12 col-lg-auto ms-lg-auto">
                     <div class="filter-actions d-flex align-items-center gap-2 justify-content-lg-end">
-                        <button class="btn btn-warning" type="submit">Tìm kiếm</button>
-                        <a class="btn btn-light text-secondary" href="<?= BASE_URL ?>?action=bookings">Đặt lại</a>
+                        <button class="btn btn-sm btn-warning px-3 py-1 d-inline-flex align-items-center rounded-pill" type="submit">Tìm kiếm</button>
+                        <a class="btn btn-sm btn-light text-secondary px-3 py-1 d-inline-flex align-items-center rounded-pill" href="<?= BASE_URL ?>?action=bookings">Đặt lại</a>
                     </div>
                 </div>
             </div>
@@ -170,6 +170,10 @@ $filters = [
                                             $statusText = 'Hoàn thành';
                                             $statusClass = 'bg-success';
                                             break;
+                                        case 'cancelled':
+                                            $statusText = 'Đã hủy';
+                                            $statusClass = 'bg-danger';
+                                            break;
                                         default:
                                             $statusText = $booking['status'];
                                             $statusClass = 'bg-secondary';
@@ -216,6 +220,7 @@ $filters = [
                                                     <option value="confirmed" <?= $booking['status'] === 'confirmed' ? 'selected' : '' ?>>Đã xác nhận</option>
                                                     <option value="deposit" <?= $booking['status'] === 'deposit' ? 'selected' : '' ?>>Đã đặt cọc</option>
                                                     <option value="completed" <?= $booking['status'] === 'completed' ? 'selected' : '' ?>>Hoàn thành</option>
+                                                    <option value="cancelled" <?= $booking['status'] === 'cancelled' ? 'selected' : '' ?>>Đã hủy</option>
                                                 </select>
                                             </form>
                                             <a href="<?= BASE_URL ?>?action=bookings-edit&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>

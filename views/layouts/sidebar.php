@@ -10,14 +10,15 @@ $activeMap = [
     'guides'           => ['guides', 'guides-create', 'guides-store', 'guides-edit', 'guides-update', 'guides-delete'],
 ];
 
-$isActive = function(string $key) use ($currentAction, $activeMap) {
+$isActive = function (string $key) use ($currentAction, $activeMap) {
     $actions = $activeMap[$key] ?? [$key];
     return in_array($currentAction, $actions, true) ? 'active' : '';
 };
 ?>
 
 <aside class="sidebar">
-    <?php $__logoUrl = BASE_ASSETS_UPLOADS . 'img/logo.png'; $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'logo.png'; ?>
+    <?php $__logoUrl = BASE_ASSETS_UPLOADS . 'logo.png';
+    $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR  . DIRECTORY_SEPARATOR . 'logo.png'; ?>
     <div class="mb-4 text-center">
         <?php if (file_exists($__logoFs)): ?>
             <img src="<?= $__logoUrl ?>" alt="Travel Company" style="max-height:120px">
@@ -45,10 +46,10 @@ $isActive = function(string $key) use ($currentAction, $activeMap) {
         <li class="nav-item mb-2">
             <a class="nav-link <?= $isActive('guides'); ?>" href="<?= BASE_URL ?>?action=guides">Quản lý nhân sự</a>
         </li>
-         <li class="nav-item mb-2">
+        <li class="nav-item mb-2">
             <a class="nav-link" href="#">Quản lý khởi hành và phân bổ nhân sự</a>
         </li>
-         <li class="nav-item mb-2">
+        <li class="nav-item mb-2">
             <a class="nav-link" href="#">Cài đặt</a>
         </li>
         <li class="nav-item mt-4 px-3">

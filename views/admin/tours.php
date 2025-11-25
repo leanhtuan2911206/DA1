@@ -100,8 +100,8 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                 </div>
                 <div class="col-12 col-lg-auto ms-lg-auto">
                     <div class="filter-actions d-flex align-items-center gap-2 justify-content-lg-end">
-                        <button class="btn btn-warning" type="submit">Tìm kiếm</button>
-                        <a class="btn btn-light text-secondary" href="<?= BASE_URL ?>?action=tours">Đặt lại</a>
+                        <button class="btn btn-sm btn-warning px-3 py-1 d-inline-flex align-items-center rounded-pill" type="submit">Tìm kiếm</button>
+                        <a class="btn btn-sm btn-light text-secondary px-3 py-1 d-inline-flex align-items-center rounded-pill" href="<?= BASE_URL ?>?action=tours">Đặt lại</a>
                     </div>
                 </div>
             </div>
