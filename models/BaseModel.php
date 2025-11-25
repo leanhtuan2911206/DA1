@@ -23,4 +23,19 @@ class BaseModel
     {
         $this->pdo = null;
     }
+
+    // Kiểm tra cột có tồn tại trong bảng hiện tại hay không
+    protected function columnExists(string $table, string $column): bool
+    {
+        try {
+            $sql = "SHOW COLUMNS FROM `" . $table . "` LIKE :col";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':col', $column, PDO::PARAM_STR);
+            $stmt->execute();
+            $res = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $res !== false && !empty($res);
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
 }

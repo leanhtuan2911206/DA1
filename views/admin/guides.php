@@ -88,6 +88,13 @@ $statusBadges = [
         </div>
     </div>
 
+    <?php
+        // Kiểm tra xem data trả về có cột `status` hay không
+        $statusColumnExists = false;
+        if (!empty($guideList) && is_array($guideList[0])) {
+            $statusColumnExists = array_key_exists('status', $guideList[0]);
+        }
+    ?>
     <div class="card-like mb-4">
         <form class="filter-bar" method="get" action="<?= BASE_URL ?>">
             <input type="hidden" name="action" value="guides">
@@ -108,6 +115,7 @@ $statusBadges = [
                         placeholder="Lọc theo ngôn ngữ"
                     />
                 </div>
+                <?php if ($statusColumnExists): ?>
                 <div class="col-12 col-md-3 col-lg-2">
                     <select class="form-select form-select-sm" name="status">
                         <option value="">Tất cả trạng thái</option>
@@ -116,6 +124,7 @@ $statusBadges = [
                         <option value="on_leave" <?= $filters['status'] === 'on_leave' ? 'selected' : '' ?>>Nghỉ phép</option>
                     </select>
                 </div>
+                <?php endif; ?>
                 <div class="col-12 col-md-1 text-md-end">
                     <button class="btn btn-warning btn-sm w-100" type="submit">Lọc</button>
                 </div>
@@ -132,6 +141,7 @@ $statusBadges = [
                         <th>Họ tên</th>
                         <th>Liên hệ</th>
                         <th>Ngôn ngữ</th>
+                        <th>Chứng chỉ</th>
                         <th class="text-center">Kinh nghiệm</th>
                         <th>Sức khỏe</th>
                         <th class="text-center">Điểm</th>
@@ -147,11 +157,18 @@ $statusBadges = [
                     <?php else: ?>
                         <?php foreach ($guideList as $guide): ?>
                             <?php
-                                $statusKey = strtolower($guide['status'] ?? '');
+                                // Lấy trạng thái an toàn: nếu không có cột `status` hoặc giá trị rỗng, mặc định là 'active'
+                                $rawStatus = $guide['status'] ?? null;
+                                if ($rawStatus === null || trim((string)$rawStatus) === '') {
+                                    $statusKey = 'active';
+                                } else {
+                                    $statusKey = strtolower((string)$rawStatus);
+                                }
                                 $badge = $statusBadges[$statusKey] ?? ['label' => ucfirst($statusKey ?: 'khác'), 'class' => 'bg-secondary'];
+                                $isNew = isset($_GET['new']) && (int)$_GET['new'] === ((int)($guide['HDV_ID'] ?? 0));
                             ?>
-                            <tr>
-                                <td class="text-muted"><?= htmlspecialchars((string)($guide['HDV_ID'] ?? '')) ?></td>
+                            <tr <?= $isNew ? 'class="table-success"' : '' ?>>
+                                <td class="text-muted"><?= htmlspecialchars((string)($guide['ma_so'] ?? $guide['HDV_ID'] ?? '')) ?></td>
                                 <td>
                                     <div class="fw-semibold"><?= htmlspecialchars($guide['HoTen'] ?? '—') ?></div>
                                     <div class="small text-muted">
@@ -168,6 +185,7 @@ $statusBadges = [
                                     <div class="small text-muted"><?= htmlspecialchars($guide['DiaChi'] ?? '') ?></div>
                                 </td>
                                 <td><?= htmlspecialchars($guide['NgonNgu'] ?? '—') ?></td>
+                                <td><?= htmlspecialchars($guide['ChungChiHDV'] ?? '—') ?></td>
                                 <td class="text-center"><?= htmlspecialchars($guide['KinhNghiem'] ?? '0') ?> năm</td>
                                 <td><?= htmlspecialchars($guide['TrangThaiSucKhoe'] ?? '—') ?></td>
                                 <td class="text-center"><?= htmlspecialchars($guide['DiemDanhGia'] ?? '—') ?></td>

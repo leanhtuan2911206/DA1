@@ -21,6 +21,28 @@ class GuideController
                 'inactive' => $guideModel->countByStatus('inactive'),
                 'on_leave' => $guideModel->countByStatus('on_leave'),
             ];
+            // Nếu có tham số new (id vừa tạo), lấy và đẩy bản ghi đó lên đầu danh sách để dễ thấy
+            $newId = isset($_GET['new']) ? (int) $_GET['new'] : 0;
+            if ($newId > 0) {
+                try {
+                    $newGuide = $guideModel->find($newId);
+                    if ($newGuide) {
+                        // Nếu bản ghi chưa có trong danh sách, thêm vào đầu
+                        $exists = false;
+                        foreach ($guides as $g) {
+                            if (isset($g['HDV_ID']) && (int)$g['HDV_ID'] === $newId) {
+                                $exists = true;
+                                break;
+                            }
+                        }
+                        if (!$exists) {
+                            array_unshift($guides, $newGuide);
+                        }
+                    }
+                } catch (Throwable $e) {
+                    // Không phá flow nếu không tìm được bản ghi
+                }
+            }
         } catch (Throwable $e) {
             error_log('GuideController::index error: ' . $e->getMessage());
             $guides = [];
@@ -79,7 +101,8 @@ class GuideController
             exit;
         }
 
-        header('Location: ' . BASE_URL . '?action=guides');
+        // Chuyển về trang danh sách và đánh dấu bản ghi vừa tạo
+        header('Location: ' . BASE_URL . '?action=guides&new=' . $newId);
         exit;
     }
 
