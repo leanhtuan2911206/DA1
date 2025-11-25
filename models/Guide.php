@@ -29,6 +29,17 @@ class Guide extends BaseModel
         return (int) $stmt->fetchColumn();
     }
 
+    public function ensureStatusColumn(): void
+    {
+        try {
+            if (!$this->columnExists($this->table, 'status')) {
+                $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'");
+            }
+        } catch (Throwable $e) {
+            error_log('Guide::ensureStatusColumn error: ' . $e->getMessage());
+        }
+    }
+
     public function list(array $filters = []): array
     {
         $sql = "SELECT * FROM {$this->table}";
