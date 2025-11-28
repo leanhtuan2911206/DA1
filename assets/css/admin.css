@@ -38,6 +38,7 @@ body {
     font-weight: 600;
     transition: background-color .2s ease, color .2s ease, box-shadow .2s ease;
 }
+.sidebar a:visited { color: #ffffff; }
 
 .sidebar a:hover {
     background-color: rgba(255,255,255,0.35);
@@ -245,3 +246,10 @@ body {
     font-weight: 600;
     transition: color 0.2s ease;
 }
+
+.action-btns {display:flex; gap:8px; flex-wrap:wrap}
+.btn-action {border:none; border-radius:10px; padding:6px 12px; font-weight:600; box-shadow: 0 2px 6px rgba(0,0,0,.06)}
+.btn-action:hover {filter: brightness(0.95)}
+.btn-edit {background:#6b7280; color:#fff}
+.btn-delete {background:#ef4444; color:#fff}
+.btn-service {background:#3b82f6; color:#fff}

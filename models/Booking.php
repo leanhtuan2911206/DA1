@@ -56,6 +56,24 @@ class Booking extends BaseModel
         return $candidates[0] ?? null;
     }
 
+    public function listSimple(array $filters = []): array
+    {
+        $sql = "SELECT b.id, b.tour_id, b.start_date, b.customer_name, t.name AS tour_name FROM {$this->table} AS b LEFT JOIN tours AS t ON t.id = b.tour_id";
+        $conditions = [];
+        $params = [];
+        if (!empty($filters['tour_id'])) { $conditions[] = 'b.tour_id = :tour_id'; $params[':tour_id'] = (int)$filters['tour_id']; }
+        if (!empty($filters['start_date_from'])) { $conditions[] = 'b.start_date >= :from'; $params[':from'] = $filters['start_date_from']; }
+        if (!empty($filters['start_date_to'])) { $conditions[] = 'b.start_date <= :to'; $params[':to'] = $filters['start_date_to']; }
+        if ($conditions) { $sql .= ' WHERE ' . implode(' AND ', $conditions); }
+        $sql .= ' ORDER BY b.start_date DESC, b.created_at DESC, b.id DESC';
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            foreach ($params as $k => $v) { $stmt->bindValue($k, $v, is_int($v)?PDO::PARAM_INT:PDO::PARAM_STR); }
+            $stmt->execute();
+            return $stmt->fetchAll();
+        } catch (Throwable $e) { return []; }
+    }
+
     /**
      * Lấy danh sách booking theo tour, nhóm theo tour_id
      */
