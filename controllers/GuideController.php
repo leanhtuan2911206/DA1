@@ -14,6 +14,7 @@ class GuideController
         ];
 
         $guideModel = new Guide();
+        $guideModel->ensureStatusColumn();
         try {
             $guides = $guideModel->list($filters);
             $summary = [
@@ -89,6 +90,7 @@ class GuideController
 
         try {
             $guideModel = new Guide();
+            $guideModel->ensureStatusColumn();
             $newId = $guideModel->create($data);
             if ($newId === false) {
                 throw new RuntimeException('Không thể lưu nhân sự.');
@@ -160,6 +162,7 @@ class GuideController
 
         try {
             $guideModel = new Guide();
+            $guideModel->ensureStatusColumn();
             if (!$guideModel->update($id, $data)) {
                 throw new RuntimeException('Không thể cập nhật nhân sự.');
             }
