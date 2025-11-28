@@ -52,6 +52,10 @@ class Guide extends BaseModel
             $conditions[] = "NgonNgu LIKE :language";
             $params[':language'] = '%' . $filters['language'] . '%';
         }
+        if (!empty($filters['gender'])) {
+            $conditions[] = "GioiTinh = :gender";
+            $params[':gender'] = $filters['gender'];
+        }
 
         if ($conditions) {
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
@@ -201,6 +205,73 @@ class Guide extends BaseModel
 
     private function mapData(array $data, bool $isUpdate = false): array
     {
+        // For updates we must not overwrite fields that were not provided by the caller.
+        // So only map keys that exist in the incoming $data when $isUpdate is true.
+        if ($isUpdate) {
+            $mapped = [];
+
+            if (array_key_exists('full_name', $data)) {
+                $mapped['HoTen'] = $this->sanitizeString($data['full_name']);
+            }
+            if (array_key_exists('dob', $data)) {
+                $mapped['NgaySinh'] = $this->sanitizeDate($data['dob']);
+            }
+            if (array_key_exists('gender', $data)) {
+                $mapped['GioiTinh'] = $this->sanitizeString($data['gender']);
+            }
+            if (array_key_exists('contact', $data)) {
+                $mapped['LienHe'] = $this->sanitizeString($data['contact']);
+            }
+            if (array_key_exists('languages', $data)) {
+                $mapped['NgonNgu'] = $this->sanitizeString($data['languages']);
+            }
+            if (array_key_exists('address', $data)) {
+                $mapped['DiaChi'] = $this->sanitizeString($data['address']);
+            }
+            if (array_key_exists('certificate', $data)) {
+                $mapped['ChungChiHDV'] = $this->sanitizeString($data['certificate']);
+            }
+            if (array_key_exists('experience_years', $data)) {
+                $mapped['KinhNghiem'] = $this->sanitizeInt($data['experience_years']);
+            }
+            if (array_key_exists('start_date', $data)) {
+                $mapped['NgayBatDauLam'] = $this->sanitizeDate($data['start_date']);
+            }
+            if (array_key_exists('health_status', $data)) {
+                $mapped['TrangThaiSucKhoe'] = $this->sanitizeString($data['health_status']);
+            }
+            if (array_key_exists('internal_note', $data)) {
+                $mapped['GhiChuNoiBo'] = $this->sanitizeString($data['internal_note']);
+            }
+            if (array_key_exists('rating', $data)) {
+                $mapped['DiemDanhGia'] = $this->sanitizeFloat($data['rating']);
+            }
+            if (array_key_exists('review_note', $data)) {
+                $mapped['NhanXetDanhGia'] = $this->sanitizeString($data['review_note']);
+            }
+
+            if (array_key_exists('group_id', $data)) {
+                try {
+                    if ($this->columnExists($this->table, 'hdv_group_id')) {
+                        $mapped['hdv_group_id'] = $this->sanitizeInt($data['group_id'], 0);
+                    }
+                } catch (Throwable $e) {
+                    // ignore
+                }
+            }
+
+            if (array_key_exists('status', $data)) {
+                $mapped['status'] = $this->normalizeStatus((string)$data['status']);
+            }
+
+            if (array_key_exists('password', $data)) {
+                $mapped['password'] = $this->hashPassword((string)$data['password']);
+            }
+
+            return $mapped;
+        }
+
+        // Create: map every supported field (using defaults when not provided)
         $mapped = [
             'HoTen'            => $this->sanitizeString($data['full_name'] ?? ''),
             'NgaySinh'         => $this->sanitizeDate($data['dob'] ?? null),

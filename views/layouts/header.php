@@ -9,7 +9,10 @@
 <body>
 <div class="container">
     <header class="my-4">
-        <?php $__logoUrl = BASE_ASSETS_UPLOADS . 'logo.png'; $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'logo.png'; ?>
+        <?php
+            $__logoUrl = BASE_ASSETS_UPLOADS . 'img/logo.png';
+            $__logoFs = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'img' . DIRECTORY_SEPARATOR . 'logo.png';
+        ?>
         <div class="text-center">
             <?php if (file_exists($__logoFs)): ?>
                 <img src="<?= $__logoUrl ?>" alt="Travel Company" style="max-height:80px">

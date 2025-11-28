@@ -58,7 +58,7 @@ $statusBadges = [
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <p class="text-muted text-uppercase small mb-1">Tổng nhân sự</p>
-                    <h4 class="mb-0"><?= (int)$summary['total'] ?></h4>
+                    <h4 id="summary-total" class="mb-0"><?= (int)$summary['total'] ?></h4>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@ $statusBadges = [
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <p class="text-muted text-uppercase small mb-1">Đang làm việc</p>
-                    <h4 class="text-success mb-0"><?= (int)$summary['active'] ?></h4>
+                    <h4 id="summary-active" class="text-success mb-0"><?= (int)$summary['active'] ?></h4>
                 </div>
             </div>
         </div>
@@ -74,7 +74,7 @@ $statusBadges = [
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <p class="text-muted text-uppercase small mb-1">Tạm dừng</p>
-                    <h4 class="text-secondary mb-0"><?= (int)$summary['inactive'] ?></h4>
+                    <h4 id="summary-inactive" class="text-secondary mb-0"><?= (int)$summary['inactive'] ?></h4>
                 </div>
             </div>
         </div>
@@ -82,7 +82,7 @@ $statusBadges = [
             <div class="card border-0 shadow-sm">
                 <div class="card-body">
                     <p class="text-muted text-uppercase small mb-1">Nghỉ phép</p>
-                    <h4 class="text-warning mb-0"><?= (int)$summary['on_leave'] ?></h4>
+                    <h4 id="summary-on-leave" class="text-warning mb-0"><?= (int)$summary['on_leave'] ?></h4>
                 </div>
             </div>
         </div>
@@ -98,8 +98,8 @@ $statusBadges = [
     <div class="card-like mb-4">
         <form class="filter-bar" method="get" action="<?= BASE_URL ?>">
             <input type="hidden" name="action" value="guides">
-            <div class="row g-3 align-items-center">
-                <div class="col-12 col-md-4">
+            <div class="filter-inputs row g-3 flex-grow-1 w-100 align-items-center">
+                <div class="col-12 col-lg-3 col-xl-2">
                     <input
                         class="form-control form-control-sm"
                         name="keyword"
@@ -107,7 +107,7 @@ $statusBadges = [
                         placeholder="Tên, số điện thoại, ngôn ngữ"
                     />
                 </div>
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-lg-3 col-xl-2">
                     <input
                         class="form-control form-control-sm"
                         name="language"
@@ -115,8 +115,15 @@ $statusBadges = [
                         placeholder="Lọc theo ngôn ngữ"
                     />
                 </div>
+                <div class="col-12 col-lg-2 col-xl-2">
+                    <select class="form-select form-select-sm" name="gender">
+                        <option value="">Giới tính</option>
+                        <option value="Nam" <?= $filters['gender'] === 'Nam' ? 'selected': '' ?>>Nam</option>
+                        <option value="Nữ" <?= $filters['gender'] === 'Nữ' ? 'selected': '' ?>>Nữ</option>
+                    </select>
+                </div>
                 <?php if ($statusColumnExists): ?>
-                <div class="col-12 col-md-3 col-lg-2">
+                <div class="col-12 col-lg-2 col-xl-2">
                     <select class="form-select form-select-sm" name="status">
                         <option value="">Tất cả trạng thái</option>
                         <option value="active" <?= $filters['status'] === 'active' ? 'selected' : '' ?>>Đang làm việc</option>
@@ -125,8 +132,11 @@ $statusBadges = [
                     </select>
                 </div>
                 <?php endif; ?>
-                <div class="col-12 col-md-1 text-md-end">
-                    <button class="btn btn-warning btn-sm w-100" type="submit">Lọc</button>
+                <div class="col-12 col-lg-auto ms-lg-auto">
+                    <div class="filter-actions d-flex align-items-center gap-2 justify-content-lg-end">
+                        <button class="btn btn-sm btn-warning px-3 py-1 d-inline-flex align-items-center rounded-pill" type="submit">Lọc</button>
+                        <a class="btn btn-sm btn-light text-secondary px-3 py-1 d-inline-flex align-items-center rounded-pill" href="<?= BASE_URL ?>?action=guides">Đặt lại</a>
+                    </div>
                 </div>
             </div>
         </form>
@@ -146,13 +156,16 @@ $statusBadges = [
                         <th>Sức khỏe</th>
                         <th class="text-center">Điểm</th>
                         <th>Trạng thái</th>
-                        <th width="130">Thao tác</th>
+                        <?php if ($statusColumnExists): ?>
+                        <th width="160">Thao tác</th>
+                        <?php endif; ?>
+                        <th width="130">Hành động</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($guideList)): ?>
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-5">Chưa có nhân sự nào khớp bộ lọc.</td>
+                            <td colspan="<?= $statusColumnExists ? 11 : 10 ?>" class="text-center text-muted py-5">Chưa có nhân sự nào khớp bộ lọc.</td>
                         </tr>
                     <?php else: ?>
                         <?php foreach ($guideList as $guide): ?>
@@ -190,10 +203,23 @@ $statusBadges = [
                                 <td><?= htmlspecialchars($guide['TrangThaiSucKhoe'] ?? '—') ?></td>
                                 <td class="text-center"><?= htmlspecialchars($guide['DiemDanhGia'] ?? '—') ?></td>
                                 <td>
-                                    <span class="badge rounded-pill <?= $badge['class'] ?>">
+                                    <span id="badge-<?= $guide['HDV_ID'] ?>" class="badge rounded-pill <?= $badge['class'] ?>">
                                         <?= htmlspecialchars($badge['label']) ?>
                                     </span>
                                 </td>
+                                <?php if ($statusColumnExists): ?>
+                                <td>
+                                    <select
+                                        class="form-select form-select-sm status-select"
+                                        data-id="<?= $guide['HDV_ID'] ?>"
+                                        data-current="<?= $statusKey ?>"
+                                        aria-label="Cập nhật trạng thái">
+                                        <option value="active" <?= $statusKey === 'active' ? 'selected' : '' ?>>Đang làm việc</option>
+                                        <option value="inactive" <?= $statusKey === 'inactive' ? 'selected' : '' ?>>Tạm dừng</option>
+                                        <option value="on_leave" <?= $statusKey === 'on_leave' ? 'selected' : '' ?>>Nghỉ phép</option>
+                                    </select>
+                                </td>
+                                <?php endif; ?>
                                 <td>
                                     <div class="d-flex gap-2">
                                         <a href="<?= BASE_URL ?>?action=guides-edit&id=<?= $guide['HDV_ID'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
@@ -211,5 +237,82 @@ $statusBadges = [
             </table>
         </div>
     </div>
-</main>
+    <?php if ($statusColumnExists): ?>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const endpoint = '<?= BASE_URL ?>?action=guides-update-status';
+            const summaryEls = {
+                total: document.getElementById('summary-total'),
+                active: document.getElementById('summary-active'),
+                inactive: document.getElementById('summary-inactive'),
+                on_leave: document.getElementById('summary-on-leave'),
+            };
 
+            const updateSummary = (summary) => {
+                if (!summary) return;
+                ['total', 'active', 'inactive', 'on_leave'].forEach((key) => {
+                    if (summaryEls[key] && Object.prototype.hasOwnProperty.call(summary, key)) {
+                        summaryEls[key].textContent = summary[key];
+                    }
+                });
+            };
+
+            const handleError = (message, select, detail) => {
+                let out = message || 'Không thể cập nhật trạng thái.';
+                if (detail) {
+                    out += '\n(Chi tiết: ' + detail + ')';
+                }
+                alert(out);
+                if (select && select.dataset.current) {
+                    select.value = select.dataset.current;
+                }
+            };
+
+            document.querySelectorAll('.status-select').forEach((select) => {
+                select.addEventListener('change', function () {
+                    const guideId = this.dataset.id;
+                    const badge = document.getElementById(`badge-${guideId}`);
+                    const newStatus = this.value;
+                    const payload = new URLSearchParams({ id: guideId, status: newStatus });
+                    const currentValue = this.dataset.current;
+
+                    this.disabled = true;
+
+                    fetch(endpoint, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: payload.toString(),
+                    })
+                        .then((res) => res.json())
+                        .then((data) => {
+                            if (!data || !data.success) {
+                                handleError(data?.message, select, data?.detail);
+                                return;
+                            }
+                            if (badge && data.badge) {
+                                badge.textContent = data.badge.label || '';
+                                badge.className = `badge rounded-pill ${data.badge.class || ''}`;
+                            }
+                            this.dataset.current = newStatus;
+                            updateSummary(data.summary);
+                        })
+                        .catch(() => {
+                            handleError('Kết nối thất bại, vui lòng thử lại.', select);
+                        })
+                        .finally(() => {
+                            this.disabled = false;
+                            if (this.dataset.current) {
+                                this.value = this.dataset.current;
+                            } else {
+                                this.value = currentValue;
+                            }
+                        });
+                });
+            });
+        });
+    </script>
+    <?php endif; ?>
+</main>

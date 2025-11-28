@@ -10,6 +10,7 @@ class GuideController
             'keyword'  => trim($_GET['keyword'] ?? ''),
             'status'   => $_GET['status'] ?? '',
             'language' => trim($_GET['language'] ?? ''),
+            'gender'   =>  trim($_GET['gender'] ?? ''),
         ];
 
         $guideModel = new Guide();
@@ -201,6 +202,61 @@ class GuideController
         exit;
     }
 
+    public function updateStatus(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(['success' => false, 'message' => 'Phương thức không hợp lệ.'], 405);
+        }
+
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $status = $_POST['status'] ?? '';
+
+        $allowed = ['active', 'inactive', 'on_leave'];
+        if ($id <= 0 || !in_array($status, $allowed, true)) {
+            $this->jsonResponse(['success' => false, 'message' => 'Dữ liệu không hợp lệ.'], 400);
+        }
+
+        try {
+            $guideModel = new Guide();
+            $updated = $guideModel->update($id, ['status' => $status]);
+            if (!$updated) {
+                throw new RuntimeException('Không thể cập nhật trạng thái.');
+            }
+
+            $summary = [
+                'total'    => $guideModel->countAll(),
+                'active'   => $guideModel->countByStatus('active'),
+                'inactive' => $guideModel->countByStatus('inactive'),
+                'on_leave' => $guideModel->countByStatus('on_leave'),
+            ];
+
+            $this->jsonResponse([
+                'success'     => true,
+                'status'      => $status,
+                'badge'       => $this->getStatusBadge($status),
+                'summary'     => $summary,
+                'message'     => 'Đã cập nhật trạng thái.'
+            ]);
+        } catch (Throwable $e) {
+            // Log the error for server-side debugging
+            error_log('GuideController::updateStatus error: ' . $e->getMessage());
+
+            // In development return the detailed error to make debugging easier
+            if (defined('APP_DEBUG') && APP_DEBUG === true) {
+                $this->jsonResponse([
+                    'success' => false,
+                    'message' => 'Có lỗi xảy ra, vui lòng thử lại.',
+                    'detail' => $e->getMessage(),
+                ], 500);
+            }
+
+            // Generic error for non-debug environments
+            $this->jsonResponse(['success' => false, 'message' => 'Có lỗi xảy ra, vui lòng thử lại.'], 500);
+        }
+    }
+
     private function extractFormData(array $source, bool $isUpdate = false): array
     {
         $data = [
@@ -255,6 +311,23 @@ class GuideController
             header('Location: ' . BASE_URL . '?action=login');
             exit;
         }
+    }
+
+    private function jsonResponse(array $payload, int $statusCode = 200): void
+    {
+        http_response_code($statusCode);
+        header('Content-Type: application/json');
+        echo json_encode($payload);
+        exit;
+    }
+
+    private function getStatusBadge(string $status): array
+    {
+        return match ($status) {
+            'inactive' => ['label' => 'Tạm dừng', 'class' => 'bg-secondary'],
+            'on_leave' => ['label' => 'Đang nghỉ phép', 'class' => 'bg-warning text-dark'],
+            default    => ['label' => 'Đang làm việc', 'class' => 'bg-success'],
+        };
     }
 }
 

@@ -22,7 +22,7 @@ class Tour extends BaseModel
                 t.policy,
                 t.created_at,
                 tc.name AS type,
-                'Hoạt động' AS status
+                COALESCE(t.tour_status, 'Hoạt động') AS status
             FROM {$this->table} AS t
             LEFT JOIN tour_categories AS tc ON tc.id = t.category_id
             ORDER BY t.created_at DESC
@@ -44,11 +44,22 @@ class Tour extends BaseModel
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    public function update($id, $name, $category_id, $price, $description = null, $itinerary = null, $policy = null, $image = null)
+    public function update($id, $name, $category_id, $price, $description = null, $itinerary = null, $policy = null, $image = null, $status = null)
     {
-        $sql = "UPDATE {$this->table} SET name = ?, category_id = ?, price = ?, description = ?, itinerary = ?, policy = ?, image = COALESCE(?, image), updated_at = NOW() WHERE id = ?";
+        // Nếu bảng không có cột updated_at hoặc tour_status thì câu lệnh này vẫn chạy được
+        $sql = "UPDATE {$this->table} 
+                SET name = ?, 
+                    category_id = ?, 
+                    price = ?, 
+                    description = ?, 
+                    itinerary = ?, 
+                    policy = ?, 
+                    image = COALESCE(?, image), 
+                    tour_status = COALESCE(?, tour_status),
+                    updated_at = NOW() 
+                WHERE id = ?";
         $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$name, $category_id, $price, $description, $itinerary, $policy, $image, $id]);
+        return $stmt->execute([$name, $category_id, $price, $description, $itinerary, $policy, $image, $status, $id]);
     }
 
     public function delete($id)
@@ -58,14 +69,15 @@ class Tour extends BaseModel
         return $stmt->execute([$id]);
     }
 
-    public function insert($name, $category_id, $price = 0, $description = null, $itinerary = null, $policy = null, $image = null)
+    public function insert($name, $category_id, $price = 0, $description = null, $itinerary = null, $policy = null, $image = null, $status = null)
     {
-        // Note: the `tours` table in this project contains columns: id, category_id, name, description, price, image, policy, itinerary, created_at
-        // We insert only the columns that exist (set created_at to NOW()) and do not assume updated_at exists.
-        $sql = "INSERT INTO {$this->table} (name, category_id, price, description, itinerary, policy, image, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+        // Note: the `tours` table hiện đã có thêm cột `tour_status`
+        // Nếu $status null thì DB sẽ dùng giá trị mặc định (ví dụ: Upcoming / Hoạt động)
+        $sql = "INSERT INTO {$this->table} (name, category_id, price, description, itinerary, policy, image, tour_status, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
         try {
             $stmt = $this->pdo->prepare($sql);
-            $params = [$name, $category_id, $price, $description, $itinerary, $policy, $image];
+            $params = [$name, $category_id, $price, $description, $itinerary, $policy, $image, $status];
             $res = $stmt->execute($params);
             if ($res) {
                 return (int) $this->pdo->lastInsertId();
@@ -124,7 +136,7 @@ class Tour extends BaseModel
             SELECT 
                 t.*,
                 tc.name AS category_name,
-                'Hoạt động' AS status
+                COALESCE(t.tour_status, 'Hoạt động') AS status
             FROM {$this->table} AS t
             LEFT JOIN tour_categories AS tc ON tc.id = t.category_id
         ";
@@ -145,6 +157,11 @@ class Tour extends BaseModel
         if (!empty($filters['destination'])) {
             $conditions[] = "(t.itinerary LIKE :destination OR t.policy LIKE :destination)";
             $params[':destination'] = '%' . $filters['destination'] . '%';
+        }
+
+        if (!empty($filters['tour_status'])) {
+            $conditions[] = "t.tour_status = :tour_status";
+            $params[':tour_status'] = $filters['tour_status'];
         }
 
         if ($conditions) {

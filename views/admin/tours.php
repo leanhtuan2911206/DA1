@@ -6,6 +6,7 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
     'category_id' => '',
     'destination' => '',
     'price_order' => '',
+    'tour_status' => '',
 ];
 ?>
 
@@ -98,6 +99,15 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                         <option value="asc" <?= ($filters['price_order'] ?? '') === 'asc' ? 'selected' : '' ?>>Giá thấp nhất</option>
                     </select>
                 </div>
+                <div class="col-12 col-lg-3 col-xl-2">
+                    <select class="form-select form-select-sm" name="tour_status">
+                        <option value="">Trạng thái tour</option>
+                        <option value="Upcoming" <?= ($filters['tour_status'] ?? '') === 'Upcoming' ? 'selected' : '' ?>>Sắp diễn ra</option>
+                        <option value="Active" <?= ($filters['tour_status'] ?? '') === 'Active' ? 'selected' : '' ?>>Hoạt động</option>
+                        <option value="Completed" <?= ($filters['tour_status'] ?? '') === 'Completed' ? 'selected' : '' ?>>Đã kết thúc</option>
+                        <option value="Cancelled" <?= ($filters['tour_status'] ?? '') === 'Cancelled' ? 'selected' : '' ?>>Đã hủy</option>
+                    </select>
+                </div>
                 <div class="col-12 col-lg-auto ms-lg-auto">
                     <div class="filter-actions d-flex align-items-center gap-2 justify-content-lg-end">
                         <button class="btn btn-sm btn-warning px-3 py-1 d-inline-flex align-items-center rounded-pill" type="submit">Tìm kiếm</button>
@@ -138,12 +148,36 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                     : BASE_ASSETS_UPLOADS . 'img/1.jpg';
                                 $price = $tour['price'] ?? null;
                                 $estRevenue = is_numeric($price) ? (float)$price * 0.4 : null;
-                                $statusText = $tour['status'] ?? 'Hoạt động';
+
+                                // Map trạng thái trong DB (tiếng Anh) sang tiếng Việt để hiển thị
+                                $rawStatus = strtolower($tour['status'] ?? 'active');
+                                $statusText = 'Hoạt động';
                                 $statusClass = 'bg-secondary';
-                                if (in_array(strtolower($statusText), ['hoạt động', 'active'])) {
-                                    $statusClass = 'bg-success';
-                                } elseif (in_array(strtolower($statusText), ['tạm dừng', 'paused'])) {
-                                    $statusClass = 'bg-warning text-dark';
+
+                                switch ($rawStatus) {
+                                    case 'upcoming':
+                                        $statusText = 'Sắp diễn ra';
+                                        $statusClass = 'bg-info text-dark';
+                                        break;
+                                    case 'active':
+                                        $statusText = 'Hoạt động';
+                                        $statusClass = 'bg-success';
+                                        break;
+                                    case 'completed':
+                                        $statusText = 'Đã kết thúc';
+                                        $statusClass = 'bg-secondary';
+                                        break;
+                                    case 'cancelled':
+                                        $statusText = 'Đã hủy';
+                                        $statusClass = 'bg-danger';
+                                        break;
+                                    default:
+                                        // Nếu DB lưu sẵn tiếng Việt thì dùng trực tiếp
+                                        $statusText = $tour['status'] ?? 'Hoạt động';
+                                        if (in_array(mb_strtolower($statusText), ['hoạt động'])) {
+                                            $statusClass = 'bg-success';
+                                        }
+                                        break;
                                 }
                             ?>
                             <tr>

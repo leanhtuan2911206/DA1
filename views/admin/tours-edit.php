@@ -31,6 +31,18 @@
             </div>
 
             <div class="mb-3">
+                <label class="form-label">Trạng thái tour</label>
+                <?php $curStatus = $tour['tour_status'] ?? 'Active'; ?>
+                <select name="tour_status" class="form-select">
+                    <option value="">-- Chọn trạng thái --</option>
+                    <option value="Upcoming" <?= $curStatus === 'Upcoming' ? 'selected' : '' ?>>Sắp diễn ra</option>
+                    <option value="Active" <?= $curStatus === 'Active' ? 'selected' : '' ?>>Hoạt động</option>
+                    <option value="Completed" <?= $curStatus === 'Completed' ? 'selected' : '' ?>>Đã kết thúc</option>
+                    <option value="Cancelled" <?= $curStatus === 'Cancelled' ? 'selected' : '' ?>>Đã hủy</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
                 <label class="form-label">Giá</label>
                 <input type="number" name="price" class="form-control" step="0.01" min="0" value="<?= htmlspecialchars($tour['price']) ?>">
             </div>

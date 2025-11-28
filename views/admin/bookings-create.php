@@ -72,7 +72,7 @@ $tours = isset($tours) && is_array($tours) ? $tours : [];
                 <div class="col-12 col-md-6">
                     <label class="form-label">Loại booking <span class="text-danger">*</span></label>
                     <select class="form-select" name="booking_type" required>
-                        <option value="individual">Khách lẻ (1-2 người)</option>
+                        <option value="individual">Khách lẻ</option>
                         <option value="group">Đoàn (nhiều người, công ty, tổ chức)</option>
                     </select>
                 </div>

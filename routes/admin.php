@@ -21,6 +21,7 @@ match ($action) {
     'tours-edit'    => (new TourController)->edit(),
     'tours-update'  => (new TourController)->update(),
     'tours-delete'  => (new TourController)->delete(),
+    'tours-get-info' => (new TourController)->getTourInfo(),
 
     'bookings'              => (new BookingController)->index(),
     'bookings-create'        => (new BookingController)->create(),
@@ -35,6 +36,7 @@ match ($action) {
     'guides-store'   => (new GuideController)->store(),
     'guides-edit'    => (new GuideController)->edit(),
     'guides-update'  => (new GuideController)->update(),
+    'guides-update-status' => (new GuideController)->updateStatus(),
     'guides-delete'  => (new GuideController)->delete(),
 
     'users'          => (new UserController)->index(),

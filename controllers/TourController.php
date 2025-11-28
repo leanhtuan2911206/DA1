@@ -18,6 +18,7 @@ class TourController
             'category_id'  => $_GET['category_id'] ?? '',
             'destination'  => trim($_GET['destination'] ?? ''),
             'price_order'  => $_GET['price_order'] ?? '',
+            'tour_status'  => $_GET['tour_status'] ?? '',
         ];
 
         try {
@@ -134,6 +135,7 @@ class TourController
         $description = trim($_POST['description'] ?? '');
         $itinerary = trim($_POST['itinerary'] ?? '');
         $policy = trim($_POST['policy'] ?? '');
+        $tour_status = trim($_POST['tour_status'] ?? '');
 
         if ($id <= 0 || empty($name) || $category_id <= 0) {
             $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin.';
@@ -174,7 +176,17 @@ class TourController
                 $imageDbPath = 'assets/uploads/' . $filename;
             }
 
-            $tourModel->update($id, $name, $category_id, $price, $description ?: null, $itinerary ?: null, $policy ?: null, $imageDbPath);
+            $tourModel->update(
+                $id,
+                $name,
+                $category_id,
+                $price,
+                $description ?: null,
+                $itinerary ?: null,
+                $policy ?: null,
+                $imageDbPath,
+                $tour_status !== '' ? $tour_status : null
+            );
             if ($imageDbPath && !empty($existing['image'])) {
                 $oldFile = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($existing['image']);
                 if (file_exists($oldFile)) { @unlink($oldFile); }
@@ -203,6 +215,24 @@ class TourController
             $categories = [];
         }
 
+        // Load tour templates để có thể chọn và tự động điền itinerary/policy
+        $templateModel = new TourTemplate();
+        try {
+            $templates = $templateModel->getAll();
+        } catch (Throwable $e) {
+            error_log('TourController::create template error: ' . $e->getMessage());
+            $templates = [];
+        }
+
+        // Load tours có sẵn để có thể copy itinerary/policy
+        $tourModel = new Tour();
+        try {
+            $existingTours = $tourModel->listWithCategory([]);
+        } catch (Throwable $e) {
+            error_log('TourController::create existing tours error: ' . $e->getMessage());
+            $existingTours = [];
+        }
+
         $view = 'admin/tours-create';
         $title = 'Thêm tour';
         $hideNavbar = true;
@@ -225,6 +255,7 @@ class TourController
         $description = trim($_POST['description'] ?? '');
         $itinerary = trim($_POST['itinerary'] ?? '');
         $policy = trim($_POST['policy'] ?? '');
+        $tour_status = trim($_POST['tour_status'] ?? '');
 
         if (empty($name) || $category_id <= 0) {
             $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin.';
@@ -271,7 +302,16 @@ class TourController
             }
 
             $tourModel = new Tour();
-            $newId = $tourModel->insert($name, $category_id, $price, $description ?: null, $itinerary ?: null, $policy ?: null, $imageDbPath);
+            $newId = $tourModel->insert(
+                $name,
+                $category_id,
+                $price,
+                $description ?: null,
+                $itinerary ?: null,
+                $policy ?: null,
+                $imageDbPath,
+                $tour_status !== '' ? $tour_status : null
+            );
             if ($newId) {
                 $_SESSION['success'] = 'Thêm tour thành công.';
                 // Keep new inserted id for debugging check in index()
@@ -342,6 +382,53 @@ class TourController
         }
 
         header('Location: ' . BASE_URL . '?action=tours');
+        exit;
+    }
+
+    public function getTourInfo(): void
+    {
+        $this->ensureAuthenticated();
+
+        header('Content-Type: application/json');
+
+        $type = $_GET['type'] ?? ''; // 'template' hoặc 'tour'
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID không hợp lệ.']);
+            exit;
+        }
+
+        try {
+            if ($type === 'template') {
+                $templateModel = new TourTemplate();
+                $data = $templateModel->find($id);
+                if ($data) {
+                    echo json_encode([
+                        'success' => true,
+                        'itinerary' => $data['default_itinerary'] ?? '',
+                        'policy' => $data['default_policy'] ?? ''
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Template không tìm thấy.']);
+                }
+            } else {
+                $tourModel = new Tour();
+                $data = $tourModel->find($id);
+                if ($data) {
+                    echo json_encode([
+                        'success' => true,
+                        'itinerary' => $data['itinerary'] ?? '',
+                        'policy' => $data['policy'] ?? ''
+                    ]);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Tour không tìm thấy.']);
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('TourController::getTourInfo error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Lỗi khi lấy thông tin.']);
+        }
         exit;
     }
 

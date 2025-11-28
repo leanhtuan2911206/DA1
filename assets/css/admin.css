@@ -115,18 +115,28 @@ body {
 .flag {font-size:18px}
 .avatar {width:32px;height:32px}
 
-.filter-bar {gap: 12px; 
-    flex-wrap: wrap; 
-    overflow: visible;
-     background: #f6f8fc; 
-     border: 1px solid #eef2f7; 
-     border-radius: 16px; 
-     padding: 12px; 
-     box-shadow: 0 6px 20px rgba(0,0,0,.04);
-      justify-content: space-between
-    }
-.filter-inputs {gap: 12px; flex-wrap: wrap; overflow: visible}
-.filter-actions {gap: 12px}
+.filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f6f8fc; 
+    border: 1px solid #eef2f7; 
+    border-radius: 16px; 
+    padding: 12px; 
+    box-shadow: 0 6px 20px rgba(0,0,0,.04);
+}
+
+.filter-inputs {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
 .filter-bar .form-control,
 .filter-bar .form-select {
     min-width: 170px;
@@ -149,6 +159,23 @@ body {
 }
 .filter-bar .btn-warning {background-color:#ffb020; border:none; color:#fff}
 .filter-bar .btn-success {background-color:#22c55e; border:none; color:#fff}
+
+/* Responsive cho filter bar */
+@media (max-width: 991px) {
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filter-inputs {
+        flex-wrap: wrap;
+    }
+    
+    .filter-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+}
 
 .table thead th {
     background: #f8fafc;
