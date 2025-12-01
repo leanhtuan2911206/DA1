@@ -117,7 +117,6 @@
             tourSelect.addEventListener('change', function () {
                 var selectedOption = this.options[this.selectedIndex];
                 if (!selectedOption || !selectedOption.value) {
-                    // Nếu không chọn gì, giữ nguyên hoặc xóa (tùy bạn muốn)
                     return;
                 }
 

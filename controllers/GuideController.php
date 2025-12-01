@@ -210,15 +210,35 @@ class GuideController
         $this->ensureAuthenticated();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->jsonResponse(['success' => false, 'message' => 'Phương thức không hợp lệ.'], 405);
+            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+                || (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
+            if ($isAjax) {
+                $this->jsonResponse(['success' => false, 'message' => 'Phương thức không hợp lệ.'], 405);
+            }
+
+            // Non-AJAX: redirect back to list
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $_SESSION['error'] = 'Phương thức không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=guides');
+            exit;
         }
 
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
         $status = $_POST['status'] ?? '';
 
+        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest')
+            || (!empty($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false);
+
         $allowed = ['active', 'inactive', 'on_leave'];
         if ($id <= 0 || !in_array($status, $allowed, true)) {
-            $this->jsonResponse(['success' => false, 'message' => 'Dữ liệu không hợp lệ.'], 400);
+            if ($isAjax) {
+                $this->jsonResponse(['success' => false, 'message' => 'Dữ liệu không hợp lệ.'], 400);
+            }
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $_SESSION['error'] = 'Dữ liệu không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=guides');
+            exit;
         }
 
         try {
@@ -235,28 +255,44 @@ class GuideController
                 'on_leave' => $guideModel->countByStatus('on_leave'),
             ];
 
-            $this->jsonResponse([
-                'success'     => true,
-                'status'      => $status,
-                'badge'       => $this->getStatusBadge($status),
-                'summary'     => $summary,
-                'message'     => 'Đã cập nhật trạng thái.'
-            ]);
+            if ($isAjax) {
+                $this->jsonResponse([
+                    'success'     => true,
+                    'status'      => $status,
+                    'badge'       => $this->getStatusBadge($status),
+                    'summary'     => $summary,
+                    'message'     => 'Đã cập nhật trạng thái.'
+                ]);
+            }
+
+            // Non-AJAX: use session flash and redirect back to guides list so the updated badge will show on reload
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $_SESSION['success'] = 'Đã cập nhật trạng thái.';
+            header('Location: ' . BASE_URL . '?action=guides');
+            exit;
         } catch (Throwable $e) {
             // Log the error for server-side debugging
             error_log('GuideController::updateStatus error: ' . $e->getMessage());
 
-            // In development return the detailed error to make debugging easier
-            if (defined('APP_DEBUG') && APP_DEBUG === true) {
-                $this->jsonResponse([
-                    'success' => false,
-                    'message' => 'Có lỗi xảy ra, vui lòng thử lại.',
-                    'detail' => $e->getMessage(),
-                ], 500);
+            // If AJAX, return JSON response with error info
+            if ($isAjax) {
+                // In development return the detailed error to make debugging easier
+                if (defined('APP_DEBUG') && APP_DEBUG === true) {
+                    $this->jsonResponse([
+                        'success' => false,
+                        'message' => 'Có lỗi xảy ra, vui lòng thử lại.',
+                        'detail' => $e->getMessage(),
+                    ], 500);
+                }
+                // Generic error for non-debug environments
+                $this->jsonResponse(['success' => false, 'message' => 'Có lỗi xảy ra, vui lòng thử lại.'], 500);
             }
 
-            // Generic error for non-debug environments
-            $this->jsonResponse(['success' => false, 'message' => 'Có lỗi xảy ra, vui lòng thử lại.'], 500);
+            // Non-AJAX: set generic message and redirect back
+            if (session_status() === PHP_SESSION_NONE) session_start();
+            $_SESSION['error'] = 'Có lỗi xảy ra, vui lòng thử lại.';
+            header('Location: ' . BASE_URL . '?action=guides');
+            exit;
         }
     }
 
@@ -333,4 +369,6 @@ class GuideController
         };
     }
 }
+
+
 

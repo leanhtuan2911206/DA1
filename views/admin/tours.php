@@ -148,8 +148,7 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                     : BASE_ASSETS_UPLOADS . 'img/1.jpg';
                                 $price = $tour['price'] ?? null;
                                 $estRevenue = is_numeric($price) ? (float)$price * 0.4 : null;
-
-                                // Map trạng thái trong DB (tiếng Anh) sang tiếng Việt để hiển thị
+                                // hiển thi thị trạng thái tour
                                 $rawStatus = strtolower($tour['status'] ?? 'active');
                                 $statusText = 'Hoạt động';
                                 $statusClass = 'bg-secondary';

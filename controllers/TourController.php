@@ -391,16 +391,29 @@ class TourController
 
         header('Content-Type: application/json');
 
-        $type = $_GET['type'] ?? ''; // 'template' hoặc 'tour'
+        $type = $_GET['type'] ?? ''; // 'template', 'tour', hoặc 'category'
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 
-        if ($id <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID không hợp lệ.']);
-            exit;
-        }
-
         try {
-            if ($type === 'template') {
+            if ($type === 'category' && $id > 0) {
+                // Lấy template theo category_id
+                $templateModel = new TourTemplate();
+                $data = $templateModel->findByCategoryId($id);
+                if ($data) {
+                    echo json_encode([
+                        'success' => true,
+                        'itinerary' => $data['default_itinerary'] ?? '',
+                        'policy' => $data['default_policy'] ?? ''
+                    ]);
+                } else {
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Không tìm thấy template cho danh mục này.',
+                        'itinerary' => '',
+                        'policy' => ''
+                    ]);
+                }
+            } elseif ($type === 'template' && $id > 0) {
                 $templateModel = new TourTemplate();
                 $data = $templateModel->find($id);
                 if ($data) {
@@ -412,7 +425,7 @@ class TourController
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Template không tìm thấy.']);
                 }
-            } else {
+            } elseif ($type === 'tour' && $id > 0) {
                 $tourModel = new Tour();
                 $data = $tourModel->find($id);
                 if ($data) {
@@ -424,6 +437,8 @@ class TourController
                 } else {
                     echo json_encode(['success' => false, 'message' => 'Tour không tìm thấy.']);
                 }
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Tham số không hợp lệ.']);
             }
         } catch (Throwable $e) {
             error_log('TourController::getTourInfo error: ' . $e->getMessage());
