@@ -34,10 +34,32 @@ class ServiceController
         $types = [];
         try {
             $s = new ServiceOrder();
-            $list = $s->list(array_filter($filters));
+            $allServices = $s->list(array_filter($filters));
             $bookings = (new Booking())->listSimple([]);
             $types = $s->distinctTypes();
-        } catch (Throwable $e) { $list = []; $bookings = []; }
+            
+            // Nhóm các dịch vụ theo booking_id
+            $groupedByBooking = [];
+            foreach ($allServices as $service) {
+                $bookingId = $service['booking_id'];
+                if (!isset($groupedByBooking[$bookingId])) {
+                    $groupedByBooking[$bookingId] = [];
+                }
+                $groupedByBooking[$bookingId][] = $service;
+            }
+            
+            // Chuyển đổi thành danh sách đơn giản
+            $list = [];
+            foreach ($groupedByBooking as $bookingId => $services) {
+                $list[] = [
+                    'booking_id' => $bookingId,
+                    'services' => $services
+                ];
+            }
+        } catch (Throwable $e) { 
+            $list = []; 
+            $bookings = []; 
+        }
 
         require_once PATH_VIEW . 'main.php';
     }

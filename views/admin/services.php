@@ -75,32 +75,49 @@
                     <?php if (empty($list ?? [])): ?>
                         <tr><td colspan="9" class="text-center text-muted py-4">Chưa có dịch vụ nào.</td></tr>
                     <?php endif; ?>
-                    <?php foreach (($list ?? []) as $row): ?>
+                    <?php 
+                    $typeLabels = [
+                        'vehicle' => 'Xe',
+                        'hotel' => 'Khách sạn',
+                        'flight' => 'Vé máy bay',
+                        'restaurant' => 'Nhà hàng',
+                        'activity' => 'Tham quan'
+                    ];
+                    $index = 0;
+                    foreach (($list ?? []) as $group):
+                        $index++; 
+                        $bookingId = $group['booking_id'];
+                        $services = $group['services'] ?? [];
+                        
+                        // Tìm tên tour
+                        $tourLabel = '#' . $bookingId;
+                        foreach (($bookings ?? []) as $b) {
+                            if ((string)$b['id'] === (string)$bookingId) {
+                                $tourLabel = '#' . $b['id'] . ' - ' . ($b['tour_name'] ?? ($b['customer_name'] ?? ''));
+                                break;
+                            }
+                        }
+                        
+                        // Lấy dịch vụ đầu tiên để hiển thị các thông tin đơn
+                        $firstService = !empty($services) ? $services[0] : null;
+                        
+                        // Gộp loại dịch vụ
+                        $serviceTypes = [];
+                        foreach ($services as $service) {
+                            $serviceType = strtolower(trim($service['service_type'] ?? ''));
+                            $serviceTypes[] = $typeLabels[$serviceType] ?? $service['service_type'];
+                        }
+                    ?>
                         <tr>
-                            <td><?= htmlspecialchars($row['id'] ?? '') ?></td>
-                            <td>
-                                <?php $bid = $row['booking_id'] ?? null; $label='#'.$bid; foreach (($bookings ?? []) as $b) { if ((string)$b['id'] === (string)$bid) { $label = '#'.$b['id'].' - '.($b['tour_name'] ?? ($b['customer_name'] ?? '')); break; } } ?>
-                                <?= htmlspecialchars($label) ?>
-                            </td>
-                            <td>
-                                <?php 
-                                    $typeLabels = [
-                                        'vehicle' => 'Xe',
-                                        'hotel' => 'Khách sạn',
-                                        'flight' => 'Vé máy bay',
-                                        'restaurant' => 'Nhà hàng',
-                                        'activity' => 'Tham quan'
-                                    ];
-                                    $stp = strtolower(trim($row['service_type'] ?? ''));
-                                    $label = $typeLabels[$stp] ?? ($row['service_type'] ?? '');
-                                ?>
-                                <?= htmlspecialchars($label) ?>
-                            </td>
-                            <td><?= htmlspecialchars($row['supplier_name'] ?? '') ?></td>
-                            <td><?= htmlspecialchars($row['quantity'] ?? '') ?></td>
+                            <td><?= $index ?></td>
+                            <td><?= htmlspecialchars($tourLabel) ?></td>
+                            <td><?= htmlspecialchars(implode(', ', $serviceTypes)) ?></td>
+                            <td><?= htmlspecialchars($firstService['supplier_name'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($firstService['quantity'] ?? '') ?></td>
                             <td>
                                 <?php 
-                                    $st = strtolower(trim($row['status'] ?? ''));
+                                if ($firstService) {
+                                    $st = strtolower(trim($firstService['status'] ?? ''));
                                     $labelMap = [
                                         'chờ' => 'Chờ',
                                         'xác nhận' => 'Xác nhận',
@@ -118,16 +135,19 @@
                                         'hoạt động' => 'bg-success',
                                     ];
                                     $badgeClass = 'badge rounded-pill ' . ($classMap[$st] ?? 'bg-secondary');
-                                    $displayText = $labelMap[$st] ?? ($row['status'] ?? '');
+                                    $displayText = $labelMap[$st] ?? ($firstService['status'] ?? '');
+                                    echo '<span class="' . $badgeClass . '">' . htmlspecialchars($displayText) . '</span>';
+                                }
                                 ?>
-                                <span class="<?= $badgeClass ?>"><?= htmlspecialchars($displayText) ?></span>
                             </td>
-                            <td><?= htmlspecialchars(($row['start_time'] ?? '') . ' - ' . ($row['end_time'] ?? '')) ?></td>
-                            <td><?= htmlspecialchars($row['notes'] ?? '') ?></td>
+                            <td><?= htmlspecialchars(($firstService['start_time'] ?? '') . ' - ' . ($firstService['end_time'] ?? '')) ?></td>
+                            <td><?= htmlspecialchars($firstService['notes'] ?? '') ?></td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <a class="btn btn-outline-primary btn-sm" href="<?= BASE_URL ?>?action=services-edit&id=<?= urlencode((string)($row['id'] ?? '')) ?>">✏️</a>
-                                    <a class="btn btn-outline-danger btn-sm" href="<?= BASE_URL ?>?action=services-delete&id=<?= urlencode((string)($row['id'] ?? '')) ?>" onclick="return confirm('Xóa dịch vụ này?')">🗑️</a>
+                                    <?php if ($firstService): ?>
+                                        <a class="btn btn-outline-primary btn-sm" href="<?= BASE_URL ?>?action=services-edit&id=<?= urlencode((string)($firstService['id'] ?? '')) ?>">✏️</a>
+                                        <a class="btn btn-outline-danger btn-sm" href="<?= BASE_URL ?>?action=services-delete&id=<?= urlencode((string)($firstService['id'] ?? '')) ?>" onclick="return confirm('Xóa dịch vụ này?')">🗑️</a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
