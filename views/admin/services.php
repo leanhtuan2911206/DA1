@@ -35,7 +35,7 @@
                         'restaurant' => 'Nhà hàng',
                         'activity' => 'Tham quan'
                     ];
-                    $sourceTypes = !empty($types) ? $types : array_keys($typeLabels);
+                    $sourceTypes = array_unique(array_merge(array_keys($typeLabels), $types ?? []));
                     foreach ($sourceTypes as $v):
                         $label = $typeLabels[$v] ?? ucfirst($v);
                 ?>
@@ -62,7 +62,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Tour</th>
-                        <th>Loại</th>
+                        <th>Loại dịch vụ</th>
                         <th>Nhà cung cấp</th>
                         <th>Số lượng</th>
                         <th>Trạng thái</th>

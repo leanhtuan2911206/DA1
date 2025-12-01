@@ -72,10 +72,12 @@
                                 <div><b>Biển số:</b> <span id="veh_plate" contenteditable="true">—</span></div>
                                 <div><b>Tài xế:</b> <span id="veh_driver" contenteditable="true">—</span></div>
                                 <div><b>SĐT tài xế:</b> <span id="veh_phone" contenteditable="true">—</span></div>
+                                <div><b>Số chỗ ngồi:</b> <span id="veh_capacity" contenteditable="true">—</span></div>
                             </div>
                             <input type="hidden" name="license_plate" id="license_plate">
                             <input type="hidden" name="driver_name" id="driver_name">
                             <input type="hidden" name="driver_phone" id="driver_phone">
+                            <input type="hidden" name="driver_capacity" id="driver_capacity">
                         </div>
                         </div>
 
@@ -223,18 +225,35 @@
                 document.getElementById('driver_phone').value = document.getElementById('veh_phone').textContent.trim();
             }
             document.addEventListener('DOMContentLoaded', function(){
-                bindInfo('master_vehicle_id', data.vehicle, {license_plate:'veh_plate', driver_name:'veh_driver', driver_phone:'veh_phone'}, 'name');
+                bindInfo('master_vehicle_id', data.vehicle, {license_plate:'veh_plate', driver_name:'veh_driver', driver_phone:'veh_phone', capacity:'veh_capacity'}, 'name');
                 bindInfo('master_hotel_id', data.hotel, {address:'hotel_address', star_rating:'hotel_star', contact_phone:'hotel_phone', room_types_available:'hotel_rooms'}, 'hotel_name');
                 bindInfo('master_flight_id', data.flight, {route_origin:'flight_origin', route_destination:'flight_destination', default_price:'flight_price'}, null);
                 bindInfo('master_restaurant_id', data.restaurant, {cuisine_type:'rest_cuisine', contact_phone:'rest_phone', max_capacity:'rest_capacity'}, 'restaurant_name');
                 bindInfo('master_activity_id', data.activity, {address:'act_address', ticket_type_info:'act_ticket', contact_person:'act_contact'}, 'location_name');
-                ['veh_plate','veh_driver','veh_phone'].forEach(id => {
+                const setTypeOnSelect = (id, typeVal) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.addEventListener('change', function(){
+                        if (this.value) { serviceTypeEl.value = typeVal; }
+                    });
+                };
+                setTypeOnSelect('master_vehicle_id','vehicle');
+                setTypeOnSelect('master_hotel_id','hotel');
+                setTypeOnSelect('master_flight_id','flight');
+                setTypeOnSelect('master_restaurant_id','restaurant');
+                setTypeOnSelect('master_activity_id','activity');
+                ['veh_plate','veh_driver','veh_phone','veh_capacity'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.addEventListener('input', syncVehicleHidden);
                 });
                 const form = document.querySelector('form');
                 form && form.addEventListener('submit', function(){
-                    if (serviceTypeEl.value === 'vehicle') syncVehicleHidden();
+                    if (serviceTypeEl.value === 'vehicle') {
+                        syncVehicleHidden();
+                        var capEl = document.getElementById('veh_capacity');
+                        var capHidden = document.getElementById('driver_capacity');
+                        if (capEl && capHidden) { capHidden.value = capEl.textContent.trim(); }
+                    }
                 });
             });
         })();

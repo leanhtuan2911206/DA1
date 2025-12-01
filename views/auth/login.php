@@ -1,7 +1,7 @@
 
 <?php 
-$bgFs = __DIR__ . '/../../assets/uploads/2083948.jpg';
-$bgUrl = BASE_URL . 'assets/uploads/2083948.jpg';
+$bgFs = __DIR__ . '/../../assets/uploads/img/login.jpg';
+$bgUrl = BASE_URL . 'assets/uploads/img/login.jpg';
 $logoFs = __DIR__ . '/../../assets/uploads/logo.png';
 $logoUrl = BASE_URL . 'assets/uploads/logo.png';
 ?>
@@ -14,6 +14,7 @@ $logoUrl = BASE_URL . 'assets/uploads/logo.png';
 .form-label{font-weight:600;color:#0f172a;margin-bottom:6px}
 .form-control{border-radius:14px;background:#e6e6e6;border:1px solid #d0d5dd;padding:12px 16px}
 .btn-login{background:linear-gradient(180deg,#3b82f6,#5ea0ff);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:600;width:200px;display:block;margin:8px auto 0;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+a{display:block;text-align:center;color:black;text-decoration:none;margin-top:12px;font-weight:500}
 </style>
 
 <div class="login-page">
@@ -39,6 +40,7 @@ $logoUrl = BASE_URL . 'assets/uploads/logo.png';
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
             <button type="submit" class="btn btn-login mt-2">Đăng nhập</button>
+            <a>Chưa có tài khoản liên hệ Admin ngay?</a>
         </form>
     </div>
 </div>

@@ -58,7 +58,7 @@ class ServiceController
         try {
             $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
             $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-            $vehicles = ($pdo->query("SELECT id, name, license_plate, driver_name, driver_phone FROM master_vehicles ORDER BY name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $vehicles = ($pdo->query("SELECT id, name, license_plate, driver_name, driver_phone, capacity FROM master_vehicles ORDER BY name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $hotels = ($pdo->query("SELECT id, hotel_name, address, star_rating, contact_phone, room_types_available FROM master_hotels ORDER BY hotel_name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $flights = ($pdo->query("SELECT id, flight_number, airline, route_origin, route_destination, default_price FROM master_flights ORDER BY flight_number"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $restaurants = ($pdo->query("SELECT id, restaurant_name, address, cuisine_type, contact_phone, max_capacity FROM master_restaurants ORDER BY restaurant_name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -84,7 +84,19 @@ class ServiceController
         $masterFlightId = isset($_POST['master_flight_id']) ? (int)$_POST['master_flight_id'] : null;
         $masterRestaurantId = isset($_POST['master_restaurant_id']) ? (int)$_POST['master_restaurant_id'] : null;
         $masterActivityId = isset($_POST['master_activity_id']) ? (int)$_POST['master_activity_id'] : null;
-        if ($bookingId <= 0 || $type === '') { $_SESSION['error'] = 'Vui lòng chọn tour và loại dịch vụ.'; header('Location: ' . BASE_URL . '?action=services-create'); exit; }
+        $selectedMap = [];
+        if ($masterVehicleId) { $selectedMap['vehicle'] = $masterVehicleId; }
+        if ($masterHotelId) { $selectedMap['hotel'] = $masterHotelId; }
+        if ($masterFlightId) { $selectedMap['flight'] = $masterFlightId; }
+        if ($masterRestaurantId) { $selectedMap['restaurant'] = $masterRestaurantId; }
+        if ($masterActivityId) { $selectedMap['activity'] = $masterActivityId; }
+        if ($type !== '' && isset($selectedMap[$type])) {
+            // giữ nguyên loại do admin chọn nếu khớp với master đã chọn
+        } elseif (!empty($selectedMap)) {
+            // nếu admin chưa đổi Loại dịch vụ, chọn loại theo master đầu tiên được chọn
+            $type = array_key_first($selectedMap);
+        }
+        if ($bookingId <= 0) { $_SESSION['error'] = 'Vui lòng chọn tour.'; header('Location: ' . BASE_URL . '?action=services-create'); exit; }
         try {
             $s = new ServiceOrder();
 
@@ -107,44 +119,53 @@ class ServiceController
                 } catch (Throwable $e) { return ''; }
             };
 
-            $relatedId = ($type==='vehicle'? $masterVehicleId : ($type==='hotel'? $masterHotelId : ($type==='flight'? $masterFlightId : ($type==='restaurant'? $masterRestaurantId : $masterActivityId))));
-            $baseSupplier = $supplier !== '' ? $supplier : $getSupplier($type, $relatedId);
+            $created = 0;
+            $items = [];
+            foreach (['vehicle'=>$masterVehicleId,'hotel'=>$masterHotelId,'flight'=>$masterFlightId,'restaurant'=>$masterRestaurantId,'activity'=>$masterActivityId] as $tp=>$mid) {
+                if ($mid) { $items[] = [$tp,$mid]; }
+            }
+            if (empty($items)) { $items[] = [$type, null]; }
+            foreach ($items as [$tp,$mid]) {
+                $sup = $supplier !== '' ? $supplier : $getSupplier($tp, $mid);
+                $ok = $s->create([
+                    'booking_id'   => $bookingId,
+                    'service_type' => $tp,
+                    'supplier_name'=> $sup,
+                    'quantity'     => $quantity,
+                    'status'       => $status,
+                    'start_time'   => $startTime,
+                    'end_time'     => $endTime,
+                    'notes'        => $notes,
+                    'master_vehicle_id' => ($tp==='vehicle') ? $mid : null,
+                    'master_hotel_id' => ($tp==='hotel') ? $mid : null,
+                    'master_flight_id' => ($tp==='flight') ? $mid : null,
+                    'master_restaurant_id' => ($tp==='restaurant') ? $mid : null,
+                    'master_activity_id' => ($tp==='activity') ? $mid : null,
+                ]);
+                if ($ok) { $created++; }
+            }
 
-            $ok = $s->create([
-                'booking_id'   => $bookingId,
-                'service_type' => $type,
-                'supplier_name'=> $baseSupplier,
-                'quantity'     => $quantity,
-                'status'       => $status,
-                'start_time'   => $startTime,
-                'end_time'     => $endTime,
-                'notes'        => $notes,
-                'master_vehicle_id' => ($type==='vehicle') ? $masterVehicleId : null,
-                'master_hotel_id' => ($type==='hotel') ? $masterHotelId : null,
-                'master_flight_id' => ($type==='flight') ? $masterFlightId : null,
-                'master_restaurant_id' => ($type==='restaurant') ? $masterRestaurantId : null,
-                'master_activity_id' => ($type==='activity') ? $masterActivityId : null,
-            ]);
-
-            if ($type === 'vehicle' && $masterVehicleId) {
+            if ($masterVehicleId) {
                 $driverName = trim($_POST['driver_name'] ?? '');
                 $driverPhone = trim($_POST['driver_phone'] ?? '');
                 $licensePlate = trim($_POST['license_plate'] ?? '');
+                $capacity = isset($_POST['driver_capacity']) ? trim((string)$_POST['driver_capacity']) : '';
                 if ($driverName !== '' || $driverPhone !== '' || $licensePlate !== '') {
                     try {
                         $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
                         $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                        $sql = 'UPDATE master_vehicles SET driver_name=:dn, driver_phone=:dp, license_plate=:lp WHERE id=:id';
+                        $sql = 'UPDATE master_vehicles SET driver_name=:dn, driver_phone=:dp, license_plate=:lp' . ($capacity !== '' ? ', capacity=:cp' : '') . ' WHERE id=:id';
                         $stmt = $pdo->prepare($sql);
                         $stmt->bindValue(':dn', $driverName !== '' ? $driverName : null, PDO::PARAM_STR);
                         $stmt->bindValue(':dp', $driverPhone !== '' ? $driverPhone : null, PDO::PARAM_STR);
                         $stmt->bindValue(':lp', $licensePlate !== '' ? $licensePlate : null, PDO::PARAM_STR);
+                        if ($capacity !== '') { $stmt->bindValue(':cp', $capacity, PDO::PARAM_INT); }
                         $stmt->bindValue(':id', $masterVehicleId, PDO::PARAM_INT);
                         $stmt->execute();
                     } catch (Throwable $e) {}
                 }
             }
-            $_SESSION['success'] = $ok ? 'Đặt dịch vụ thành công!' : 'Không thể đặt dịch vụ.';
+            $_SESSION['success'] = ($created>0) ? ('Đặt ' . $created . ' dịch vụ thành công!') : 'Không thể đặt dịch vụ.';
         } catch (Throwable $e) { $_SESSION['error'] = 'Đã xảy ra lỗi.'; }
         header('Location: ' . BASE_URL . '?action=services');
         exit;
@@ -167,7 +188,7 @@ class ServiceController
         try {
             $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
             $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-            $vehicles = ($pdo->query("SELECT id, name, license_plate, driver_name, driver_phone FROM master_vehicles ORDER BY name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $vehicles = ($pdo->query("SELECT id, name, license_plate, driver_name, driver_phone, capacity FROM master_vehicles ORDER BY name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $hotels = ($pdo->query("SELECT id, hotel_name, address, star_rating, contact_phone, room_types_available FROM master_hotels ORDER BY hotel_name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $flights = ($pdo->query("SELECT id, flight_number, airline, route_origin, route_destination, default_price FROM master_flights ORDER BY flight_number"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
             $restaurants = ($pdo->query("SELECT id, restaurant_name, address, cuisine_type, contact_phone, max_capacity FROM master_restaurants ORDER BY restaurant_name"))->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -185,7 +206,7 @@ class ServiceController
         $type = trim($_POST['service_type'] ?? '');
         $supplier = trim($_POST['supplier_name'] ?? '');
         $quantity = (int)($_POST['quantity'] ?? 1);
-        $status = trim($_POST['status'] ?? 'pending');
+        $status = trim($_POST['status'] ?? 'chờ');
         $startTime = $this->normalizeDateTime($_POST['start_time'] ?? '');
         $endTime = $this->normalizeDateTime($_POST['end_time'] ?? '');
         $notes = trim($_POST['notes'] ?? '');
@@ -194,6 +215,19 @@ class ServiceController
         $masterFlightId = isset($_POST['master_flight_id']) ? (int)$_POST['master_flight_id'] : null;
         $masterRestaurantId = isset($_POST['master_restaurant_id']) ? (int)$_POST['master_restaurant_id'] : null;
         $masterActivityId = isset($_POST['master_activity_id']) ? (int)$_POST['master_activity_id'] : null;
+        // xác định loại theo master nếu cần
+        $selectedMap = [];
+        if ($masterVehicleId) { $selectedMap['vehicle'] = $masterVehicleId; }
+        if ($masterHotelId) { $selectedMap['hotel'] = $masterHotelId; }
+        if ($masterFlightId) { $selectedMap['flight'] = $masterFlightId; }
+        if ($masterRestaurantId) { $selectedMap['restaurant'] = $masterRestaurantId; }
+        if ($masterActivityId) { $selectedMap['activity'] = $masterActivityId; }
+        if ($type !== '' && isset($selectedMap[$type])) {
+            // giữ nguyên
+        } elseif (!empty($selectedMap)) {
+            $type = array_key_first($selectedMap);
+        }
+
         try {
             $ok = (new ServiceOrder())->update($id, [
                 'booking_id'   => $bookingId,
@@ -204,26 +238,28 @@ class ServiceController
                 'start_time'   => $startTime,
                 'end_time'     => $endTime,
                 'notes'        => $notes,
-                'master_vehicle_id' => $masterVehicleId,
-                'master_hotel_id' => $masterHotelId,
-                'master_flight_id' => $masterFlightId,
-                'master_restaurant_id' => $masterRestaurantId,
-                'master_activity_id' => $masterActivityId,
+                'master_vehicle_id' => ($type==='vehicle') ? $masterVehicleId : null,
+                'master_hotel_id' => ($type==='hotel') ? $masterHotelId : null,
+                'master_flight_id' => ($type==='flight') ? $masterFlightId : null,
+                'master_restaurant_id' => ($type==='restaurant') ? $masterRestaurantId : null,
+                'master_activity_id' => ($type==='activity') ? $masterActivityId : null,
             ]);
 
             if ($type === 'vehicle' && $masterVehicleId) {
                 $driverName = trim($_POST['driver_name'] ?? '');
                 $driverPhone = trim($_POST['driver_phone'] ?? '');
                 $licensePlate = trim($_POST['license_plate'] ?? '');
+                $capacity = isset($_POST['driver_capacity']) ? trim((string)$_POST['driver_capacity']) : '';
                 if ($driverName !== '' || $driverPhone !== '' || $licensePlate !== '') {
                     try {
                         $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
                         $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                        $sql = 'UPDATE master_vehicles SET driver_name=:dn, driver_phone=:dp, license_plate=:lp WHERE id=:id';
+                        $sql = 'UPDATE master_vehicles SET driver_name=:dn, driver_phone=:dp, license_plate=:lp' . ($capacity !== '' ? ', capacity=:cp' : '') . ' WHERE id=:id';
                         $stmt = $pdo->prepare($sql);
                         $stmt->bindValue(':dn', $driverName !== '' ? $driverName : null, PDO::PARAM_STR);
                         $stmt->bindValue(':dp', $driverPhone !== '' ? $driverPhone : null, PDO::PARAM_STR);
                         $stmt->bindValue(':lp', $licensePlate !== '' ? $licensePlate : null, PDO::PARAM_STR);
+                        if ($capacity !== '') { $stmt->bindValue(':cp', $capacity, PDO::PARAM_INT); }
                         $stmt->bindValue(':id', $masterVehicleId, PDO::PARAM_INT);
                         $stmt->execute();
                     } catch (Throwable $e) {}
