@@ -31,6 +31,13 @@ match ($action) {
     'bookings-update-status' => (new BookingController)->updateStatus(),
     'bookings-delete'        => (new BookingController)->delete(),
 
+    'customers'         => (new CustomerController)->index(),
+    'customers-create'  => (new CustomerController)->create(),
+    'customers-edit'    => (new CustomerController)->edit(),
+    'customers-store'   => (new CustomerController)->store(),
+    'customers-update'  => (new CustomerController)->update(),
+    'customers-delete'  => (new CustomerController)->delete(),
+
     'guides'         => (new GuideController)->index(),
     'guides-create'  => (new GuideController)->create(),
     'guides-store'   => (new GuideController)->store(),

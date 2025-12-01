@@ -6,6 +6,7 @@ $activeMap = [
     'tour-categories'  => ['tour-categories', 'tour-categories-create', 'tour-categories-store', 'tour-categories-edit', 'tour-categories-update'],
     'tours'            => ['tours', 'tours-create', 'tours-store', 'tours-edit', 'tours-update'],
     'bookings'         => ['bookings', 'bookings-create', 'bookings-store', 'bookings-edit', 'bookings-update', 'bookings-update-status'],
+    'customers'        => ['customers', 'customers-store', 'customers-update', 'customers-delete'],
     'users'            => ['users', 'users-create', 'users-store', 'users-edit', 'users-update', 'users-delete'],
     'guides'           => ['guides', 'guides-create', 'guides-store', 'guides-edit', 'guides-update', 'guides-delete'],
     'assignments'      => ['assignments', 'assignments-create', 'assignments-store', 'assignments-delete'],
@@ -57,7 +58,10 @@ $isActive = function (string $key) use ($currentAction, $activeMap) {
             <a class="nav-link <?= $isActive('services'); ?>" href="<?= BASE_URL ?>?action=services">Quản lý dịch vụ</a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link" href="#">Cài đặt</a>
+            <a class="nav-link <?= $isActive('customers'); ?>" href="<?= BASE_URL ?>?action=customers">Quản lý khách hàng</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="">Cài đặt</a>
         </li>
         <li class="nav-item mt-4 px-3">
             <a class="btn btn-sm btn-danger w-100" href="<?= BASE_URL ?>?action=logout">Đăng xuất</a>

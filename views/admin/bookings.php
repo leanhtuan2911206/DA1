@@ -211,7 +211,7 @@ $filters = [
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex flex-column gap-2">
                                             <!-- Form cập nhật trạng thái nhanh -->
                                             <form method="post" action="<?= BASE_URL ?>?action=bookings-update-status" style="display: inline;">
                                                 <input type="hidden" name="id" value="<?= $booking['id'] ?>">
@@ -223,8 +223,10 @@ $filters = [
                                                     <option value="cancelled" <?= $booking['status'] === 'cancelled' ? 'selected' : '' ?>>Đã hủy</option>
                                                 </select>
                                             </form>
-                                            <a href="<?= BASE_URL ?>?action=bookings-edit&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
-                                            <a href="<?= BASE_URL ?>?action=bookings-delete&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa booking này không?')">🗑️</a>
+                                            <div class="d-flex gap-2">
+                                                <a href="<?= BASE_URL ?>?action=bookings-edit&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
+                                                <a href="<?= BASE_URL ?>?action=bookings-delete&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa booking này không?')">🗑️</a>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
