@@ -121,6 +121,12 @@ class TourManagementController
         $start_date = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
         $end_date = isset($_POST['end_date']) ? trim($_POST['end_date']) : '';
         $total_guests = isset($_POST['total_guests']) ? (int) $_POST['total_guests'] : 0;
+        $status = isset($_POST['status']) ? trim($_POST['status']) : 'pending';
+
+        $allowedStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+        if (!in_array($status, $allowedStatuses, true)) {
+            $status = 'pending';
+        }
 
         if ($tour_id <= 0 || empty($group_name) || $total_guests <= 0) {
             $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc';
@@ -136,7 +142,7 @@ class TourManagementController
             'start_date' => $start_date ?: null,
             'end_date' => $end_date ?: null,
             'total_guests' => $total_guests,
-            'status' => 'pending'
+            'status' => $status
         ];
 
         $result = $groupModel->create($data);

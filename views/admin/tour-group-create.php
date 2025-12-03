@@ -32,7 +32,7 @@ $bookings = isset($bookings) && is_array($bookings) ? $bookings : [];
             <div class="row g-3">
                 <div class="col-12 col-md-6">
                     <label class="form-label">Tour <span class="text-danger">*</span></label>
-                    <select class="form-select" name="tour_id" required>
+                    <select id="tour_select" class="form-select" name="tour_id" required>
                         <option value="">-- Chọn tour --</option>
                         <?php foreach ($tours as $tour): ?>
                             <option value="<?= $tour['id'] ?>"><?= htmlspecialchars($tour['name']) ?></option>
@@ -41,20 +41,35 @@ $bookings = isset($bookings) && is_array($bookings) ? $bookings : [];
                 </div>
                 <div class="col-12 col-md-6">
                     <label class="form-label">Booking</label>
-                    <select class="form-select" name="booking_id">
+                    <select id="booking_select" class="form-select" name="booking_id">
                         <option value="">-- Chọn booking --</option>
                         <?php foreach ($bookings as $booking): ?>
-                            <option value="<?= $booking['id'] ?>">
+                            <option value="<?= $booking['id'] ?>"
+                                data-tour-id="<?= $booking['tour_id'] ?? '' ?>"
+                                data-tour-name="<?= htmlspecialchars($booking['tour_name'] ?? '') ?>"
+                                data-customer-name="<?= htmlspecialchars($booking['customer_name'] ?? '') ?>"
+                                data-total="<?= (int)($booking['total_people'] ?? 0) ?>">
                                 #<?= $booking['id'] ?> - <?= htmlspecialchars($booking['customer_name']) ?><?php if (!empty($booking['tour_name'])): ?> · <?= htmlspecialchars($booking['tour_name']) ?><?php endif; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
             </div>
+            <div class="row g-3 mt-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label">Trạng thái</label>
+                    <select class="form-select" name="status">
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="in_progress">Đang thực hiện</option>
+                        <option value="completed">Hoàn thành</option>
+                        <option value="cancelled">Đã huỷ</option>
+                    </select>
+                </div>
+            </div>
             
             <div class="mt-3">
                 <label class="form-label">Tên đoàn <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" name="group_name" placeholder="Ví dụ: Đoàn Hà Nội - Hạ Long" required>
+                <input id="group_name" type="text" class="form-control" name="group_name" placeholder="Ví dụ: Đoàn Hà Nội - Hạ Long" required>
             </div>
 
             <div class="row g-3 mt-1">
@@ -70,7 +85,7 @@ $bookings = isset($bookings) && is_array($bookings) ? $bookings : [];
 
             <div class="mt-3">
                 <label class="form-label">Số khách dự kiến <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" name="total_guests" min="1" required>
+                <input id="total_guests" type="number" class="form-control" name="total_guests" min="1" required>
             </div>
 
             <div class="d-flex gap-2 mt-4">
@@ -80,3 +95,41 @@ $bookings = isset($bookings) && is_array($bookings) ? $bookings : [];
         </form>
     </div>
 </main>
+<script>
+    (function(){
+        var bookingSelect = document.getElementById('booking_select');
+        var tourSelect = document.getElementById('tour_select');
+        var groupName = document.getElementById('group_name');
+        var totalGuests = document.getElementById('total_guests');
+
+        if (!bookingSelect) return;
+
+        bookingSelect.addEventListener('change', function(){
+            var opt = bookingSelect.options[bookingSelect.selectedIndex];
+            if (!opt || !opt.value) return;
+            var tourId = opt.getAttribute('data-tour-id');
+            var tourName = opt.getAttribute('data-tour-name') || '';
+            var customer = opt.getAttribute('data-customer-name') || '';
+            var total = opt.getAttribute('data-total') || '';
+
+            // Set tour select if tourId available
+            if (tourId && tourSelect) {
+                tourSelect.value = tourId;
+            }
+
+            // If group name empty, prefill with customer + tour name
+            if (groupName && groupName.value.trim() === '') {
+                var generated = customer;
+                if (tourName) generated += ' · ' + tourName;
+                groupName.value = generated;
+            }
+
+            // Prefill total guests if empty or zero
+            if (totalGuests && (totalGuests.value === '' || parseInt(totalGuests.value,10) === 0)) {
+                if (total) {
+                    totalGuests.value = parseInt(total,10);
+                }
+            }
+        });
+    })();
+</script>
