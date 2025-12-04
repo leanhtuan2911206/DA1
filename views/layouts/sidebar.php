@@ -47,9 +47,6 @@ $isActive = function (string $key) use ($currentAction, $activeMap) {
             <a class="nav-link <?= $isActive('bookings'); ?>" href="<?= BASE_URL ?>?action=bookings">Quản lý booking</a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link <?= $isActive('tour-management'); ?>" href="<?= BASE_URL ?>?action=tour-management">Diễn hành tour</a>
-        </li>
-        <li class="nav-item mb-2">
             <a class="nav-link <?= $isActive('users'); ?>" href="<?= BASE_URL ?>?action=users">Quản lý tài khoản</a>
         </li>
         <li class="nav-item mb-2">
@@ -62,7 +59,10 @@ $isActive = function (string $key) use ($currentAction, $activeMap) {
             <a class="nav-link <?= $isActive('services'); ?>" href="<?= BASE_URL ?>?action=services">Quản lý dịch vụ</a>
         </li>
         <li class="nav-item mb-2">
-            <a class="nav-link <?= $isActive('customers'); ?>" href="<?= BASE_URL ?>?action=customers">Quản lý khách hàng</a>
+            <a class="nav-link <?= $isActive('tour-management'); ?>" href="<?= BASE_URL ?>?action=tour-management">Quản lý đoàn khách và check-in</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link <?= $isActive('customers'); ?>" href="<?= BASE_URL ?>?action=customers">Danh sách khách hàng</a>
         </li>
         <li class="nav-item mb-2">
             <a class="nav-link" href="">Cài đặt</a>

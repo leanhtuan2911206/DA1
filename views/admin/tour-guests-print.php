@@ -139,9 +139,9 @@ $guests = isset($guests) && is_array($guests) ? $guests : [];
                     <td>
                         <?php
                             $payMap = [
-                                'unpaid' => 'Chưa TT',
+                                'unpaid' => 'Chưa thanh toán',
                                 'deposit' => 'Đã cọc',
-                                'paid' => 'Đã TT',
+                                'paid' => 'Đã Thanh toán',
                             ];
                             echo $payMap[$guest['payment_status'] ?? 'unpaid'] ?? '—';
                         ?>

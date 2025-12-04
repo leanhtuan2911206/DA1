@@ -80,7 +80,6 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                     <th>Thông tin</th>
                                     <th>Thanh toán</th>
                                     <th>Check-in</th>
-                                    <th>Phòng</th>
                                     <th>Thao tác</th>
                                 </tr>
                             </thead>
@@ -125,9 +124,9 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                                 <input type="hidden" name="id" value="<?= $guest['id'] ?>">
                                                 <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
                                                 <select name="payment_status" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 150px;">
-                                                    <option value="unpaid" <?= $ps === 'unpaid' ? 'selected' : '' ?>>Chưa TT</option>
+                                                    <option value="unpaid" <?= $ps === 'unpaid' ? 'selected' : '' ?>>Chưa thanh toán</option>
                                                     <option value="deposit" <?= $ps === 'deposit' ? 'selected' : '' ?>>Đã đặt cọc</option>
-                                                    <option value="paid" <?= $ps === 'paid' ? 'selected' : '' ?>>Đã TT</option>
+                                                    <option value="paid" <?= $ps === 'paid' ? 'selected' : '' ?>>Đã thanh toán</option>
                                                 </select>
                                             </form>
                                         </td>
@@ -136,7 +135,7 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                                 $checkInMap = [
                                                     'not_arrived' => 'Chưa đến',
                                                     'arrived' => 'Đã đến',
-                                                    'checked_in' => 'Đã check-in',
+                                                    'checked_in' => 'Check-in',
                                                 ];
                                                 $checkInClass = [
                                                     'not_arrived' => 'bg-secondary',
@@ -155,30 +154,7 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                                 </select>
                                             </form>
                                         </td>
-                                        <td>
-                                            <?php if (!empty($guest['room_id'])): ?>
-                                                <?php 
-                                                    $roomInfo = array_filter($rooms, fn($r) => $r['id'] == $guest['room_id']);
-                                                    $room = reset($roomInfo);
-                                                    if ($room) {
-                                                        echo htmlspecialchars($room['room_number']);
-                                                    }
-                                                ?>
-                                            <?php else: ?>
-                                                <form method="post" action="<?= BASE_URL ?>?action=tour-guest-assign-room" class="d-inline">
-                                                    <input type="hidden" name="guest_id" value="<?= $guest['id'] ?>">
-                                                    <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
-                                                    <select name="room_id" class="form-select form-select-sm" onchange="this.form.submit()" style="min-width: 130px;">
-                                                        <option value="">-- Chọn phòng --</option>
-                                                        <?php foreach ($rooms as $room): ?>
-                                                            <option value="<?= $room['id'] ?>">
-                                                                <?= htmlspecialchars($room['room_number']) ?> (<?= htmlspecialchars($room['room_type'] ?? '') ?>)
-                                                            </option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </form>
-                                            <?php endif; ?>
-                                        </td>
+                                        
                                         <td>
                                             <div class="d-flex gap-2">
                                                 <a href="<?= BASE_URL ?>?action=tour-guest-edit&id=<?= $guest['id'] ?>&group_id=<?= $group['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>

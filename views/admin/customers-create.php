@@ -78,7 +78,7 @@ $paymentStatuses = isset($paymentStatuses) && is_array($paymentStatuses)
         </div>
 
         <div class="card-like">
-            <h4 class="mb-3">Thêm khách mới vào booking</h4>
+            <h4 class="mb-3">Thêm khách mới vào Tour</h4>
             <form method="post" action="<?= BASE_URL ?>?action=customers-store">
                 <input type="hidden" name="booking_id" value="<?= $selectedBooking['id'] ?>">
                 <div class="mb-3">

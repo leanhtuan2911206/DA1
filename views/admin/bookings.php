@@ -146,6 +146,7 @@ $filters = [
                                 <th>Đặt cọc</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
+                                <th>Danh sách khách</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -228,6 +229,9 @@ $filters = [
                                                 <a href="<?= BASE_URL ?>?action=bookings-delete&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa booking này không?')">🗑️</a>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <a href="<?= BASE_URL ?>?action=customers&booking_id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-primary">Xem danh sách</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

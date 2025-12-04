@@ -21,7 +21,7 @@ $filters = [
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
         <div>
             <p class="text-uppercase text-muted small mb-1">Quản lý hoạt động</p>
-            <h2 class="page-title mb-0">Diễn hành tour</h2>
+            <h2 class="page-title mb-0">Danh sách đoàn tour</h2>
         </div>
         <div class="d-flex gap-2">
             <a href="<?= BASE_URL ?>?action=tour-group-create" class="btn btn-success">+ Tạo đoàn khách</a>
