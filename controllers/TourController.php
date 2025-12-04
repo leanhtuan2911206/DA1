@@ -458,5 +458,37 @@ class TourController
             exit;
         }
     }
+    public function detail()
+    {
+        if(session_status() === PHP_SESSION_NONE){ session_start(); }
+        if(!isset($_SESSION['user'])){ header('Location: ' . BASE_URL . '?action=login'); exit; }
+
+        $id = $_GET['id'] ?? null;
+        if (!$id) {
+            $_SESSION['error'] = 'Không tìm thấy ID Tour';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourModel = new Tour();
+        
+        // 1. Lấy thông tin chung tour
+        $tour = $tourModel->find($id);
+        
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        // 2. Lấy lịch trình chi tiết
+        $itineraries = $tourModel->getItineraryByTourId($id);
+
+        // 3. Gọi View
+        $view = 'admin/tours-detail'; 
+        $title = 'Chi tiết lịch trình: ' . $tour['name'];
+        $hideNavbar = true;
+        require_once PATH_VIEW . 'main.php'; 
+    }
 }
 

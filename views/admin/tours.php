@@ -213,6 +213,11 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                 </td>
                                 <td>
                                     <div class="d-flex gap-2">
+                                        <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" 
+                                            class="btn btn-sm btn-info text-white" 
+                                            title="Xem lịch trình chi tiết">
+                                            📄
+                                        </a>
                                         <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                         <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
                                     </div>
