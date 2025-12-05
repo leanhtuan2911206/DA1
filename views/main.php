@@ -45,10 +45,15 @@
             </div>
         </div>
     <?php else: ?>
-        <?php if (!$isLoginPage && $isLoggedIn) : ?>
-            <?php require_once PATH_VIEW . 'layouts/sidebar.php'; ?>
-        <?php endif; ?>
-        <?php
+        <?php 
+        $role = isset($_SESSION['user']['role']) ? strtolower((string)$_SESSION['user']['role']) : '';
+        if (!$isLoginPage && $isLoggedIn) {
+            if ($role === 'hdv' && file_exists(PATH_VIEW . 'layouts/partner_sidebar.php')) {
+                require_once PATH_VIEW . 'layouts/partner_sidebar.php';
+            } else {
+                require_once PATH_VIEW . 'layouts/sidebar.php';
+            }
+        }
         if (isset($view)) {
             require_once PATH_VIEW . $view . '.php';
         }

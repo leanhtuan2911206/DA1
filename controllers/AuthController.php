@@ -31,22 +31,40 @@ class AuthController
                     $user = $userModel->findByEmail($email);
 
                     // Kiểm tra người dùng tồn tại và mật khẩu
-                    // LƯU Ý: Trong thực tế, bạn PHẢI sử dụng hàm băm (hash) mật khẩu như password_verify().
+                    // Lưu ý: Trong thực tế, bạn PHẢI sử dụng hàm băm (hash) mật khẩu như password_verify().
                     if ($user && $password === $user['password']) { 
                         // Đăng nhập thành công
                         // Bắt đầu session và lưu thông tin người dùng
                         if (session_status() === PHP_SESSION_NONE) {
                             session_start();
                         }
+                        $role = isset($user['role']) ? strtolower((string)$user['role']) : '';
+                        $guideId = isset($user['guide_id']) ? (int)$user['guide_id'] : 0;
+                        if ($role === 'hdv' && $guideId === 0) {
+                            try {
+                                $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+                                $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                                $stmt = $pdo->prepare('SELECT id FROM hdv WHERE user_id = :uid LIMIT 1');
+                                $stmt->execute([':uid' => (int)$user['id']]);
+                                $row = $stmt->fetch();
+                                if ($row && isset($row['id'])) { $guideId = (int)$row['id']; }
+                                if ($guideId === 0) {
+                                    $stmt = $pdo->prepare('SELECT id FROM hdv WHERE email = :email LIMIT 1');
+                                    $stmt->execute([':email' => (string)$user['email']]);
+                                    $row = $stmt->fetch();
+                                    if ($row && isset($row['id'])) { $guideId = (int)$row['id']; }
+                                }
+                            } catch (Throwable $e) { /* ignore */ }
+                        }
                         $_SESSION['user'] = [
                             'id'    => $user['id'],
                             'name'  => $user['name'],
                             'email' => $user['email'],
-                            // Thêm các thông tin khác nếu cần
+                            'role'  => $role,
+                            'guide_id' => $guideId,
                         ];
-
-                        // Chuyển hướng đến trang quản trị
-                        header('Location: ' . BASE_URL . '?action=admin');
+                        $url = BASE_URL . ($role === 'hdv' ? '?action=partner' : '?action=admin');
+                        header('Location: ' . $url);
                         exit;
                     } else {
                         $error = 'Email hoặc mật khẩu không chính xác!';

@@ -1,9 +1,16 @@
 
 <?php 
-$bgFs = __DIR__ . '/../../assets/uploads/img/login.jpg';
-$bgUrl = BASE_URL . 'assets/uploads/img/login.jpg';
-$logoFs = __DIR__ . '/../../assets/uploads/logo.png';
-$logoUrl = BASE_URL . 'assets/uploads/logo.png';
+$uploadsDir = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+$bgFs  = $uploadsDir . '2083948.jpg';
+$bgUrl = BASE_ASSETS_UPLOADS . '2083948.jpg';
+if (!is_file($bgFs)) {
+    if (is_file($uploadsDir . 'background.jpg'))      { $bgUrl = BASE_ASSETS_UPLOADS . 'background.jpg'; }
+    elseif (is_file($uploadsDir . 'background.png'))  { $bgUrl = BASE_ASSETS_UPLOADS . 'background.png'; }
+    elseif (is_file($uploadsDir . 'login-bg.jpg'))    { $bgUrl = BASE_ASSETS_UPLOADS . 'login-bg.jpg'; }
+    elseif (is_file($uploadsDir . 'login-bg.png'))    { $bgUrl = BASE_ASSETS_UPLOADS . 'login-bg.png'; }
+}
+$logoFs = $uploadsDir . 'logo.png';
+$logoUrl = BASE_ASSETS_UPLOADS . 'logo.png';
 ?>
 <style>
 .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:url('<?= $bgUrl ?>') center/cover no-repeat fixed}

@@ -15,12 +15,16 @@ class AssignmentController
         $title = 'Quản lý khởi hành và phân bổ nhân sự';
         $hideNavbar = true;
 
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $role = isset($_SESSION['user']['role']) ? strtolower((string)$_SESSION['user']['role']) : '';
+        $guideIdSession = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : null;
         $filters = [
             'booking_id' => isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : null,
             'HDV_ID'     => isset($_GET['HDV_ID']) ? (int)$_GET['HDV_ID'] : null,
             'date_from'  => trim($_GET['date_from'] ?? ''),
             'date_to'    => trim($_GET['date_to'] ?? ''),
         ];
+        if ($role === 'hdv' && $guideIdSession) { $filters['HDV_ID'] = $guideIdSession; }
         $list = [];
         $bookings = [];
         $guides = [];
