@@ -435,6 +435,12 @@ class TourManagementController
         
         if (empty($_SESSION['error'])) {
             $_SESSION['success'] = 'Cập nhật thông tin thành công';
+            $guest = $guestModel->find($id);
+            if ($guest && trim($guest['special_requests'] ?? '') !== '') {
+                $idDoc = trim($guest['id_number'] ?? '');
+                $extra = $idDoc !== '' ? (' · Số giấy tờ: ' . $idDoc) : '';
+                $_SESSION['warning_special'] = 'Ghi nhận đặc biệt cho khách #' . $guest['id'] . ' (' . $guest['full_name'] . ')' . $extra . ': ' . $guest['special_requests'];
+            }
         }
 
         header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $group_id);

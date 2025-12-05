@@ -32,6 +32,10 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
         <div class="alert alert-success mb-3"><?= htmlspecialchars($_SESSION['success']) ?></div>
         <?php unset($_SESSION['success']); ?>
     <?php endif; ?>
+    <?php if (!empty($_SESSION['warning_special'])): ?>
+        <div class="alert alert-warning mb-3"><?= htmlspecialchars($_SESSION['warning_special']) ?></div>
+        <?php unset($_SESSION['warning_special']); ?>
+    <?php endif; ?>
     <?php if (!empty($_SESSION['error'])): ?>
         <div class="alert alert-danger mb-3"><?= htmlspecialchars($_SESSION['error']) ?></div>
         <?php unset($_SESSION['error']); ?>
@@ -62,6 +66,18 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
         </div>
     </div>
 
+    <?php $specials = []; foreach ($guests as $__g) { if (trim($__g['special_requests'] ?? '') !== '') { $specials[] = $__g; } } ?>
+    <?php if (!empty($specials)): ?>
+        <div class="alert alert-warning mb-3">
+            <div><strong>Cảnh báo yêu cầu đặc biệt</strong> · <?= count($specials) ?> khách cần lưu ý</div>
+            <ul class="mb-0">
+                <?php foreach ($specials as $sg): ?>
+                    <li><?= htmlspecialchars($sg['full_name']) ?>: <?= htmlspecialchars($sg['special_requests']) ?></li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    <?php endif; ?>
+
     <div class="row g-4">
         <div class="col-12">
             <div class="card-like">
@@ -80,6 +96,7 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                     <th>Thông tin</th>
                                     <th>Thanh toán</th>
                                     <th>Check-in</th>
+                                    <th>Ghi chú đặc biệt</th>
                                     <th>Thao tác</th>
                                 </tr>
                             </thead>
@@ -153,6 +170,14 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                                     <option value="checked_in" <?= $ci === 'checked_in' ? 'selected' : '' ?>>Check-in</option>
                                                 </select>
                                             </form>
+                                        </td>
+                                        <td>
+                                            <?php if (!empty(trim($guest['special_requests'] ?? ''))): ?>
+                                                <span class="badge bg-warning text-dark">⚠️</span>
+                                                <span class="small ms-1"><?= htmlspecialchars($guest['special_requests']) ?></span>
+                                            <?php else: ?>
+                                                <span class="text-muted">—</span>
+                                            <?php endif; ?>
                                         </td>
                                         
                                         <td>
