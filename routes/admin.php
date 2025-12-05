@@ -17,6 +17,11 @@ match ($action) {
     'tour-categories-update'  => (new TourCategoryController)->update(),
     'tour-categories-delete'  => (new TourCategoryController)->delete(),
     'tours-detail'       => (new TourController)->detail(),
+    'tours-itinerary-create' => (new TourController)->createItinerary(), // Hiển thị form
+    'tours-itinerary-store'  => (new TourController)->storeItinerary(),
+    'tours-itinerary-edit'   => (new TourController)->editItinerary(),
+    'tours-itinerary-update' => (new TourController)->updateItinerary(),
+    'tours-itinerary-delete' => (new TourController)->deleteItinerary(),
     
     'tours-create'  => (new TourController)->create(),
     'tours-store'   => (new TourController)->store(),

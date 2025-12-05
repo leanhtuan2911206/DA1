@@ -199,5 +199,71 @@ class Tour extends BaseModel
         
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-}
+    
+    // Lấy danh sách item từ mẫu (template) dựa trên template_id
+    public function getTemplateItems($templateId)
+    {
+        $sql = "SELECT * FROM template_itineraries WHERE template_id = ? ORDER BY day_number ASC, time_start ASC";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$templateId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 
+    // Thêm mới một dòng lịch trình cho Tour
+    public function insertItinerary($tour_id, $day_number, $time_start, $title, $description, $location)
+    {
+        $sql = "INSERT INTO tour_itineraries (tour_id, day_number, time_start, title, description, location, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, NOW())";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$tour_id, $day_number, $time_start, $title, $description, $location]);
+        } catch (PDOException $e) {
+            error_log('Tour::insertItinerary error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Lấy 1 dòng lịch trình theo ID
+    public function getItineraryById($id)
+    {
+        $sql = "SELECT * FROM tour_itineraries WHERE id = ?";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Cập nhật lịch trình
+    public function updateItinerary($id, $day_number, $time_start, $title, $description, $location)
+    {
+        // Bỏ updated_at vì có thể bảng không có cột này
+        $sql = "UPDATE tour_itineraries 
+                SET day_number = ?, 
+                    time_start = ?, 
+                    title = ?, 
+                    description = ?, 
+                    location = ?
+                WHERE id = ?";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$day_number, $time_start, $title, $description, $location, $id]);
+        } catch (PDOException $e) {
+            error_log('Tour::updateItinerary error: ' . $e->getMessage());
+            // Lưu lỗi để controller có thể lấy ra
+            $this->lastError = $e->getMessage();
+            return false;
+        }
+    }
+
+    // Xóa lịch trình
+    public function deleteItinerary($id)
+    {
+        $sql = "DELETE FROM tour_itineraries WHERE id = ?";
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$id]);
+        } catch (PDOException $e) {
+            error_log('Tour::deleteItinerary error: ' . $e->getMessage());
+            return false;
+        }
+    }
+}
