@@ -186,5 +186,18 @@ class Tour extends BaseModel
 
         return $stmt->fetchAll();
     }
+
+    public function getItineraryByTourId($tourId)
+    {
+        // Lấy dữ liệu từ bảng tour_itineraries (bảng thực tế)
+        $sql = "SELECT * FROM tour_itineraries 
+                WHERE tour_id = ? 
+                ORDER BY day_number ASC, time_start ASC";
+        
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$tourId]);
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 
