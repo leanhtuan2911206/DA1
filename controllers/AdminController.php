@@ -26,8 +26,12 @@ class AdminController
             $userModel = new User();
             $guideModel = new Guide();
 
+            $tourCount = 0;
+            $bookingCount = 0;
+            $userCount = 0;
+            $guideCount = 0;
             $customerCount = 0;
-            $tourOpenCount = $tourCount;
+            $tourOpenCount = 0;
             $pendingBookings = 0;
             $revenue = 0.0;
             try {
@@ -55,7 +59,7 @@ class AdminController
             } catch (Throwable $e) {
                 // keep defaults
             }
-            $guideCount = (int)($pdo->query('SELECT COUNT(*) FROM hdv')->fetchColumn() ?: 0);
+            try { $guideCount = (int)($pdo->query('SELECT COUNT(*) FROM hdv')->fetchColumn() ?: 0); } catch (Throwable $_) { $guideCount = 0; }
 
             $tours = $tourModel->listDashboard(12);
 
