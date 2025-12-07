@@ -635,9 +635,8 @@ class TourController
         } else {
             $errorMsg = 'Lỗi khi cập nhật dữ liệu.';
             // Nếu model có lưu lastError, hiển thị ra để debug
-            $lastError = $tourModel->getLastError();
-            if (!empty($lastError)) {
-                $errorMsg .= ' Chi tiết: ' . (is_array($lastError) ? json_encode($lastError) : $lastError);
+            if (isset($tourModel->lastError) && !empty($tourModel->lastError)) {
+                $errorMsg .= ' Chi tiết: ' . $tourModel->lastError;
             }
             $_SESSION['error'] = $errorMsg;
             header('Location: ' . BASE_URL . '?action=tours-itinerary-edit&id=' . $id);

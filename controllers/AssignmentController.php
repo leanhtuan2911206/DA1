@@ -57,6 +57,7 @@ class AssignmentController
         $bookingId   = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
         $guideId     = isset($_POST['HDV_ID']) ? (int)$_POST['HDV_ID'] : 0;
         $assignDate  = trim($_POST['assign_date'] ?? '');
+        $endDate     = trim($_POST['end_date'] ?? '');
         $meetingPoint= trim($_POST['meeting_point'] ?? '');
         $startTime   = trim($_POST['start_time'] ?? '');
         $endTime     = trim($_POST['end_time'] ?? '');
@@ -73,6 +74,7 @@ class AssignmentController
                 'booking_id'   => $bookingId,
                 'HDV_ID'       => $guideId,
                 'assign_date'  => $assignDate,
+                'end_date'     => $endDate,
                 'meeting_point'=> $meetingPoint,
                 'start_time'   => $startTime,
                 'end_time'     => $endTime,
@@ -127,6 +129,7 @@ class AssignmentController
         $bookingId   = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
         $guideId     = isset($_POST['HDV_ID']) ? (int)$_POST['HDV_ID'] : 0;
         $assignDate  = trim($_POST['assign_date'] ?? '');
+        $endDate     = trim($_POST['end_date'] ?? '');
         $meetingPoint= trim($_POST['meeting_point'] ?? '');
         $startTime   = trim($_POST['start_time'] ?? '');
         $endTime     = trim($_POST['end_time'] ?? '');
@@ -142,6 +145,7 @@ class AssignmentController
                 'booking_id'   => $bookingId,
                 'HDV_ID'       => $guideId,
                 'assign_date'  => $assignDate,
+                'end_date'     => $endDate,
                 'meeting_point'=> $meetingPoint,
                 'start_time'   => $startTime,
                 'end_time'     => $endTime,

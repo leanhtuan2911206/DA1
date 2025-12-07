@@ -54,6 +54,7 @@
                         <th>Giờ xuất phát</th>
                         <th>Giờ kết thúc</th>
                         <th>Ngày phân công</th>
+                        <th>Ngày kết thúc</th>
                         <th>Ghi chú</th>
                         <th style="width:160px">Thao tác</th>
                     </tr>
@@ -82,12 +83,13 @@
                             <td><?= htmlspecialchars($row['start_time'] ?? '') ?></td>
                             <td><?= htmlspecialchars($row['end_time'] ?? '') ?></td>
                             <td><?= htmlspecialchars($row['assign_date'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($row['end_date'] ?? '') ?></td>
                             <td><?= htmlspecialchars($row['notes'] ?? '') ?></td>
                             <td>
                                 <div class="d-flex gap-2">
                                     <?php if ($id): ?>
-                                        <a class="btn btn-outline-danger btn-sm" href="<?= BASE_URL ?>?action=assignments-delete&id=<?= urlencode((string)$id) ?>" onclick="return confirm('Xóa phân bổ này?')">✏️</a>
-                                        <a class="btn btn-outline-secondary btn-sm" href="<?= BASE_URL ?>?action=assignments-edit&id=<?= urlencode((string)$id) ?>">🗑️</a>
+                                        <a class="btn btn-outline-primary btn-sm" href="<?= BASE_URL ?>?action=assignments-edit&id=<?= urlencode((string)$id) ?>">✏️</a>
+                                        <a class="btn btn-outline-danger btn-sm" href="<?= BASE_URL ?>?action=assignments-delete&id=<?= urlencode((string)$id) ?>" onclick="return confirm('Xóa phân bổ này?')">🗑️</a>
                                     <?php endif; ?>
                                     <?php if ($bid): ?>
                                         <a class="btn btn-outline-primary btn-sm" href="<?= BASE_URL ?>?action=services&booking_id=<?= urlencode((string)$bid) ?>">Dịch vụ</a>

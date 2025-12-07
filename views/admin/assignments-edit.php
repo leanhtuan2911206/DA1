@@ -38,7 +38,11 @@
                     <input type="date" class="form-control" name="assign_date" value="<?= htmlspecialchars($assignment['assign_date'] ?? '') ?>">
                 </div>
                 <div class="col-12 col-lg-6">
-                    <label class="form-label">Điểm tập trung</label>
+                    <label class="form-label">Ngày kết thúc</label>
+                    <input type="date" class="form-control" name="end_date" value="<?= htmlspecialchars($assignment['end_date'] ?? '') ?>">
+                </div>
+                <div class="col-12 col-lg-6">
+                    <label class="form-label"></label>Điểm tập trung</label>
                     <input type="text" class="form-control" name="meeting_point" value="<?= htmlspecialchars($assignment['meeting_point'] ?? '') ?>">
                 </div>
                 <div class="col-12 col-lg-6">

@@ -526,6 +526,84 @@ class TourManagementController
         exit;
     }
 
+    public function syncGuestsFromBooking(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=tour-management');
+            exit;
+        }
+
+        $group_id = isset($_POST['group_id']) ? (int) $_POST['group_id'] : 0;
+        if ($group_id <= 0) {
+            $_SESSION['error'] = 'Dữ liệu không hợp lệ';
+            header('Location: ' . BASE_URL . '?action=tour-management');
+            exit;
+        }
+
+        $groupModel = new TourGroup();
+        $group = $groupModel->find($group_id);
+        
+        if (!$group || empty($group['booking_id'])) {
+            $_SESSION['error'] = 'Đoàn không có thông tin booking liên kết';
+            header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $group_id);
+            exit;
+        }
+
+        $customerModel = new Customer();
+        $customers = $customerModel->getByBooking($group['booking_id']);
+        $totalFound = count($customers);
+        
+        if ($totalFound === 0) {
+            $_SESSION['error'] = "Booking #{$group['booking_id']} chưa có khách hàng nào trong mục 'Quản lý khách hàng'. Vui lòng nhập danh sách khách cho booking này trước.";
+            header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $group_id);
+            exit;
+        }
+
+        $guestModel = new TourGuest();
+        $existingGuests = $guestModel->getByGroup($group_id);
+        $existingNames = array_map(function($g) { return mb_strtolower(trim($g['full_name'])); }, $existingGuests);
+
+        $count = 0;
+        foreach ($customers as $customer) {
+            $name = trim($customer['full_name']);
+            if (empty($name)) continue;
+
+            // Check duplicate by name (case-insensitive)
+            if (in_array(mb_strtolower($name), $existingNames)) {
+                continue;
+            }
+
+            $data = [
+                'group_id' => $group_id,
+                'full_name' => $customer['full_name'],
+                'phone' => $customer['contact_phone'] ?? null,
+                'gender' => $customer['gender'] ?? null,
+                'date_of_birth' => $customer['date_of_birth'] ?? null,
+                'id_type' => $customer['id_type'] ?? null,
+                'id_number' => $customer['id_number'] ?? null,
+                'email' => $customer['email'] ?? null,
+                'address' => $customer['address'] ?? null,
+                'payment_status' => $customer['payment_status'] ?? 'unpaid',
+                'special_requests' => $customer['special_requests'] ?? null,
+            ];
+
+            if ($guestModel->create($data)) {
+                $count++;
+            }
+        }
+
+        if ($count > 0) {
+            $_SESSION['success'] = "Đã tìm thấy $totalFound khách trong Booking #{$group['booking_id']}. Đồng bộ thành công thêm $count khách.";
+        } else {
+            $_SESSION['success'] = "Đã tìm thấy $totalFound khách trong Booking #{$group['booking_id']} nhưng tất cả đã có trong danh sách (trùng tên).";
+        }
+
+        header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $group_id);
+        exit;
+    }
+
     protected function ensureAuthenticated(): void
     {
         if (session_status() === PHP_SESSION_NONE) {

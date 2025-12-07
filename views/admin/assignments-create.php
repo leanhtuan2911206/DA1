@@ -39,6 +39,10 @@
                     <input type="date" class="form-control" name="assign_date" required>
                 </div>
                 <div class="col-12 col-lg-6">
+                    <label class="form-label">Ngày kết thúc</label>
+                    <input type="date" class="form-control" name="end_date">
+                </div>
+                <div class="col-12 col-lg-6">
                     <label class="form-label">Điểm tập trung</label>
                     <input type="text" class="form-control" name="meeting_point" placeholder="Ví dụ: 123 Lý Thường Kiệt" required>
                 </div>

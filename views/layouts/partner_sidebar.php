@@ -28,6 +28,9 @@ $logoUrl    = BASE_ASSETS_UPLOADS . 'logo.png';
         <li class="nav-item mb-2">
             <a class="nav-link <?= $activeAssignments ?>" href="<?= $assignmentsHref ?>">Tour được phân công</a>
         </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link" href="">Lịch trình tour</a>
+        </li>
         <li class="nav-item mt-4 px-3">
             <a class="btn btn-sm btn-danger w-100" href="<?= BASE_URL ?>?action=logout">Đăng xuất</a>
         </li>

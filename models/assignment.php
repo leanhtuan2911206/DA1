@@ -57,6 +57,9 @@ class Assignment extends BaseModel
             if (!$this->columnExists($this->table, 'assign_date')) {
                 $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN assign_date DATE NULL");
             }
+            if (!$this->columnExists($this->table, 'end_date')) {
+                $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN end_date DATE NULL");
+            }
             if (!$this->columnExists($this->table, 'meeting_point')) {
                 $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN meeting_point VARCHAR(255) NULL");
             }
@@ -85,7 +88,7 @@ class Assignment extends BaseModel
     {
         $this->ensureTableExists();
         $this->ensureColumns();
-        $sql = "SELECT id, booking_id, HDV_ID, assign_date, meeting_point, start_time, end_time, driver_id, support_id, notes FROM {$this->table}";
+        $sql = "SELECT id, booking_id, HDV_ID, assign_date, end_date, meeting_point, start_time, end_time, driver_id, support_id, notes FROM {$this->table}";
         $where = [];
         $params = [];
         if (!empty($filters['booking_id'])) { $where[] = 'booking_id = :bid'; $params[':bid'] = (int)$filters['booking_id']; }
@@ -107,12 +110,13 @@ class Assignment extends BaseModel
         $this->ensureTableExists();
         $this->ensureColumns();
         if (!$this->tableExists()) { error_log('Assignment::insertSimple error: table not exists'); return false; }
-        $sql = "INSERT INTO {$this->table} (booking_id, HDV_ID, assign_date, meeting_point, start_time, end_time, driver_id, support_id, notes, schedule_id) VALUES (:booking_id, :HDV_ID, :assign_date, :meeting_point, :start_time, :end_time, :driver_id, :support_id, :notes, :schedule_id)";
+        $sql = "INSERT INTO {$this->table} (booking_id, HDV_ID, assign_date, end_date, meeting_point, start_time, end_time, driver_id, support_id, notes, schedule_id) VALUES (:booking_id, :HDV_ID, :assign_date, :end_date, :meeting_point, :start_time, :end_time, :driver_id, :support_id, :notes, :schedule_id)";
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':booking_id', (int)$data['booking_id'], PDO::PARAM_INT);
             $stmt->bindValue(':HDV_ID', (int)$data['HDV_ID'], PDO::PARAM_INT);
             if (!empty($data['assign_date'])) { $stmt->bindValue(':assign_date', $data['assign_date'], PDO::PARAM_STR); } else { $stmt->bindValue(':assign_date', null, PDO::PARAM_NULL); }
+            if (!empty($data['end_date'])) { $stmt->bindValue(':end_date', $data['end_date'], PDO::PARAM_STR); } else { $stmt->bindValue(':end_date', null, PDO::PARAM_NULL); }
             if (!empty($data['meeting_point'])) { $stmt->bindValue(':meeting_point', $data['meeting_point'], PDO::PARAM_STR); } else { $stmt->bindValue(':meeting_point', null, PDO::PARAM_NULL); }
             if (!empty($data['start_time'])) { $stmt->bindValue(':start_time', $data['start_time'], PDO::PARAM_STR); } else { $stmt->bindValue(':start_time', null, PDO::PARAM_NULL); }
             if (!empty($data['end_time'])) { $stmt->bindValue(':end_time', $data['end_time'], PDO::PARAM_STR); } else { $stmt->bindValue(':end_time', null, PDO::PARAM_NULL); }
@@ -160,13 +164,14 @@ class Assignment extends BaseModel
     public function updateSimple(int $id, array $data): bool
     {
         $this->ensureTableExists();
-        $sql = "UPDATE {$this->table} SET booking_id=:booking_id, HDV_ID=:HDV_ID, assign_date=:assign_date, meeting_point=:meeting_point, start_time=:start_time, end_time=:end_time, driver_id=:driver_id, support_id=:support_id, notes=:notes, schedule_id=:schedule_id, user_id=:user_id WHERE id=:id";
+        $sql = "UPDATE {$this->table} SET booking_id=:booking_id, HDV_ID=:HDV_ID, assign_date=:assign_date, end_date=:end_date, meeting_point=:meeting_point, start_time=:start_time, end_time=:end_time, driver_id=:driver_id, support_id=:support_id, notes=:notes, schedule_id=:schedule_id, user_id=:user_id WHERE id=:id";
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->bindValue(':booking_id', (int)$data['booking_id'], PDO::PARAM_INT);
             $stmt->bindValue(':HDV_ID', (int)$data['HDV_ID'], PDO::PARAM_INT);
             $stmt->bindValue(':assign_date', $data['assign_date'] ?: null, $data['assign_date'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':end_date', $data['end_date'] ?: null, $data['end_date'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':meeting_point', $data['meeting_point'] ?: null, $data['meeting_point'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':start_time', $data['start_time'] ?: null, $data['start_time'] ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':end_time', $data['end_time'] ?: null, $data['end_time'] ? PDO::PARAM_STR : PDO::PARAM_NULL);

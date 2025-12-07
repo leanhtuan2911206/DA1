@@ -85,5 +85,6 @@ match ($action) {
     'tour-guest-checkin'     => (new TourManagementController)->checkinGuest(),
     'tour-guest-assign-room' => (new TourManagementController)->assignRoom(),
     'tour-guest-delete'      => (new TourManagementController)->deleteGuest(),
+    'tour-guests-sync'       => (new TourManagementController)->syncGuestsFromBooking(),
     'tour-guests-print'      => (new TourManagementController)->printList(),
 };
