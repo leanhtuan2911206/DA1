@@ -29,6 +29,32 @@ class AdminController
             $tourCount = $tourModel->countAll();
             $bookingCount = $bookingModel->countAll();
             $userCount = $userModel->countAll();
+            $customerCount = 0;
+            $tourOpenCount = $tourCount;
+            $pendingBookings = 0;
+            $revenue = 0.0;
+            try {
+                $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
+                $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                // Khách từ trang bookings (customers)
+                $customerCount = (int)($pdo->query('SELECT COUNT(*) FROM customers')->fetchColumn() ?: 0);
+                // Cộng thêm khách từ trang đoàn (tour_guests) nếu có
+                try { $customerCount += (int)($pdo->query('SELECT COUNT(*) FROM tour_guests')->fetchColumn() ?: 0); } catch (Throwable $_) {}
+
+                // Tour đang mở: kết hợp hai nguồn rồi lấy lớn hơn
+                $fromStatus = 0;
+                $fromBookings = 0;
+                try { $fromStatus = (int)($pdo->query("SELECT COUNT(*) FROM tours WHERE LOWER(COALESCE(tour_status,'active')) IN ('active','upcoming','hoạt động')")->fetchColumn() ?: 0); } catch (Throwable $_) {}
+                try { $fromBookings = (int)($pdo->query("SELECT COUNT(DISTINCT tour_id) FROM bookings WHERE status IN ('pending','deposit','confirmed','completed')")->fetchColumn() ?: 0); } catch (Throwable $_) {}
+                $tourOpenCount = max($fromStatus, $fromBookings);
+
+                // Booking chờ xử lý
+                $pendingBookings = (int)($pdo->query("SELECT COUNT(*) FROM bookings WHERE status = 'pending'")->fetchColumn() ?: 0);
+                // Doanh thu: tổng đặt cọc của các booking đã tiến triển
+                $revenue = (float)($pdo->query("SELECT COALESCE(SUM(deposit_amount),0) FROM bookings WHERE status IN ('deposit','confirmed','completed')")->fetchColumn() ?: 0.0);
+            } catch (Throwable $e) {
+                // keep defaults
+            }
             $guideCount = $guideModel->countAll();
 
             $tours = $tourModel->listDashboard(12);
@@ -50,6 +76,10 @@ class AdminController
             $bookingCount = 0;
             $userCount = 0;
             $guideCount = 0;
+            $customerCount = 0;
+            $tourOpenCount = 0;
+            $pendingBookings = 0;
+            $revenue = 0.0;
             $tours = [];
             $selectedMonth = (int) date('n');
             $selectedYear  = (int) date('Y');

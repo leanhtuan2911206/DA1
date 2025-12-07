@@ -20,8 +20,7 @@
                 <div class="stat-icon bg-primary-subtle text-primary">👥</div>
                 <div class="stat-content">
                     <div class="stat-label">Tổng khách hàng</div>
-                    <div class="stat-value"><?= isset($userCount) ? $userCount : 0 ?></div>
-                    <div class="stat-trend text-success">+17%</div>
+                    <div class="stat-value"><?= isset($customerCount) ? (int)$customerCount : 0 ?></div>
                 </div>
             </div>
         </div>
@@ -30,8 +29,7 @@
                 <div class="stat-icon bg-warning-subtle text-warning">🧳</div>
                 <div class="stat-content">
                     <div class="stat-label">Tour đang mở</div>
-                    <div class="stat-value"><?= isset($tourCount) ? $tourCount : 0 ?></div>
-                    <div class="stat-trend text-success">+10%</div>
+                    <div class="stat-value"><?= isset($tourOpenCount) ? (int)$tourOpenCount : (int)($tourCount ?? 0) ?></div>
                 </div>
             </div>
         </div>
@@ -40,8 +38,7 @@
                 <div class="stat-icon bg-success-subtle text-success">💵</div>
                 <div class="stat-content">
                     <div class="stat-label">Doanh thu</div>
-                    <div class="stat-value">1.9 tỷ</div>
-                    <div class="stat-trend text-danger">-4.3%</div>
+                    <div class="stat-value"><?= isset($revenue) ? number_format((float)$revenue, 0, ',', '.') . 'đ' : '—' ?></div>
                 </div>
             </div>
         </div>
@@ -50,8 +47,8 @@
                 <div class="stat-icon bg-info-subtle text-info">⏱️</div>
                 <div class="stat-content">
                     <div class="stat-label">Tour chờ / xử lý</div>
-                    <div class="stat-value">15 / 40</div>
-                    <div class="stat-trend text-info">Đi đến quản lý booking</div>
+                    <div class="stat-value"><?= (int)($pendingBookings ?? 0) ?> / <?= (int)($bookingCount ?? 0) ?></div>
+                    <div class="stat-trend text-info"><a href="<?= BASE_URL ?>?action=bookings" class="text-info">Đi đến quản lý booking</a></div>
                 </div>
             </div>
         </div>
