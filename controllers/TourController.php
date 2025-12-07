@@ -490,5 +490,199 @@ class TourController
         $hideNavbar = true;
         require_once PATH_VIEW . 'main.php'; 
     }
-}
+    // Mở file controllers/TourController.php và thêm các phương thức sau:
 
+    public function createItinerary(): void
+    {
+        $this->ensureAuthenticated();
+
+        $tour_id = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+        
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tour_id);
+
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        // Lấy dữ liệu mẫu (dựa theo category của tour hoặc template_id nếu có)
+        $templateItems = [];
+        if (!empty($tour['template_id'])) {
+            $templateItems = $tourModel->getTemplateItems($tour['template_id']);
+        } elseif (!empty($tour['category_id'])) {
+            // Fallback: lấy template theo category
+            $templateModel = new TourTemplate();
+            $template = $templateModel->findByCategoryId($tour['category_id']);
+            if ($template) {
+                $templateItems = $tourModel->getTemplateItems($template['id']);
+            }
+        }
+
+        $view = 'admin/tours-itinerary-create';
+        $title = 'Thêm lịch trình: ' . $tour['name'];
+        $hideNavbar = true; // Ẩn menu cho thoáng
+
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function storeItinerary(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tour_id = isset($_POST['tour_id']) ? (int)$_POST['tour_id'] : 0;
+        $day_number = (int)($_POST['day_number'] ?? 1);
+        $time_start = trim($_POST['time_start'] ?? '');
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+
+        if ($tour_id <= 0 || empty($title)) {
+            $_SESSION['error'] = 'Vui lòng nhập tên hoạt động.';
+            header('Location: ' . BASE_URL . '?action=tours-itinerary-create&tour_id=' . $tour_id);
+            exit;
+        }
+
+        $tourModel = new Tour();
+        $result = $tourModel->insertItinerary($tour_id, $day_number, $time_start, $title, $description, $location);
+
+        if ($result) {
+            $_SESSION['success'] = 'Đã thêm lịch trình mới.';
+            // Nếu người dùng chọn "Lưu và thêm tiếp"
+            if (isset($_POST['save_and_continue'])) {
+                header('Location: ' . BASE_URL . '?action=tours-itinerary-create&tour_id=' . $tour_id);
+            } else {
+                header('Location: ' . BASE_URL . '?action=tours-detail&id=' . $tour_id);
+            }
+        } else {
+            $_SESSION['error'] = 'Lỗi khi lưu dữ liệu.';
+            header('Location: ' . BASE_URL . '?action=tours-itinerary-create&tour_id=' . $tour_id);
+        }
+        exit;
+    }
+
+    public function editItinerary(): void
+    {
+        $this->ensureAuthenticated();
+
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID lịch trình không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourModel = new Tour();
+        $itinerary = $tourModel->getItineraryById($id);
+
+        if (!$itinerary) {
+            $_SESSION['error'] = 'Lịch trình không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        // Lấy thông tin tour để hiển thị tên và link quay lại
+        $tour = $tourModel->find($itinerary['tour_id']);
+
+        $view = 'admin/tours-itinerary-edit';
+        $title = 'Sửa lịch trình: ' . ($tour['name'] ?? '');
+        $hideNavbar = true;
+
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function updateItinerary(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $tour_id = isset($_POST['tour_id']) ? (int)$_POST['tour_id'] : 0;
+        $day_number = (int)($_POST['day_number'] ?? 1);
+        $time_start = trim($_POST['time_start'] ?? '');
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+
+        if ($id <= 0 || empty($title)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin.';
+            header('Location: ' . BASE_URL . '?action=tours-itinerary-edit&id=' . $id);
+            exit;
+        }
+
+        $tourModel = new Tour();
+        $result = $tourModel->updateItinerary($id, $day_number, $time_start, $title, $description, $location);
+
+        if ($result) {
+            // Nếu tour_id bị thiếu, lấy lại từ DB để redirect đúng
+            if ($tour_id <= 0) {
+                $updatedItinerary = $tourModel->getItineraryById($id);
+                $tour_id = $updatedItinerary['tour_id'] ?? 0;
+            }
+
+            $_SESSION['success'] = 'Cập nhật lịch trình thành công.';
+            header('Location: ' . BASE_URL . '?action=tours-detail&id=' . $tour_id);
+        } else {
+            $errorMsg = 'Lỗi khi cập nhật dữ liệu.';
+            // Nếu model có lưu lastError, hiển thị ra để debug
+            $lastError = $tourModel->getLastError();
+            if (!empty($lastError)) {
+                $errorMsg .= ' Chi tiết: ' . (is_array($lastError) ? json_encode($lastError) : $lastError);
+            }
+            $_SESSION['error'] = $errorMsg;
+            header('Location: ' . BASE_URL . '?action=tours-itinerary-edit&id=' . $id);
+        }
+        exit;
+    }
+
+    public function deleteItinerary(): void
+    {
+        $this->ensureAuthenticated();
+
+        $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
+        $tour_id = isset($_GET['tour_id']) ? (int) $_GET['tour_id'] : 0;
+
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            if ($tour_id > 0) {
+                header('Location: ' . BASE_URL . '?action=tours-detail&id=' . $tour_id);
+            } else {
+                header('Location: ' . BASE_URL . '?action=tours');
+            }
+            exit;
+        }
+
+        $tourModel = new Tour();
+        
+        // Nếu chưa có tour_id, thử lấy từ DB trước khi xóa
+        if ($tour_id <= 0) {
+            $itinerary = $tourModel->getItineraryById($id);
+            $tour_id = $itinerary['tour_id'] ?? 0;
+        }
+
+        $result = $tourModel->deleteItinerary($id);
+
+        if ($result) {
+            $_SESSION['success'] = 'Đã xóa lịch trình.';
+        } else {
+            $_SESSION['error'] = 'Lỗi khi xóa lịch trình.';
+        }
+
+        if ($tour_id > 0) {
+            header('Location: ' . BASE_URL . '?action=tours-detail&id=' . $tour_id);
+        } else {
+            header('Location: ' . BASE_URL . '?action=tours');
+        }
+        exit;
+    }
+}

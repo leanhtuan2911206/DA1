@@ -1,16 +1,16 @@
 
 <?php 
 $uploadsDir = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-$bgFs  = $uploadsDir . '2083948.jpg';
-$bgUrl = BASE_ASSETS_UPLOADS . '2083948.jpg';
+$bgFs  = $uploadsDir . 'img/login.jpg';
+$bgUrl = BASE_ASSETS_UPLOADS . 'img/login.jpg';
 if (!is_file($bgFs)) {
     if (is_file($uploadsDir . 'background.jpg'))      { $bgUrl = BASE_ASSETS_UPLOADS . 'background.jpg'; }
     elseif (is_file($uploadsDir . 'background.png'))  { $bgUrl = BASE_ASSETS_UPLOADS . 'background.png'; }
     elseif (is_file($uploadsDir . 'login-bg.jpg'))    { $bgUrl = BASE_ASSETS_UPLOADS . 'login-bg.jpg'; }
     elseif (is_file($uploadsDir . 'login-bg.png'))    { $bgUrl = BASE_ASSETS_UPLOADS . 'login-bg.png'; }
 }
-$logoFs = $uploadsDir . 'logo.png';
-$logoUrl = BASE_ASSETS_UPLOADS . 'logo.png';
+$logoFs = $uploadsDir . 'img/logo.png';
+$logoUrl = BASE_ASSETS_UPLOADS . 'img/logo.png';
 ?>
 <style>
 .login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:url('<?= $bgUrl ?>') center/cover no-repeat fixed}
@@ -32,7 +32,6 @@ a{display:block;text-align:center;color:black;text-decoration:none;margin-top:12
             <?php endif; ?>
             <h2 class="login-title">ĐĂNG NHẬP</h2>
         </div>
-
         <?php if (!empty($error)) : ?>
             <div class="alert alert-danger" role="alert"><?= $error ?></div>
         <?php endif; ?>

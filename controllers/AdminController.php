@@ -26,9 +26,6 @@ class AdminController
             $userModel = new User();
             $guideModel = new Guide();
 
-            $tourCount = $tourModel->countAll();
-            $bookingCount = $bookingModel->countAll();
-            $userCount = $userModel->countAll();
             $customerCount = 0;
             $tourOpenCount = $tourCount;
             $pendingBookings = 0;
@@ -36,6 +33,9 @@ class AdminController
             try {
                 $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
                 $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                $tourCount = (int)($pdo->query('SELECT COUNT(*) FROM tours')->fetchColumn() ?: 0);
+                $bookingCount = (int)($pdo->query('SELECT COUNT(*) FROM bookings')->fetchColumn() ?: 0);
+                $userCount = (int)($pdo->query('SELECT COUNT(*) FROM users')->fetchColumn() ?: 0);
                 // Khách từ trang bookings (customers)
                 $customerCount = (int)($pdo->query('SELECT COUNT(*) FROM customers')->fetchColumn() ?: 0);
                 // Cộng thêm khách từ trang đoàn (tour_guests) nếu có
@@ -55,7 +55,7 @@ class AdminController
             } catch (Throwable $e) {
                 // keep defaults
             }
-            $guideCount = $guideModel->countAll();
+            $guideCount = (int)($pdo->query('SELECT COUNT(*) FROM hdv')->fetchColumn() ?: 0);
 
             $tours = $tourModel->listDashboard(12);
 
