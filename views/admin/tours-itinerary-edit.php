@@ -42,8 +42,8 @@
                                 <input type="number" name="day_number" class="form-control" value="<?= $itinerary['day_number'] ?>" min="1" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Giờ bắt đầu</label>
-                                <input type="text" name="time_start" class="form-control" value="<?= htmlspecialchars($itinerary['time_start']) ?>" placeholder="VD: 08:00">
+                                <label class="form-label fw-bold">Thời gian</label>
+                                <input type="text" name="time_start" class="form-control" value="<?= htmlspecialchars($itinerary['time_start']) ?>" placeholder="VD: 08:00 hoặc 06-12-2025">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Địa điểm</label>

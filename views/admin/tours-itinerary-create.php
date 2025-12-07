@@ -39,8 +39,8 @@
                                         <input type="number" name="day_number" id="inp_day" class="form-control" value="1" min="1" required>
                                     </div>
                                     <div class="col-md-4">
-                                        <label class="form-label fw-bold">Giờ bắt đầu</label>
-                                        <input type="text" name="time_start" id="inp_time" class="form-control" placeholder="VD: 08:00">
+                                        <label class="form-label fw-bold">Thời gian</label>
+                                        <input type="text" name="time_start" id="inp_time" class="form-control" placeholder="VD: 08:00 hoặc 06-12-2025">
                                     </div>
                                     <div class="col-md-4">
                                         <label class="form-label fw-bold">Địa điểm</label>

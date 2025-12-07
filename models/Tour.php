@@ -232,8 +232,7 @@ class Tour extends BaseModel
                     time_start = ?, 
                     title = ?, 
                     description = ?, 
-                    location = ?,
-                    updated_at = NOW()
+                    location = ?
                 WHERE id = ?";
         try {
             $stmt = $this->pdo->prepare($sql);
@@ -276,6 +275,17 @@ class Tour extends BaseModel
             error_log('Tour::deleteItinerary error: ' . $e->getMessage());
             return false;
         }
+    }
+
+    // Tìm lịch trình trùng lặp
+    public function findItineraryByDetails($tour_id, $day_number, $time_start, $title)
+    {
+        $sql = "SELECT id FROM tour_itineraries 
+                WHERE tour_id = ? AND day_number = ? AND time_start = ? AND title = ? 
+                LIMIT 1";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute([$tour_id, $day_number, $time_start, $title]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
 
