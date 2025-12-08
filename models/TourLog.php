@@ -94,6 +94,26 @@ class TourLog extends BaseModel
         }
     }
 
+    // Lấy nhật ký theo booking_id (chỉ lấy nhật ký từ HDV - có guide_id)
+    public function getByBookingId(int $bookingId): array
+    {
+        try {
+            $hasHdv = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'hdv'")->fetchColumn() > 0;
+            $sql = 'SELECT tl.*' . ($hasHdv ? ', h.HoTen AS guide_name' : '') . ' 
+                    FROM ' . $this->table . ' tl
+                    INNER JOIN bookings b ON b.tour_id = tl.tour_id
+                    ' . ($hasHdv ? ' LEFT JOIN hdv h ON h.HDV_ID = tl.guide_id' : '') . ' 
+                    WHERE b.id = :bid AND tl.guide_id IS NOT NULL
+                    ORDER BY tl.created_at DESC';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':bid', $bookingId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Throwable $e) {
+            return [];
+        }
+    }
+
     public function update(int $id, array $data): bool
     {
         $set = [];

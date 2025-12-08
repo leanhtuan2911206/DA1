@@ -330,16 +330,43 @@ class Tour extends BaseModel
         return $stmt->fetchAll();
     }
 
-    public function getItineraryByTourId($tourId)
+    public function getItineraryByTourId($tourId, $bookingId = null)
     {
         try {
             $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
             if (!$exists) { return []; }
-            $sql = "SELECT * FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC, time_start ASC";
-            $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([$tourId]);
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Ưu tiên lấy lịch trình riêng của booking, nếu không có thì lấy lịch trình chung của tour
+            if ($bookingId !== null && $bookingId > 0) {
+                // Thử lấy lịch trình riêng của booking trước
+                $sql = "SELECT * FROM tour_itineraries 
+                        WHERE tour_id = ? AND booking_id = ? 
+                        ORDER BY day_number ASC, time_start ASC";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([$tourId, $bookingId]);
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                // Nếu không có lịch trình riêng, lấy lịch trình chung của tour
+                if (empty($items)) {
+                    $sql = "SELECT * FROM tour_itineraries 
+                            WHERE tour_id = ? AND (booking_id IS NULL OR booking_id = 0)
+                            ORDER BY day_number ASC, time_start ASC";
+                    $stmt = $this->pdo->prepare($sql);
+                    $stmt->execute([$tourId]);
+                    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                }
+                return $items;
+            } else {
+                // Lấy lịch trình chung của tour (booking_id IS NULL hoặc = 0)
+                $sql = "SELECT * FROM tour_itineraries 
+                        WHERE tour_id = ? AND (booking_id IS NULL OR booking_id = 0)
+                        ORDER BY day_number ASC, time_start ASC";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([$tourId]);
+                return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            }
         } catch (Throwable $e) {
+            error_log('Tour::getItineraryByTourId error: ' . $e->getMessage());
             return [];
         }
     }
@@ -354,15 +381,58 @@ class Tour extends BaseModel
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Thêm mới một dòng lịch trình cho Tour
-    public function insertItinerary($tour_id, $day_number, $time_start, $title, $description, $location)
+    // Thêm mới một dòng lịch trình cho Tour (có thể gắn với booking_id để mỗi booking có lịch trình riêng)
+    public function insertItinerary($tour_id, $day_number, $time_start, $title, $description, $location, $booking_id = null)
     {
-        $sql = "INSERT INTO tour_itineraries (tour_id, day_number, time_start, title, description, location, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, NOW())";
+        try {
+            $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
+            if (!$exists) {
+                $createTableSql = "CREATE TABLE IF NOT EXISTS tour_itineraries (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    tour_id INT NOT NULL,
+                    booking_id INT NULL,
+                    day_number INT NOT NULL DEFAULT 1,
+                    time_start VARCHAR(50) DEFAULT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT DEFAULT NULL,
+                    location VARCHAR(255) DEFAULT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_tour_id (tour_id),
+                    INDEX idx_booking_id (booking_id),
+                    INDEX idx_day_number (day_number),
+                    FOREIGN KEY (tour_id) REFERENCES tours(id) ON DELETE CASCADE,
+                    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                $this->pdo->exec($createTableSql);
+            } else {
+                // Kiểm tra và thêm cột booking_id nếu chưa có
+                $hasBookingId = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries' AND column_name = 'booking_id'")->fetchColumn() > 0;
+                if (!$hasBookingId) {
+                    try {
+                        $this->pdo->exec("ALTER TABLE tour_itineraries ADD COLUMN booking_id INT NULL AFTER tour_id");
+                        $this->pdo->exec("ALTER TABLE tour_itineraries ADD INDEX idx_booking_id (booking_id)");
+                        $this->pdo->exec("ALTER TABLE tour_itineraries ADD FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE");
+                    } catch (Throwable $e) {
+                        error_log('Tour::insertItinerary - Error adding booking_id column: ' . $e->getMessage());
+                    }
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('Tour::insertItinerary - Error checking/creating table: ' . $e->getMessage());
+        }
+        
+        $sql = "INSERT INTO tour_itineraries (tour_id, booking_id, day_number, time_start, title, description, location, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
         try {
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute([$tour_id, $day_number, $time_start, $title, $description, $location]);
+            return $stmt->execute([$tour_id, $booking_id, $day_number, $time_start, $title, $description, $location]);
         } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
+            error_log('Tour::insertItinerary error: ' . $e->getMessage());
+            return false;
+        } catch (Throwable $e) {
+            $this->lastError = $e->getMessage();
             error_log('Tour::insertItinerary error: ' . $e->getMessage());
             return false;
         }
@@ -421,15 +491,30 @@ class Tour extends BaseModel
         }
     }
 
-    // Tìm lịch trình trùng lặp
-    public function findItineraryByDetails($tour_id, $day_number, $time_start, $title)
+    // Tìm lịch trình trùng lặp (kiểm tra cả booking_id nếu có)
+    public function findItineraryByDetails($tour_id, $day_number, $time_start, $title, $booking_id = null)
     {
-        $sql = "SELECT id FROM tour_itineraries 
-                WHERE tour_id = ? AND day_number = ? AND time_start = ? AND title = ? 
-                LIMIT 1";
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$tour_id, $day_number, $time_start, $title]);
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($booking_id !== null && $booking_id > 0) {
+            $sql = "SELECT id FROM tour_itineraries 
+                    WHERE tour_id = ? AND booking_id = ? AND day_number = ? AND time_start = ? AND title = ? 
+                    LIMIT 1";
+            $params = [$tour_id, $booking_id, $day_number, $time_start, $title];
+        } else {
+            $sql = "SELECT id FROM tour_itineraries 
+                    WHERE tour_id = ? AND booking_id IS NULL AND day_number = ? AND time_start = ? AND title = ? 
+                    LIMIT 1";
+            $params = [$tour_id, $day_number, $time_start, $title];
+        }
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ? $result['id'] : false;
+        } catch (PDOException $e) {
+            $this->lastError = $e->getMessage();
+            error_log('Tour::findItineraryByDetails error: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**

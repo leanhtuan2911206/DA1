@@ -146,6 +146,7 @@ $filters = [
                                 <th>Đặt cọc</th>
                                 <th>Trạng thái</th>
                                 <th>Thao tác</th>
+                                <th>Chi tiết</th>
                                 <th>Danh sách khách</th>
                             </tr>
                         </thead>
@@ -224,7 +225,12 @@ $filters = [
                                                     <option value="cancelled" <?= $booking['status'] === 'cancelled' ? 'selected' : '' ?>>Đã hủy</option>
                                                 </select>
                                             </form>
-                                            <div class="d-flex gap-2">
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <a href="<?= BASE_URL ?>?action=bookings-itinerary-create&booking_id=<?= $booking['id'] ?>" 
+                                                   class="btn btn-sm btn-outline-success" 
+                                                   title="Thêm lịch trình">
+                                                    📅 Thêm lịch trình
+                                                </a>
                                                 <a href="<?= BASE_URL ?>?action=bookings-edit&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                                 <a href="<?= BASE_URL ?>?action=bookings-delete&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa booking này không?')">🗑️</a>
                                                 <?php if (!empty($booking['has_assignment'])): ?>
@@ -241,6 +247,11 @@ $filters = [
                                                 <?php endif; ?>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <a href="<?= BASE_URL ?>?action=bookings-detail&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-info">
+                                            👁️ Xem chi tiết
+                                        </a>
                                     </td>
                                     <td>
                                         <a href="<?= BASE_URL ?>?action=customers&booking_id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-primary">Xem danh sách</a>

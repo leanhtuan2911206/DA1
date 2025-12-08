@@ -21,9 +21,6 @@ class PartnerController
             }
         }
 
-        // Log để debug
-        error_log('PartnerController::dashboard - user_id: ' . $userId . ', guide_id: ' . $guideId);
-
         $currentTab = $_GET['tab'] ?? 'detail';
         $assignments = [];
         $trip_detail = null;
@@ -31,7 +28,6 @@ class PartnerController
 
         if ($guideId > 0) {
             $assignments = $hdvModel->getMyAssignments($guideId);
-            error_log('PartnerController::dashboard - Found ' . count($assignments) . ' assignments for guide_id: ' . $guideId);
 
             // Tự động chọn tour đầu tiên nếu chưa có booking_id và có assignments
             // Chỉ tự động redirect nếu tab là 'detail' hoặc 'itinerary' hoặc không có tab
@@ -52,18 +48,10 @@ class PartnerController
                 if ($bookingId > 0) {
                     $trip_detail = $hdvModel->getTripDetail($bookingId, $guideId);
                     
-                    error_log('PartnerController::dashboard - trip_detail: ' . ($trip_detail ? 'exists' : 'null'));
-                    if ($trip_detail) {
-                        error_log('PartnerController::dashboard - itinerary count: ' . (isset($trip_detail['itinerary']) ? count($trip_detail['itinerary']) : 0));
-                        error_log('PartnerController::dashboard - tour_id: ' . ($trip_detail['tour_id'] ?? 'NULL'));
-                    }
-                    
                     if ($trip_detail && !empty($trip_detail['itinerary'])) {
                         foreach ($trip_detail['itinerary'] as &$item) {
                             $item['display_time'] = substr($item['time_start'] ?? '', 0, 5);
                         }
-                    } else {
-                        error_log('PartnerController::dashboard - No itinerary found or empty');
                     }
                 } else {
                     if (empty($assignments)) {

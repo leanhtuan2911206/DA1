@@ -16,9 +16,18 @@
         <div>
             <h2 class="h3 mb-0 text-gray-800">Sửa hoạt động: <span class="text-primary"><?= htmlspecialchars($tour['name']) ?></span></h2>
         </div>
-        <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" class="btn btn-secondary">
-            &laquo; Quay lại chi tiết
-        </a>
+        <?php 
+            $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
+            if ($booking_id > 0): 
+        ?>
+            <a href="<?= BASE_URL ?>?action=bookings-detail&id=<?= $booking_id ?>" class="btn btn-secondary">
+                &laquo; Quay lại chi tiết booking
+            </a>
+        <?php else: ?>
+            <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" class="btn btn-secondary">
+                &laquo; Quay lại chi tiết
+            </a>
+        <?php endif; ?>
     </div>
 
     <div class="row">
@@ -35,6 +44,9 @@
                     <form action="<?= BASE_URL ?>?action=tours-itinerary-update" method="POST">
                         <input type="hidden" name="id" value="<?= $itinerary['id'] ?>">
                         <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
+                        <?php if (isset($_GET['booking_id']) && $_GET['booking_id'] > 0): ?>
+                            <input type="hidden" name="booking_id" value="<?= (int)$_GET['booking_id'] ?>">
+                        <?php endif; ?>
 
                         <div class="row mb-3">
                             <div class="col-md-4">
@@ -63,7 +75,14 @@
 
                         <div class="d-flex gap-2 justify-content-end">
                             <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
-                            <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" class="btn btn-secondary">Hủy</a>
+                            <?php 
+                                $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
+                                if ($booking_id > 0): 
+                            ?>
+                                <a href="<?= BASE_URL ?>?action=bookings-detail&id=<?= $booking_id ?>" class="btn btn-secondary">Hủy</a>
+                            <?php else: ?>
+                                <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" class="btn btn-secondary">Hủy</a>
+                            <?php endif; ?>
                         </div>
                     </form>
                 </div>

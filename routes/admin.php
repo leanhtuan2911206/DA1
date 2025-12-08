@@ -18,8 +18,6 @@ match ($action) {
     'tour-categories-update'  => (new TourCategoryController)->update(),
     'tour-categories-delete'  => (new TourCategoryController)->delete(),
     'tours-detail'       => (new TourController)->detail(),
-    'tours-itinerary-create' => (new TourController)->createItinerary(), // Hiển thị form
-    'tours-itinerary-store'  => (new TourController)->storeItinerary(),
     'tours-itinerary-edit'   => (new TourController)->editItinerary(),
     'tours-itinerary-update' => (new TourController)->updateItinerary(),
     'tours-itinerary-delete' => (new TourController)->deleteItinerary(),
@@ -30,7 +28,6 @@ match ($action) {
     'tours-update'  => (new TourController)->update(),
     'tours-delete'  => (new TourController)->delete(),
     'tours-get-info' => (new TourController)->getTourInfo(),
-    'tours-itinerary-json' => (new TourController)->getItineraryJson(),
 
     // Nhật ký tour: trang quản trị xem/lọc, HDV ghi chép
     'tour-logs-list'   => (new TourController)->logsList(),
@@ -41,10 +38,15 @@ match ($action) {
     'bookings'              => (new BookingController)->index(),
     'bookings-create'        => (new BookingController)->create(),
     'bookings-store'         => (new BookingController)->store(),
+    'bookings-detail'        => (new BookingController)->detail(),
     'bookings-edit'          => (new BookingController)->edit(),
     'bookings-update'        => (new BookingController)->update(),
     'bookings-update-status' => (new BookingController)->updateStatus(),
     'bookings-delete'        => (new BookingController)->delete(),
+    'bookings-itinerary-create' => (new BookingController)->createItinerary(),
+    'bookings-itinerary-store'  => (new BookingController)->storeItinerary(),
+    'bookings-log-create' => (new BookingController)->createLog(),
+    'bookings-log-store'  => (new BookingController)->storeLog(),
 
     'customers'         => (new CustomerController)->index(),
     'customers-create'  => (new CustomerController)->create(),

@@ -326,15 +326,6 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
     <?php endif; ?>
 
     <?php if ($__tab === 'assignments'): ?>
-        <?php 
-        // Debug info
-        $debugInfo = [
-            'guideId' => $guideId,
-            'assignments_count' => count($assignments),
-            'assignments' => $assignments
-        ];
-        error_log('hdv_detail.php assignments tab - Debug: ' . json_encode($debugInfo));
-        ?>
         <?php if (!empty($assignments)): ?>
         <div class="hdv-container">
             <div class="schedule-card mt-3">
@@ -409,128 +400,134 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
 
     <?php if ($__tab === 'itinerary'): ?>
         <?php 
+            // Lấy danh sách lịch trình từ model
             $itList = isset($trip_detail['itinerary']) && is_array($trip_detail['itinerary']) ? $trip_detail['itinerary'] : [];
-            
-            // Debug: Log số lượng itinerary items
-            error_log('hdv_detail.php - itinerary count: ' . count($itList));
-            if (!empty($itList)) {
-                $dayNums = [];
-                foreach ($itList as $item) {
-                    $dayNum = (int)($item['day_number'] ?? 0);
-                    if ($dayNum > 0) {
-                        $dayNums[$dayNum] = ($dayNums[$dayNum] ?? 0) + 1;
-                    }
-                }
-                error_log('hdv_detail.php - day_numbers in itinerary: ' . json_encode($dayNums));
-            } 
             
             // Lấy thông tin ngày phân công
             $assignDate = $trip_detail['assign_date'] ?? null;
             $endDate = $trip_detail['end_date'] ?? null;
             
-            // Tính toán các ngày thực tế
-            $actualDates = [];
-            if ($assignDate) {
-                $actualDates[1] = $assignDate; // Ngày 1 = ngày phân công
-                if ($endDate && $endDate != $assignDate) {
-                    // Tính số ngày giữa assign_date và end_date
-                    $date1 = new DateTime($assignDate);
-                    $date2 = new DateTime($endDate);
-                    $diff = $date1->diff($date2);
-                    $totalDays = $diff->days + 1; // +1 để bao gồm cả ngày đầu và ngày cuối
-                    
-                    // Tạo mảng các ngày
-                    for ($i = 1; $i <= $totalDays; $i++) {
-                        $date = clone $date1;
-                        $date->modify('+' . ($i - 1) . ' days');
-                        $actualDates[$i] = $date->format('Y-m-d');
-                    }
-                } else {
-                    // Nếu không có end_date hoặc end_date = assign_date, chỉ có 1 ngày
-                    $actualDates[1] = $assignDate;
-                }
-            }
-            
-            // --- CODE MỚI: Nhóm lịch trình và loại bỏ trùng lặp ---
+            // Nhóm lịch trình theo ngày - Loại bỏ duplicate và xử lý day_number đúng
             $groupedByDay = [];
-            $seenItemIds = []; // Track các ID đã thấy để loại bỏ duplicate
-
+            $seenItemIds = [];
+            
             foreach ($itList as $item) {
-                // Kiểm tra duplicate dựa trên ID (ưu tiên)
                 $itemId = isset($item['id']) ? (int)$item['id'] : 0;
+                
+                // Loại bỏ duplicate dựa trên ID (chỉ nếu ID > 0)
                 if ($itemId > 0 && isset($seenItemIds[$itemId])) {
-                    // Item này đã tồn tại (theo ID), bỏ qua
-                    error_log('hdv_detail.php - Duplicate item ID skipped in view: id=' . $itemId);
                     continue;
                 }
-                
-                // Ép kiểu sang số nguyên để chắc chắn là 1, 2, 3...
-                $dayNum = (int)($item['day_number'] ?? 1);
-                
-                // Nếu chưa có mảng cho ngày này thì tạo mới
-                if (!isset($groupedByDay[$dayNum])) {
-                    $groupedByDay[$dayNum] = [];
-                }
-                
-                // Thêm hoạt động vào ngày tương ứng
-                $groupedByDay[$dayNum][] = $item;
-                
-                // Đánh dấu ID đã thấy
                 if ($itemId > 0) {
                     $seenItemIds[$itemId] = true;
                 }
+                
+                // Xử lý day_number - đảm bảo là integer và >= 1
+                $rawDayNum = $item['day_number'] ?? null;
+                $dayNum = 1; // Mặc định
+                
+                if ($rawDayNum !== null) {
+                    if (is_numeric($rawDayNum)) {
+                        $dayNum = (int)$rawDayNum;
+                    } elseif (is_string($rawDayNum)) {
+                        $dayNum = (int)trim($rawDayNum);
+                    } else {
+                        $dayNum = (int)$rawDayNum;
+                    }
+                }
+                
+                // Đảm bảo day_number >= 1
+                $dayNum = max(1, $dayNum);
+                
+                // Nhóm vào mảng
+                if (!isset($groupedByDay[$dayNum])) {
+                    $groupedByDay[$dayNum] = [];
+                }
+                $groupedByDay[$dayNum][] = $item;
+            }
+            ksort($groupedByDay);
+            
+            // Tính toán các ngày thực tế từ assign_date
+            $actualDates = [];
+            $allDays = array_keys($groupedByDay);
+            $maxDayFromData = !empty($allDays) ? max($allDays) : 1;
+            
+            if ($assignDate) {
+                $date1 = new DateTime($assignDate);
+                
+                // Tính maxDay: Lấy max từ dữ liệu hoặc từ end_date
+                $maxDayFromEndDate = 1;
+                
+                // Nếu có end_date, tính số ngày từ assign_date đến end_date
+                if ($endDate && $endDate != $assignDate) {
+                    $date2 = new DateTime($endDate);
+                    $diff = $date1->diff($date2);
+                    $maxDayFromEndDate = $diff->days + 1;
+                }
+                
+                // maxDay = max(ngày lớn nhất có dữ liệu, số ngày từ end_date)
+                $maxDay = max($maxDayFromData, $maxDayFromEndDate);
+                
+                // Tạo mảng actualDates cho TẤT CẢ các ngày từ 1 đến maxDay
+                for ($i = 1; $i <= $maxDay; $i++) {
+                    $date = clone $date1;
+                    $date->modify('+' . ($i - 1) . ' days');
+                    $actualDates[$i] = $date->format('Y-m-d');
+                }
+            } else {
+                // Nếu không có assign_date, tạo actualDates từ groupedByDay
+                // Đảm bảo hiển thị tất cả các ngày từ 1 đến maxDay
+                $maxDay = $maxDayFromData;
+                for ($i = 1; $i <= $maxDay; $i++) {
+                    $actualDates[$i] = date('Y-m-d', strtotime('+' . ($i - 1) . ' days'));
+                }
             }
             
-            // Log để debug
-            error_log('hdv_detail.php - groupedByDay count by day: ' . json_encode(array_map('count', $groupedByDay)));
-
-            // Sắp xếp lại theo thứ tự ngày tăng dần (1, 2, 3...)
-            ksort($groupedByDay);
-            // --- KẾT THÚC CODE MỚI ---
+            // Đảm bảo tất cả các ngày có dữ liệu đều có trong actualDates
+            if ($assignDate && !empty($allDays)) {
+                $date1 = new DateTime($assignDate);
+                foreach ($allDays as $dayNum) {
+                    if (!isset($actualDates[$dayNum])) {
+                        $date = clone $date1;
+                        $date->modify('+' . ($dayNum - 1) . ' days');
+                        $actualDates[$dayNum] = $date->format('Y-m-d');
+                    }
+                }
+                ksort($actualDates);
+            }
             
             // Lấy ngày được chọn từ GET parameter
             $selectedDayNum = isset($_GET['day']) ? (int)$_GET['day'] : 0;
             
-            // Nếu không có day trong GET, chọn ngày đầu tiên có dữ liệu (hoặc ngày 1 nếu không có dữ liệu)
+            // Nếu không có day trong GET, chọn ngày đầu tiên có dữ liệu hoặc ngày 1
             if ($selectedDayNum <= 0) {
                 if (!empty($groupedByDay)) {
-                    // Chọn ngày đầu tiên có dữ liệu
                     $selectedDayNum = min(array_keys($groupedByDay));
                 } else {
-                    // Nếu không có dữ liệu nào, mặc định là ngày 1
                     $selectedDayNum = 1;
                 }
             }
             
-            // Đảm bảo selectedDayNum hợp lệ (phải có trong actualDates)
-            if (!isset($actualDates[$selectedDayNum])) {
-                // Nếu ngày được chọn không hợp lệ, chọn ngày đầu tiên trong actualDates
-                if (!empty($actualDates)) {
-                    $selectedDayNum = min(array_keys($actualDates));
-                } else {
-                    $selectedDayNum = 1;
-                }
+            // Đảm bảo selectedDayNum hợp lệ
+            if (!isset($actualDates[$selectedDayNum]) && !empty($actualDates)) {
+                $selectedDayNum = min(array_keys($actualDates));
             }
             
-            // Lấy danh sách các day_number có sẵn (đã có lịch trình)
-            $availableDayNumbers = array_keys($groupedByDay);
-            
-            // Debug log
-            error_log('hdv_detail.php - selectedDayNum: ' . $selectedDayNum . ', availableDays: ' . implode(',', $availableDayNumbers) . ', groupedByDay keys: ' . implode(',', array_keys($groupedByDay)));
         ?>
         <?php if (empty($trip_detail)): ?>
              <div class="hdv-container"><div class="schedule-card text-center py-4">Bạn cần chọn tour ở tab "Tour được phân công" trước.</div></div>
         <?php else: ?>
         <div class="hdv-container mt-3">
+            
             <div class="timeline-container-new">
                 <div class="timeline-header" style="display: flex; justify-content: space-between; align-items: center;">
                     <h3 style="font-size:18px; font-weight:700; margin:0">🗓️Lịch trình</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
-                        <?php if (!empty($actualDates)): ?>
+                        <?php if (!empty($actualDates) || !empty($groupedByDay)): ?>
                             <label style="font-weight: 600; color: #1e40af; margin-right: 8px;">Chọn ngày:</label>
                             <select id="daySelector" onchange="changeDay(this.value)" style="padding: 6px 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: 600; color: #1e40af; background: #fff; cursor: pointer;">
                                 <?php 
-                                    // Lặp qua $actualDates (tất cả các ngày từ ngày bắt đầu đến kết thúc)
+                                    // Hiển thị tất cả các ngày từ actualDates (đã bao gồm tất cả ngày có dữ liệu)
                                     foreach ($actualDates as $dayNum => $dateStr): 
                                         $displayText = 'Ngày ' . $dayNum;
                                         
