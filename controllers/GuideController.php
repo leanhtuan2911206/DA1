@@ -70,6 +70,8 @@ class GuideController
         require_once PATH_VIEW . 'main.php';
     }
 
+    // File: GuideController.php
+
     public function store(): void
     {
         $this->ensureAuthenticated();
@@ -81,6 +83,11 @@ class GuideController
         $data = $this->extractFormData($_POST);
         $errors = $this->validate($data);
 
+        // Lấy thông tin đăng nhập từ form
+        $username = $data['contact']; // Dùng SĐT hoặc Email làm tên đăng nhập
+        $password = $_POST['password'] ?? ''; 
+        $fullName = $data['full_name'];
+
         if ($errors) {
             $_SESSION['error'] = implode('<br>', $errors);
             $_SESSION['guide_form_old'] = $_POST;
@@ -91,20 +98,35 @@ class GuideController
         try {
             $guideModel = new Guide();
             $guideModel->ensureStatusColumn();
-            $newId = $guideModel->create($data);
-            if ($newId === false) {
-                throw new RuntimeException('Không thể lưu nhân sự.');
+
+            // --- BƯỚC 1: TẠO TÀI KHOẢN USER TRƯỚC ---
+            // Tự động tạo user dựa trên Contact (SĐT/Email) và Password nhập vào
+            $userId = $guideModel->createAccount($username, $password, $fullName);
+            
+            if ($userId === false) {
+                 throw new RuntimeException('Không thể tạo tài khoản đăng nhập (có thể SĐT/Email đã tồn tại).');
             }
-            $_SESSION['success'] = 'Thêm nhân sự thành công.';
+
+            // --- BƯỚC 2: GÁN USER_ID VÀO DỮ LIỆU HDV ---
+            $data['user_id'] = $userId;
+
+            // --- BƯỚC 3: TẠO HDV ---
+            $newId = $guideModel->create($data);
+            
+            if ($newId === false) {
+                // (Tùy chọn) Nếu tạo HDV thất bại, có thể xóa user vừa tạo để tránh rác data
+                throw new RuntimeException('Không thể lưu hồ sơ nhân sự.');
+            }
+            
+            $_SESSION['success'] = 'Thêm nhân sự và tạo tài khoản thành công.';
         } catch (Throwable $e) {
             error_log('GuideController::store error: ' . $e->getMessage());
-            $_SESSION['error'] = 'Không thể lưu nhân sự. Vui lòng thử lại.';
+            $_SESSION['error'] = $e->getMessage(); // Hiển thị lỗi cụ thể
             $_SESSION['guide_form_old'] = $_POST;
             header('Location: ' . BASE_URL . '?action=guides-create');
             exit;
         }
 
-        // Chuyển về trang danh sách và đánh dấu bản ghi vừa tạo
         header('Location: ' . BASE_URL . '?action=guides&new=' . $newId);
         exit;
     }
@@ -163,9 +185,16 @@ class GuideController
         try {
             $guideModel = new Guide();
             $guideModel->ensureStatusColumn();
+            
             if (!$guideModel->update($id, $data)) {
                 throw new RuntimeException('Không thể cập nhật nhân sự.');
             }
+
+            // Cập nhật mật khẩu user nếu có nhập
+            if (!empty($data['password'])) {
+                $guideModel->updateAccountPassword($id, $data['password']);
+            }
+
             $_SESSION['success'] = 'Cập nhật nhân sự thành công.';
         } catch (Throwable $e) {
             error_log('GuideController::update error: ' . $e->getMessage());

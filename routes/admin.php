@@ -93,5 +93,9 @@ match ($action) {
     'tour-guest-checkin'     => (new TourManagementController)->checkinGuest(),
     'tour-guest-assign-room' => (new TourManagementController)->assignRoom(),
     'tour-guest-delete'      => (new TourManagementController)->deleteGuest(),
+    'tour-guests-sync'       => (new TourManagementController)->syncGuestsFromBooking(),
     'tour-guests-print'      => (new TourManagementController)->printList(),
+    'partner-update-activity' => (new PartnerController)->updateActivity(),
+    'partner-update-itinerary' => (new PartnerController)->updateItinerary(),
+    'partner-guest-checkin' => (new PartnerController)->checkinGuest(),
 };

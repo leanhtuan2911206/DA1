@@ -567,6 +567,15 @@ class TourController
         }
 
         $tourModel = new Tour();
+
+        // Kiểm tra trùng lặp trước khi thêm
+        $existing = $tourModel->findItineraryByDetails($tour_id, $day_number, $time_start, $title);
+        if ($existing) {
+            $_SESSION['error'] = 'Lịch trình này đã tồn tại (Ngày ' . $day_number . ' - ' . htmlspecialchars($time_start) . ').';
+            header('Location: ' . BASE_URL . '?action=tours-itinerary-create&tour_id=' . $tour_id);
+            exit;
+        }
+
         $result = $tourModel->insertItinerary($tour_id, $day_number, $time_start, $title, $description, $location);
 
         if ($result) {
@@ -652,9 +661,8 @@ class TourController
         } else {
             $errorMsg = 'Lỗi khi cập nhật dữ liệu.';
             // Nếu model có lưu lastError, hiển thị ra để debug
-            $lastError = $tourModel->getLastError();
-            if (!empty($lastError)) {
-                $errorMsg .= ' Chi tiết: ' . (is_array($lastError) ? json_encode($lastError) : $lastError);
+            if (isset($tourModel->lastError) && !empty($tourModel->lastError)) {
+                $errorMsg .= ' Chi tiết: ' . $tourModel->lastError;
             }
             $_SESSION['error'] = $errorMsg;
             header('Location: ' . BASE_URL . '?action=tours-itinerary-edit&id=' . $id);

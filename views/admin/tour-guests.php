@@ -21,6 +21,10 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
         </div>
         <?php if ($group): ?>
             <div class="d-flex gap-2">
+                <form method="post" action="<?= BASE_URL ?>?action=tour-guests-sync" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn đồng bộ khách từ booking? Các khách trùng tên sẽ bị bỏ qua.');">
+                    <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
+                    <button type="submit" class="btn btn-info text-white">🔄 Đồng bộ Booking</button>
+                </form>
                 <a href="<?= BASE_URL ?>?action=tour-guest-add&group_id=<?= $group['id'] ?>" class="btn btn-success">+ Thêm khách</a>
                 <a href="<?= BASE_URL ?>?action=tour-guests-print&group_id=<?= $group['id'] ?>" class="btn btn-outline-secondary">🖨️ In danh sách</a>
             </div>
@@ -53,6 +57,7 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
         <div>
             <h4 class="mb-1"><?= htmlspecialchars($group['group_name']) ?></h4>
             <p class="text-muted mb-0 small">
+                Booking: <strong>#<?= htmlspecialchars($group['booking_id'] ?? '?') ?></strong> ·
                 Tour: <?= htmlspecialchars($group['tour_name'] ?? '—') ?> ·
                 Khởi hành: <?= htmlspecialchars($group['start_date'] ?? '—') ?> ·
                 Số khách: <?= (int)$group['total_guests'] ?> · 

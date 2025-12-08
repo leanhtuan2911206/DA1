@@ -3,7 +3,7 @@
 class BaseModel
 {
     protected $table;
-    protected $pdo;
+    public $pdo;
 
     // Kết nối CSDL
     public function __construct()

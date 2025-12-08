@@ -24,16 +24,6 @@
         </div>
     </div>
 
-    <?php if (session_status() === PHP_SESSION_NONE) { session_start(); } ?>
-    <?php if (!empty($_SESSION['success'])): ?>
-        <div class="alert alert-success mb-3"><?= htmlspecialchars($_SESSION['success']) ?></div>
-        <?php unset($_SESSION['success']); ?>
-    <?php endif; ?>
-    <?php if (!empty($_SESSION['error'])): ?>
-        <div class="alert alert-danger mb-3"><?= htmlspecialchars($_SESSION['error']) ?></div>
-        <?php unset($_SESSION['error']); ?>
-    <?php endif; ?>
-
     <div class="card-like mb-4">
         <div class="d-flex gap-4">
             <div style="width: 300px; flex-shrink: 0;">
@@ -94,21 +84,18 @@
                         </div>
                     <?php endif; ?>
 
-                    <div class="d-flex align-items-start mb-3 ms-2 position-relative">
+                    <div class="d-flex align-items-start mb-3 ms-2">
                         <div class="text-center me-3 pt-1" style="min-width: 70px;">
                             <span class="fw-bold text-dark bg-light px-2 py-1 rounded border">
                                 <?= htmlspecialchars($item['time_start'] ?? '--:--') ?>
                             </span>
                         </div>
-                        
-                        <div class="flex-grow-1 p-3 bg-white rounded border border-start-0 border-top-0 border-end-0 shadow-sm" style="border-left: 4px solid #0d6efd !important;">
-                                <div class="d-flex justify-content-between align-items-start">
-                                <h6 class="fw-bold text-dark mb-1"><?= htmlspecialchars($item['title']) ?></h6>
-                                <div>
-                                    <a href="<?= BASE_URL ?>?action=tours-itinerary-edit&id=<?= $item['id'] ?>" class="btn btn-sm btn-link text-secondary p-0 me-2" title="Sửa">✏️</a>
-                                    <a href="<?= BASE_URL ?>?action=tours-itinerary-delete&id=<?= $item['id'] ?>" class="btn btn-sm btn-link text-danger p-0" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa?')">🗑️</a>
-                                </div>
+                        <div class="flex-grow-1 p-3 bg-white rounded border border-start-0 border-top-0 border-end-0 shadow-sm position-relative" style="border-left: 4px solid #0d6efd !important;">
+                            <div class="position-absolute top-0 end-0 mt-2 me-2">
+                                <a href="<?= BASE_URL ?>?action=tours-itinerary-edit&id=<?= $item['id'] ?>" class="btn btn-sm btn-link text-secondary p-0 me-2" title="Sửa">✏️</a>
+                                <a href="<?= BASE_URL ?>?action=tours-itinerary-delete&id=<?= $item['id'] ?>&tour_id=<?= $tour['id'] ?>" class="btn btn-sm btn-link text-danger p-0" title="Xóa" onclick="return confirm('Bạn có chắc muốn xóa lịch trình này?')">🗑️</a>
                             </div>
+                            <h6 class="fw-bold text-dark mb-1 pe-5"><?= htmlspecialchars($item['title']) ?></h6>
                             <div class="text-secondary small mb-2" style="white-space: pre-line;">
                                 <?= htmlspecialchars($item['description']) ?>
                             </div>

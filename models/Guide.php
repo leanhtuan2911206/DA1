@@ -298,6 +298,13 @@ class Guide extends BaseModel
             if (array_key_exists('password', $data)) {
                 $mapped['password'] = $this->hashPassword((string)$data['password']);
             }
+            if ($isUpdate) {
+             // Logic update cũ...
+             // Nhớ thêm dòng này nếu logic update của bạn tách riêng
+             if (array_key_exists('user_id', $data)) {
+                $mapped['user_id'] = $this->sanitizeInt($data['user_id']);
+            }
+           }
 
             return $mapped;
         }
@@ -339,6 +346,10 @@ class Guide extends BaseModel
             $mapped['password'] = $this->hashPassword((string)$data['password']);
         } elseif (!$isUpdate) {
             $mapped['password'] = $this->hashPassword('');
+        }
+
+        if (array_key_exists('user_id', $data)) {
+            $mapped['user_id'] = $this->sanitizeInt($data['user_id']);
         }
 
         return $mapped;
@@ -434,4 +445,54 @@ class Guide extends BaseModel
         }
         return password_hash($plain, PASSWORD_BCRYPT);
     }
+
+    public function createAccount(string $username, string $password, string $fullname): int|false
+    {
+        try {
+            // 1. Kiểm tra email đã tồn tại chưa (dùng username làm email)
+            $check = $this->pdo->prepare("SELECT id FROM users WHERE email = ?");
+            $check->execute([$username]);
+            if ($check->fetch()) {
+                // Email đã được dùng
+                return false; 
+            }
+
+            // 2. Tạo tài khoản mới
+            // Cột trong bảng users: id, name, email, password, role, created_at
+            $sql = "INSERT INTO users (email, password, name, role, created_at) VALUES (:email, :password, :name, 'hdv', NOW())";
+            $stmt = $this->pdo->prepare($sql);
+            
+            $hashedPass = password_hash($password, PASSWORD_BCRYPT);
+            
+            $stmt->bindValue(':email', $username);
+            $stmt->bindValue(':password', $hashedPass);
+            $stmt->bindValue(':name', $fullname);
+            
+            if ($stmt->execute()) {
+                return (int)$this->pdo->lastInsertId();
+            }
+            return false;
+        } catch (Throwable $e) {
+            error_log('Guide::createAccount error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateAccountPassword(int $hdvId, string $newPassword): bool
+    {
+        try {
+            // Lấy user_id từ bảng hdv
+            $find = $this->find($hdvId);
+            if (!$find || empty($find['user_id'])) return false;
+
+            $userId = $find['user_id'];
+            $hashedPass = password_hash($newPassword, PASSWORD_BCRYPT);
+
+            $stmt = $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
+            return $stmt->execute([$hashedPass, $userId]);
+        } catch (Throwable $e) {
+            return false;
+        }
+    } 
+
 }
