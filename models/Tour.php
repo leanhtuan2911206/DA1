@@ -5,13 +5,13 @@ class Tour extends BaseModel
     protected $table = 'tours';
     public $lastError = null;
 
-    public function countAll(): int
+    public function countAll()
     {
         $stmt = $this->pdo->query("SELECT COUNT(*) FROM {$this->table}");
         return (int) $stmt->fetchColumn();
     }
 
-    public function listDashboard(int $limit = 10): array
+    public function listDashboard($limit = 10)
     {
         $sql = "
             SELECT 
@@ -46,20 +46,109 @@ class Tour extends BaseModel
 
     public function update($id, $name, $category_id, $price, $description = null, $itinerary = null, $policy = null, $image = null, $status = null)
     {
-        // Nếu bảng không có cột updated_at hoặc tour_status thì câu lệnh này vẫn chạy được
-        $sql = "UPDATE {$this->table} 
-                SET name = ?, 
-                    category_id = ?, 
-                    price = ?, 
-                    description = ?, 
-                    itinerary = ?, 
-                    policy = ?, 
-                    image = COALESCE(?, image), 
-                    tour_status = COALESCE(?, tour_status),
-                    updated_at = NOW() 
-                WHERE id = ?";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$name, $category_id, $price, $description, $itinerary, $policy, $image, $status, $id]);
+        // Kiểm tra tour có tồn tại không
+        $existing = $this->find($id);
+        if (!$existing) {
+            $this->lastError = ['error' => 'Tour không tồn tại', 'id' => $id];
+            error_log('Tour::update - Tour không tồn tại: ' . $id);
+            return false;
+        }
+        
+        // Kiểm tra category_id có tồn tại không
+        try {
+            $checkCat = $this->pdo->prepare("SELECT id FROM tour_categories WHERE id = ?");
+            $checkCat->execute([$category_id]);
+            if (!$checkCat->fetch()) {
+                $this->lastError = ['error' => 'Category không tồn tại', 'category_id' => $category_id];
+                error_log('Tour::update - Category không tồn tại: ' . $category_id);
+                return false;
+            }
+        } catch (Throwable $e) {
+            error_log('Tour::update - Lỗi kiểm tra category: ' . $e->getMessage());
+        }
+        
+        // Kiểm tra các cột có tồn tại không
+        $hasTourStatus = $this->columnExists($this->table, 'tour_status');
+        $hasUpdatedAt = $this->columnExists($this->table, 'updated_at');
+        
+        // Xây dựng SQL query động
+        $sets = [
+            'name = ?',
+            'category_id = ?',
+            'price = ?',
+            'description = ?',
+            'itinerary = ?',
+            'policy = ?'
+        ];
+        $params = [$name, $category_id, $price, $description, $itinerary, $policy];
+        
+        // Xử lý image: chỉ update nếu có giá trị mới
+        if ($image !== null) {
+            $sets[] = 'image = ?';
+            $params[] = $image;
+        }
+        
+        if ($hasTourStatus) {
+            if ($status !== null) {
+                $sets[] = 'tour_status = ?';
+                $params[] = $status;
+            }
+        }
+        
+        if ($hasUpdatedAt) {
+            $sets[] = 'updated_at = NOW()';
+        }
+        
+        $params[] = $id; // Thêm id vào cuối cho WHERE clause
+        
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $sets) . " WHERE id = ?";
+        
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $res = $stmt->execute($params);
+            if ($res) {
+                return true;
+            }
+            
+            $errorInfo = $stmt->errorInfo();
+            $this->lastError = [
+                'errorInfo' => $errorInfo,
+                'sqlState' => isset($errorInfo[0]) ? $errorInfo[0] : null,
+                'errorCode' => isset($errorInfo[1]) ? $errorInfo[1] : null,
+                'errorMessage' => isset($errorInfo[2]) ? $errorInfo[2] : 'Unknown error',
+                'sql' => $sql,
+                'params' => [
+                    'id' => $id,
+                    'name' => $name,
+                    'category_id' => $category_id,
+                    'price' => $price,
+                    'image' => $image,
+                    'status' => $status,
+                    'hasTourStatus' => $hasTourStatus,
+                    'hasUpdatedAt' => $hasUpdatedAt
+                ]
+            ];
+            error_log('Tour::update - execute returned false; errorInfo: ' . json_encode($this->lastError));
+            return false;
+        } catch (PDOException $e) {
+            $this->lastError = [
+                'exception' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'sql' => $sql,
+                'params' => [
+                    'id' => $id,
+                    'name' => $name,
+                    'category_id' => $category_id,
+                    'price' => $price,
+                    'image' => $image,
+                    'status' => $status,
+                    'hasTourStatus' => $hasTourStatus,
+                    'hasUpdatedAt' => $hasUpdatedAt
+                ]
+            ];
+            error_log('Tour::update exception: ' . $e->getMessage() . ' | Code: ' . $e->getCode() . ' | SQL: ' . $sql);
+            return false;
+        }
     }
 
     public function delete($id)
@@ -71,29 +160,83 @@ class Tour extends BaseModel
 
     public function insert($name, $category_id, $price = 0, $description = null, $itinerary = null, $policy = null, $image = null, $status = null)
     {
-        // Note: the `tours` table hiện đã có thêm cột `tour_status`
-        // Nếu $status null thì DB sẽ dùng giá trị mặc định (ví dụ: Upcoming / Hoạt động)
-        $sql = "INSERT INTO {$this->table} (name, category_id, price, description, itinerary, policy, image, tour_status, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())";
+        // Kiểm tra category_id có tồn tại không
+        try {
+            $checkCat = $this->pdo->prepare("SELECT id FROM tour_categories WHERE id = ?");
+            $checkCat->execute([$category_id]);
+            if (!$checkCat->fetch()) {
+                $this->lastError = ['error' => 'Category không tồn tại', 'category_id' => $category_id];
+                error_log('Tour::insert - Category không tồn tại: ' . $category_id);
+                return false;
+            }
+        } catch (Throwable $e) {
+            error_log('Tour::insert - Lỗi kiểm tra category: ' . $e->getMessage());
+        }
+        
+        // Kiểm tra xem bảng có các cột không
+        $hasTourStatus = $this->columnExists($this->table, 'tour_status');
+        $hasCreatedAt = $this->columnExists($this->table, 'created_at');
+        
+        // Xây dựng SQL query dựa trên các cột có sẵn
+        $columns = ['name', 'category_id', 'price', 'description', 'itinerary', 'policy', 'image'];
+        $placeholders = ['?', '?', '?', '?', '?', '?', '?'];
+        $params = [$name, $category_id, $price, $description, $itinerary, $policy, $image];
+        
+        if ($hasTourStatus) {
+            $columns[] = 'tour_status';
+            $placeholders[] = '?';
+            $params[] = $status;
+        }
+        
+        if ($hasCreatedAt) {
+            $columns[] = 'created_at';
+            $placeholders[] = 'NOW()';
+        }
+        
+        $sql = "INSERT INTO {$this->table} (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+        
         try {
             $stmt = $this->pdo->prepare($sql);
-            $params = [$name, $category_id, $price, $description, $itinerary, $policy, $image, $status];
             $res = $stmt->execute($params);
             if ($res) {
                 return (int) $this->pdo->lastInsertId();
             }
 
-            $this->lastError = $stmt->errorInfo();
+            $errorInfo = $stmt->errorInfo();
+            $this->lastError = [
+                'errorInfo' => $errorInfo,
+                'sqlState' => isset($errorInfo[0]) ? $errorInfo[0] : null,
+                'errorCode' => isset($errorInfo[1]) ? $errorInfo[1] : null,
+                'errorMessage' => isset($errorInfo[2]) ? $errorInfo[2] : 'Unknown error',
+                'sql' => $sql,
+                'params' => [
+                    'name' => $name,
+                    'category_id' => $category_id,
+                    'price' => $price,
+                    'image' => $image,
+                    'status' => $status,
+                    'hasTourStatus' => $hasTourStatus,
+                    'hasCreatedAt' => $hasCreatedAt
+                ]
+            ];
             error_log('Tour::insert - execute returned false; errorInfo: ' . json_encode($this->lastError));
             return false;
         } catch (PDOException $e) {
-            $this->lastError = ['exception' => $e->getMessage(), 'params' => ['name' => $name, 'category_id' => $category_id, 'price' => $price, 'image' => $image]];
-            error_log('Tour::insert exception: ' . $e->getMessage() . ' | params: ' . json_encode([
-                'name' => $name,
-                'category_id' => $category_id,
-                'price' => $price,
-                'image' => $image,
-            ]));
+            $this->lastError = [
+                'exception' => $e->getMessage(),
+                'code' => $e->getCode(),
+                'sql' => $sql,
+                'params' => [
+                    'name' => $name,
+                    'category_id' => $category_id,
+                    'price' => $price,
+                    'image' => $image,
+                    'status' => $status,
+                    'hasTourStatus' => $hasTourStatus,
+                    'hasCreatedAt' => $hasCreatedAt
+                ]
+            ];
+            error_log('Tour::insert exception: ' . $e->getMessage() . ' | Code: ' . $e->getCode() . ' | SQL: ' . $sql);
             return false;
         }
     }
@@ -109,7 +252,7 @@ class Tour extends BaseModel
      * Use only if there are no FK dependencies.
      * @return bool
      */
-    public function resequenceIds(): bool
+    public function resequenceIds()
     {
         try {
             $this->pdo->beginTransaction();
@@ -130,7 +273,7 @@ class Tour extends BaseModel
     /**
      * Lấy danh sách tour phục vụ trang quản lý cùng bộ lọc cơ bản.
      */
-    public function listWithCategory(array $filters = []): array
+    public function listWithCategory(array $filters = [])
     {
         $sql = "
             SELECT 

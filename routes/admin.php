@@ -90,4 +90,5 @@ match ($action) {
     'partner-update-activity' => (new PartnerController)->updateActivity(),
     'partner-update-itinerary' => (new PartnerController)->updateItinerary(),
     'partner-guest-checkin' => (new PartnerController)->checkinGuest(),
+    'admin-revenue-data' => (new AdminController)->getRevenueData(),
 };

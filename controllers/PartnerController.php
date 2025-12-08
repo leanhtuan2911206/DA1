@@ -1,5 +1,4 @@
 <?php
-require_once 'models/HdvModel.php';
 
 class PartnerController
 {
@@ -14,14 +13,15 @@ class PartnerController
         $userId = $_SESSION['user']['id'];
         $hdvModel = new HdvModel();
         
-        // Lấy Guide ID
         $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : 0;
         if ($guideId === 0) {
             $guideId = $hdvModel->getGuideIdByUserId($userId);
-            if ($guideId > 0) $_SESSION['user']['guide_id'] = $guideId;
+            if ($guideId > 0) {
+                $_SESSION['user']['guide_id'] = $guideId;
+            }
         }
 
-        $currentTab = $_GET['tab'] ?? 'assignments'; // Mặc định là assignments nếu không có tab
+        $currentTab = $_GET['tab'] ?? 'detail';
         $assignments = [];
         $trip_detail = null;
         $error_message = null;
@@ -29,19 +29,11 @@ class PartnerController
         if ($guideId > 0) {
             $assignments = $hdvModel->getMyAssignments($guideId);
 
-            // --- SỬA LOGIC: Cho phép lấy chi tiết ở cả tab 'detail' VÀ 'itinerary' ---
             if ($currentTab === 'detail' || $currentTab === 'itinerary') {
                 $bookingId = $_GET['booking_id'] ?? 0;
-                
-                // Nếu chưa chọn tour, lấy tour đầu tiên
-                if ($bookingId == 0 && !empty($assignments)) {
-                    $bookingId = $assignments[0]['booking_id'];
-                }
-
                 if ($bookingId > 0) {
                     $trip_detail = $hdvModel->getTripDetail($bookingId, $guideId);
                     
-                    // Xử lý giờ hiển thị
                     if ($trip_detail && !empty($trip_detail['itinerary'])) {
                         foreach ($trip_detail['itinerary'] as &$item) {
                             $item['display_time'] = substr($item['time_start'] ?? '', 0, 5);
@@ -166,5 +158,6 @@ class PartnerController
         header('Location: ' . BASE_URL . '?action=partner&tab=detail&booking_id=' . $bookingId);
         exit;
     }
+    
 }
 ?>

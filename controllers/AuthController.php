@@ -44,17 +44,39 @@ class AuthController
                             try {
                                 $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
                                 $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                                $stmt = $pdo->prepare('SELECT id FROM hdv WHERE user_id = :uid LIMIT 1');
+                                
+                                // Tìm HDV_ID từ user_id (cột user_id trong bảng hdv)
+                                $stmt = $pdo->prepare('SELECT HDV_ID FROM hdv WHERE user_id = :uid LIMIT 1');
                                 $stmt->execute([':uid' => (int)$user['id']]);
                                 $row = $stmt->fetch();
-                                if ($row && isset($row['id'])) { $guideId = (int)$row['id']; }
+                                if ($row && isset($row['HDV_ID'])) { 
+                                    $guideId = (int)$row['HDV_ID']; 
+                                }
+                                
+                                // Nếu không tìm thấy, thử tìm theo email
                                 if ($guideId === 0) {
-                                    $stmt = $pdo->prepare('SELECT id FROM hdv WHERE email = :email LIMIT 1');
+                                    $stmt = $pdo->prepare('SELECT HDV_ID FROM hdv WHERE email = :email LIMIT 1');
                                     $stmt->execute([':email' => (string)$user['email']]);
                                     $row = $stmt->fetch();
-                                    if ($row && isset($row['id'])) { $guideId = (int)$row['id']; }
+                                    if ($row && isset($row['HDV_ID'])) { 
+                                        $guideId = (int)$row['HDV_ID']; 
+                                    }
                                 }
-                            } catch (Throwable $e) { /* ignore */ }
+                                
+                                // Nếu vẫn không tìm thấy, thử tìm theo tên (name)
+                                if ($guideId === 0 && !empty($user['name'])) {
+                                    $stmt = $pdo->prepare('SELECT HDV_ID FROM hdv WHERE HoTen = :name LIMIT 1');
+                                    $stmt->execute([':name' => (string)$user['name']]);
+                                    $row = $stmt->fetch();
+                                    if ($row && isset($row['HDV_ID'])) { 
+                                        $guideId = (int)$row['HDV_ID']; 
+                                    }
+                                }
+                                
+                                error_log('AuthController::login - user_id: ' . $user['id'] . ', found guide_id: ' . $guideId);
+                            } catch (Throwable $e) { 
+                                error_log('AuthController::login - Error finding guide_id: ' . $e->getMessage());
+                            }
                         }
                         $_SESSION['user'] = [
                             'id'    => $user['id'],

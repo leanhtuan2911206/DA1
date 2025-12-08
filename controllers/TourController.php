@@ -146,6 +146,11 @@ class TourController
         try {
             $tourModel = new Tour();
             $existing = $tourModel->find($id);
+            if (!$existing) {
+                $_SESSION['error'] = 'Tour không tồn tại.';
+                header('Location: ' . BASE_URL . '?action=tours');
+                exit;
+            }
             $imageDbPath = null;
             if (!empty($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
                 $file = $_FILES['image'];
@@ -176,7 +181,7 @@ class TourController
                 $imageDbPath = 'assets/uploads/' . $filename;
             }
 
-            $tourModel->update(
+            $updateResult = $tourModel->update(
                 $id,
                 $name,
                 $category_id,
@@ -187,11 +192,24 @@ class TourController
                 $imageDbPath,
                 $tour_status !== '' ? $tour_status : null
             );
-            if ($imageDbPath && !empty($existing['image'])) {
-                $oldFile = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($existing['image']);
-                if (file_exists($oldFile)) { @unlink($oldFile); }
+            
+            if ($updateResult) {
+                if ($imageDbPath && !empty($existing['image'])) {
+                    $oldFile = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($existing['image']);
+                    if (file_exists($oldFile)) { @unlink($oldFile); }
+                }
+                $_SESSION['success'] = 'Cập nhật tour thành công.';
+            } else {
+                $err = $tourModel->getLastError();
+                $_SESSION['error'] = 'Không thể cập nhật tour.';
+                $_SESSION['update_tour_debug'] = [
+                    'id' => $id,
+                    'error' => $err,
+                    'post' => $_POST
+                ];
+                header('Location: ' . BASE_URL . '?action=tours-edit&id=' . $id);
+                exit;
             }
-            $_SESSION['success'] = 'Cập nhật tour thành công.';
         } catch (Throwable $e) {
             error_log('TourController::update error: ' . $e->getMessage());
             $_SESSION['error'] = 'Lỗi khi cập nhật tour.';

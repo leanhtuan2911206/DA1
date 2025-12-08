@@ -50,6 +50,12 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
             <?php else: ?>
                 <div class="alert alert-warning">
                     <?= htmlspecialchars($dbg['message']) ?>
+                    <?php if (!empty($dbg['error'])): ?>
+                        <div class="small mt-2">
+                            <strong>Chi tiết lỗi:</strong>
+                            <pre style="white-space:pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 5px;"><?= htmlspecialchars(is_array($dbg['error']) ? json_encode($dbg['error'], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT) : $dbg['error']) ?></pre>
+                        </div>
+                    <?php endif; ?>
                     <?php if (!empty($dbg['direct'])): ?>
                         <div class="small mt-2">Dữ liệu lưu trực tiếp: <pre style="white-space:pre-wrap"><?= htmlspecialchars(json_encode($dbg['direct'], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT)) ?></pre></div>
                     <?php else: ?>

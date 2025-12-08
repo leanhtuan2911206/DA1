@@ -1,6 +1,6 @@
 <?php
 $currentAction = $_GET['action'] ?? '/';
-$currentTab    = $_GET['tab'] ?? 'detail';
+$currentTab    = $_GET['tab'] ?? 'assignments';
 
 
 $detailHref      = BASE_URL . '?action=partner&tab=detail';

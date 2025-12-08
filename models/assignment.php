@@ -5,7 +5,7 @@ class Assignment extends BaseModel
     protected $table = 'tour_assignments';
     private $lastError = '';
 
-    private function ensureTableExists(): void
+    private function ensureTableExists()
     {
         try {
             $this->pdo->exec("CREATE TABLE IF NOT EXISTS {$this->table} (
@@ -24,7 +24,7 @@ class Assignment extends BaseModel
         } catch (Throwable $e) { $this->lastError = $e->getMessage(); error_log('Assignment::ensureTableExists error: ' . $e->getMessage()); }
     }
 
-    private function tableExists(): bool
+    private function tableExists()
     {
         try {
             $sql = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = :db AND table_name = :tbl";
@@ -36,7 +36,7 @@ class Assignment extends BaseModel
         } catch (Throwable $e) { return false; }
     }
 
-    private function ensureColumns(): void
+    private function ensureColumns()
     {
         // Thêm các cột nếu thiếu để tránh lỗi 1054 Unknown column
         try {
@@ -84,7 +84,7 @@ class Assignment extends BaseModel
         }
     }
 
-    public function getAllSimple(array $filters = []): array
+    public function getAllSimple(array $filters = [])
     {
         $this->ensureTableExists();
         $this->ensureColumns();
@@ -105,7 +105,7 @@ class Assignment extends BaseModel
         } catch (Throwable $e) { $this->lastError = $e->getMessage(); return []; }
     }
 
-    public function insertSimple(array $data): bool
+    public function insertSimple(array $data)
     {
         $this->ensureTableExists();
         $this->ensureColumns();
@@ -132,7 +132,7 @@ class Assignment extends BaseModel
         } catch (Throwable $e) { $this->lastError = $e->getMessage(); error_log('Assignment::insertSimple error: ' . $e->getMessage()); return false; }
     }
 
-    public function deleteByIdSimple(int $id): bool
+    public function deleteByIdSimple($id)
     {
         $this->ensureTableExists();
         try {
@@ -149,7 +149,7 @@ class Assignment extends BaseModel
         return (string)$this->lastError;
     }
 
-    public function findByIdSimple(int $id): ?array
+    public function findByIdSimple($id)
     {
         $this->ensureTableExists();
         try {
@@ -161,7 +161,7 @@ class Assignment extends BaseModel
         } catch (Throwable $e) { $this->lastError = $e->getMessage(); return null; }
     }
 
-    public function updateSimple(int $id, array $data): bool
+    public function updateSimple($id, array $data)
     {
         $this->ensureTableExists();
         $sql = "UPDATE {$this->table} SET booking_id=:booking_id, HDV_ID=:HDV_ID, assign_date=:assign_date, end_date=:end_date, meeting_point=:meeting_point, start_time=:start_time, end_time=:end_time, driver_id=:driver_id, support_id=:support_id, notes=:notes, schedule_id=:schedule_id, user_id=:user_id WHERE id=:id";
@@ -184,5 +184,60 @@ class Assignment extends BaseModel
             if (!$ok) { $this->lastError = json_encode($stmt->errorInfo()); }
             return $ok;
         } catch (Throwable $e) { $this->lastError = $e->getMessage(); return false; }
+    }
+
+    /**
+     * Lấy danh sách HDV_ID đã được phân bổ (chưa kết thúc)
+     * @return array Mảng các HDV_ID đã được phân bổ
+     */
+    public function getAssignedGuideIds()
+    {
+        $this->ensureTableExists();
+        try {
+            // Lấy các HDV đã được phân bổ mà chưa có end_date hoặc end_date chưa qua
+            $sql = "SELECT DISTINCT HDV_ID FROM {$this->table} 
+                    WHERE (end_date IS NULL OR end_date >= CURDATE())";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $guideIds = [];
+            foreach ($results as $row) {
+                $guideIds[] = (int)$row['HDV_ID'];
+            }
+            return $guideIds;
+        } catch (Throwable $e) {
+            error_log('Assignment::getAssignedGuideIds error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Kiểm tra HDV có đang được phân bổ cho tour khác không
+     * @param int $guideId ID của HDV
+     * @param int $excludeAssignmentId ID phân bổ cần loại trừ (khi edit)
+     * @return bool true nếu HDV đã được phân bổ, false nếu chưa
+     */
+    public function isGuideAssigned($guideId, $excludeAssignmentId = 0)
+    {
+        $this->ensureTableExists();
+        try {
+            $sql = "SELECT COUNT(*) FROM {$this->table} 
+                    WHERE HDV_ID = :guide_id 
+                    AND (end_date IS NULL OR end_date >= CURDATE())";
+            if ($excludeAssignmentId > 0) {
+                $sql .= " AND id != :exclude_id";
+            }
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':guide_id', $guideId, PDO::PARAM_INT);
+            if ($excludeAssignmentId > 0) {
+                $stmt->bindValue(':exclude_id', $excludeAssignmentId, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            $count = (int)$stmt->fetchColumn();
+            return $count > 0;
+        } catch (Throwable $e) {
+            error_log('Assignment::isGuideAssigned error: ' . $e->getMessage());
+            return false;
+        }
     }
 }

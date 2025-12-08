@@ -1,4 +1,5 @@
 <?php
+$prefBid = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
 ?>
 <div class="main-content">
     <div class="topbar d-flex align-items-center justify-content-between">
@@ -21,7 +22,7 @@
                     <select class="form-select" name="booking_id" required>
                         <option value="">-- Chọn Tour --</option>
                         <?php foreach (($bookings ?? []) as $b): ?>
-                            <option value="<?= $b['id'] ?>">#<?= $b['id'] ?> - <?= htmlspecialchars($b['tour_name'] ?? ($b['customer_name'] ?? '')) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)</option>
+                            <option value="<?= $b['id'] ?>" <?= $prefBid === (int)$b['id'] ? 'selected' : '' ?>>#<?= $b['id'] ?> - <?= htmlspecialchars($b['tour_name'] ?? ($b['customer_name'] ?? '')) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -29,10 +30,17 @@
                     <label class="form-label">Hướng dẫn viên</label>
                     <select class="form-select" name="HDV_ID" required>
                         <option value="">-- Chọn HDV --</option>
-                        <?php foreach (($guides ?? []) as $g): ?>
-                            <option value="<?= $g['HDV_ID'] ?>"><?= htmlspecialchars($g['HoTen'] ?? ('#'.$g['HDV_ID'])) ?></option>
-                        <?php endforeach; ?>
+                        <?php if (empty($guides)): ?>
+                            <option value="" disabled>Không có HDV nào khả dụng (tất cả đã được phân bổ)</option>
+                        <?php else: ?>
+                            <?php foreach ($guides as $g): ?>
+                                <option value="<?= $g['HDV_ID'] ?>"><?= htmlspecialchars($g['HoTen'] ?? ('#'.$g['HDV_ID'])) ?></option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </select>
+                    <?php if (empty($guides)): ?>
+                        <small class="text-danger">Tất cả hướng dẫn viên đã được phân bổ cho các tour khác. Vui lòng đợi tour kết thúc hoặc xóa phân bổ cũ.</small>
+                    <?php endif; ?>
                 </div>
                 <div class="col-12 col-lg-6">
                     <label class="form-label">Ngày phân công</label>
@@ -56,7 +64,7 @@
                 </div>
                 <div class="col-12 col-lg-6">
                     <label class="form-label">Nhân sự hậu cần (tuỳ chọn)</label>
-                    <select class="form-select" name="support_id" required>
+                    <select class="form-select" name="support_id">
                         <option value="">-- Chọn nhân sự --</option>
                         <?php foreach (($guides ?? []) as $g): ?>
                             <option value="<?= $g['HDV_ID'] ?>"><?= htmlspecialchars($g['HoTen'] ?? ('#'.$g['HDV_ID'])) ?></option>

@@ -1,17 +1,57 @@
 <?php
 class HdvModel extends BaseModel {
     
+    public function __construct()
+    {
+        parent::__construct();
+        $this->ensureTripActivityStatusTable();
+    }
+    
+    private function ensureTripActivityStatusTable()
+    {
+        try {
+            $this->pdo->query("SELECT 1 FROM trip_activity_status LIMIT 1");
+        } catch (Throwable $e) {
+            // Bảng chưa tồn tại, tạo mới
+            $sql = "
+                CREATE TABLE IF NOT EXISTS trip_activity_status (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    booking_id INT NOT NULL,
+                    itinerary_id INT NOT NULL,
+                    status VARCHAR(50) DEFAULT 'pending',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NULL ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_booking_itinerary (booking_id, itinerary_id),
+                    INDEX idx_booking_id (booking_id),
+                    INDEX idx_itinerary_id (itinerary_id),
+                    INDEX idx_status (status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ";
+            $this->pdo->exec($sql);
+        }
+    }
+    
     // 1. Lấy danh sách tour được phân công
     public function getMyAssignments($hdvId) {
-        $sql = "SELECT ta.*, b.customer_name, t.name as tour_name, b.total_people, b.start_date 
-                FROM tour_assignments ta
-                JOIN bookings b ON ta.booking_id = b.id
-                JOIN tours t ON b.tour_id = t.id
-                WHERE ta.HDV_ID = ? ORDER BY ta.assign_date DESC";
+        if ($hdvId <= 0) {
+            return [];
+        }
         
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$hdvId]);
-        return $stmt->fetchAll();
+        try {
+            $sql = "SELECT ta.*, b.customer_name, t.name as tour_name, b.total_people, b.start_date 
+                    FROM tour_assignments ta
+                    LEFT JOIN bookings b ON ta.booking_id = b.id
+                    LEFT JOIN tours t ON b.tour_id = t.id
+                    WHERE ta.HDV_ID = ? 
+                    ORDER BY ta.assign_date DESC";
+            
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$hdvId]);
+            return $stmt->fetchAll();
+        } catch (Throwable $e) {
+            error_log('HdvModel::getMyAssignments error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     // 2. Lấy chi tiết đầy đủ của 1 chuyến đi
@@ -75,6 +115,9 @@ class HdvModel extends BaseModel {
         $data['transport_service'] = $transportService;
 
         // [QUAN TRỌNG] Lấy lịch trình KÈM THEO TRẠNG THÁI
+        // Đảm bảo bảng tồn tại trước khi query
+        $this->ensureTripActivityStatusTable();
+        
         // Join bảng tour_itineraries với bảng trip_activity_status
         $sqlItinerary = "SELECT i.*, 
                                 COALESCE(s.status, 'pending') as current_status 
@@ -84,9 +127,21 @@ class HdvModel extends BaseModel {
                          WHERE i.tour_id = ? 
                          ORDER BY i.day_number, i.time_start";
         
-        $stmt = $this->pdo->prepare($sqlItinerary);
-        $stmt->execute([$bookingId, $data['tour_id']]);
-        $rawItinerary = $stmt->fetchAll();
+        try {
+            $stmt = $this->pdo->prepare($sqlItinerary);
+            $stmt->execute([$bookingId, $data['tour_id']]);
+            $rawItinerary = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            error_log('HdvModel::getTripDetail - Error fetching itinerary: ' . $e->getMessage());
+            // Fallback: lấy itinerary không có status
+            $sqlItineraryFallback = "SELECT i.*, 'pending' as current_status 
+                                     FROM tour_itineraries i
+                                     WHERE i.tour_id = ? 
+                                     ORDER BY i.day_number, i.time_start";
+            $stmt = $this->pdo->prepare($sqlItineraryFallback);
+            $stmt->execute([$data['tour_id']]);
+            $rawItinerary = $stmt->fetchAll();
+        }
 
         // Xử lý loại bỏ trùng lặp (Dedup) dựa trên Ngày + Giờ + Tên hoạt động
         $deduped = [];
@@ -192,20 +247,42 @@ class HdvModel extends BaseModel {
 
     // [MỚI] Hàm cập nhật trạng thái hoạt động (Check-in)
     public function updateActivityStatus($bookingId, $itineraryId, $status) {
+        $this->ensureTripActivityStatusTable();
+        
         // Dùng INSERT ... ON DUPLICATE KEY UPDATE để nếu chưa có thì thêm, có rồi thì sửa
         $sql = "INSERT INTO trip_activity_status (booking_id, itinerary_id, status) 
                 VALUES (?, ?, ?) 
                 ON DUPLICATE KEY UPDATE status = VALUES(status)";
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute([$bookingId, $itineraryId, $status]);
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute([$bookingId, $itineraryId, $status]);
+        } catch (Throwable $e) {
+            error_log('HdvModel::updateActivityStatus error: ' . $e->getMessage());
+            return false;
+        }
     }
     public function getGuideIdByUserId($userId) {
-        $sql = "SELECT HDV_ID FROM hdv WHERE user_id = ?";
-        $stmt = $this->pdo->prepare($sql); // Ở trong Model thì dùng được $this->pdo
-        $stmt->execute([$userId]);
-        $result = $stmt->fetch();
-        return $result ? (int)$result['HDV_ID'] : 0;
+        if ($userId <= 0) {
+            return 0;
+        }
+        
+        try {
+            if ($this->columnExists('hdv', 'user_id')) {
+                $sql = "SELECT HDV_ID FROM hdv WHERE user_id = ? LIMIT 1";
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([$userId]);
+                $result = $stmt->fetch();
+                if ($result && isset($result['HDV_ID'])) {
+                    return (int)$result['HDV_ID'];
+                }
+            }
+            return 0;
+        } catch (Throwable $e) {
+            error_log('HdvModel::getGuideIdByUserId error: ' . $e->getMessage());
+            return 0;
+        }
     }
+    
     
     // Hàm cập nhật lịch trình (cho phép HDV chỉnh sửa)
     public function updateItinerary($itineraryId, $timeStart, $title, $description, $location) {

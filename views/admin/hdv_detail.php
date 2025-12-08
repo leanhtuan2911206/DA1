@@ -4,8 +4,8 @@ $guideId     = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['gu
 $trip_detail = isset($trip_detail) && is_array($trip_detail) ? $trip_detail : null;
 $assignments = isset($assignments) && is_array($assignments) ? $assignments : [];
 
-// Xác định tab hiện tại
-$__tab = isset($_GET['tab']) ? $_GET['tab'] : 'detail';
+// Xác định tab hiện tại - mặc định là 'assignments' để hiển thị danh sách phân bổ
+$__tab = isset($_GET['tab']) ? $_GET['tab'] : 'assignments';
 ?>
 
 <main class="main-content">
@@ -320,33 +320,84 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : 'detail';
     <?php endif; ?>
 
     <?php if ($__tab === 'assignments'): ?>
+        <?php 
+        // Debug info
+        $debugInfo = [
+            'guideId' => $guideId,
+            'assignments_count' => count($assignments),
+            'assignments' => $assignments
+        ];
+        error_log('hdv_detail.php assignments tab - Debug: ' . json_encode($debugInfo));
+        ?>
         <?php if (!empty($assignments)): ?>
         <div class="hdv-container">
             <div class="schedule-card mt-3">
-                <h2 class="section-title"><span class="me-2">🗂️</span>Phân bổ của tôi</h2>
-                <table class="table-basic">
-                    <thead><tr><th>Booking</th><th>Điểm hẹn</th><th>Bắt đầu</th><th>Kết thúc</th><th>Ngày</th><th>Ngày kết thúc</th><th>Ghi chú</th></tr></thead>
-                    <tbody>
-                        <?php foreach ($assignments as $row): ?>
+                <h2 class="section-title"><span class="me-2">🗂️</span>Tour được phân công (<?= count($assignments) ?> tour)</h2>
+                <div class="table-responsive">
+                    <table class="table-basic">
+                        <thead>
                             <tr>
-                                <td>
-                                    <div><?= isset($row['booking_id']) ? '#' . htmlspecialchars((string)$row['booking_id']) : '—' ?></div>
-                                    <div class="small fw-bold text-primary"><?= htmlspecialchars($row['tour_name'] ?? ($row['customer_name'] ?? '')) ?></div>
-                                </td>
-                                <td><?= htmlspecialchars($row['meeting_point'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($row['start_time'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($row['end_time'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($row['assign_date'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($row['end_date'] ?? '') ?></td>
-                                <td><?= htmlspecialchars($row['notes'] ?? '') ?></td>
+                                <th>Booking ID</th>
+                                <th>Tên Tour</th>
+                                <th>Khách hàng</th>
+                                <th>Điểm hẹn</th>
+                                <th>Giờ bắt đầu</th>
+                                <th>Giờ kết thúc</th>
+                                <th>Ngày phân công</th>
+                                <th>Ngày kết thúc</th>
+                                <th>Ghi chú</th>
+                                <th>Thao tác</th>
                             </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($assignments as $row): ?>
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold"><?= isset($row['booking_id']) ? '#' . htmlspecialchars((string)$row['booking_id']) : '—' ?></div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold text-primary"><?= htmlspecialchars($row['tour_name'] ?? 'Chưa có tên tour') ?></div>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($row['customer_name'])): ?>
+                                            <div><?= htmlspecialchars($row['customer_name']) ?></div>
+                                            <?php if (!empty($row['total_people'])): ?>
+                                                <div class="small text-muted"><?= $row['total_people'] ?> người</div>
+                                            <?php endif; ?>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= htmlspecialchars($row['meeting_point'] ?? '—') ?></td>
+                                    <td><?= htmlspecialchars($row['start_time'] ?? '—') ?></td>
+                                    <td><?= htmlspecialchars($row['end_time'] ?? '—') ?></td>
+                                    <td><?= htmlspecialchars($row['assign_date'] ?? '—') ?></td>
+                                    <td><?= htmlspecialchars($row['end_date'] ?? '—') ?></td>
+                                    <td><?= htmlspecialchars($row['notes'] ?? '—') ?></td>
+                                    <td>
+                                        <?php if (!empty($row['booking_id'])): ?>
+                                            <a href="<?= BASE_URL ?>?action=partner&tab=detail&booking_id=<?= $row['booking_id'] ?>" class="btn btn-sm btn-primary">Xem chi tiết</a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         <?php else: ?>
-        <div class="simple-card"><div class="info-alert">Chưa có chuyến đi nào được phân bổ cho bạn.</div></div>
+        <div class="simple-card">
+            <div class="info-alert">
+                <strong>Chưa có chuyến đi nào được phân bổ cho bạn.</strong>
+                <div class="mt-2 small text-muted">
+                    <?php if ($guideId > 0): ?>
+                        Guide ID của bạn: <?= $guideId ?><br>
+                    <?php endif; ?>
+                    Vui lòng liên hệ admin để được phân bổ tour.
+                </div>
+            </div>
+        </div>
         <?php endif; ?>
     <?php endif; ?>
 
@@ -444,11 +495,13 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : 'detail';
                 </div>
 
                 <?php 
+                    // Khởi tạo biến trước khi sử dụng
+                    $total = 0; 
+                    $done = 0;
+                    
                     // Chỉ hiển thị lịch trình của ngày được chọn
                     if (isset($groupedByDay[$selectedDayNum])):
                         $dayItems = $groupedByDay[$selectedDayNum];
-                        $total = 0; 
-                        $done = 0;
                         
                         // Tạo tiêu đề ngày với ngày thực tế
                         $dayTitle = 'Ngày ' . $selectedDayNum;
