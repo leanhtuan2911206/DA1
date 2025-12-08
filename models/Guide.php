@@ -95,6 +95,26 @@ class Guide extends BaseModel
         return $guide ?: null;
     }
 
+    public function listAssignedByTour(int $tourId): array
+    {
+        if ($tourId <= 0) { return []; }
+        try {
+            $hasAssignments = $this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = $this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            if (!$hasAssignments || !$hasBookings) { return []; }
+            $hasTourIdCol = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'bookings' AND column_name = 'tour_id'")->fetchColumn() > 0;
+            if (!$hasTourIdCol) { return []; }
+            $sql = "SELECT DISTINCT h.HDV_ID, h.HoTen FROM tour_assignments ta JOIN bookings b ON b.id = ta.booking_id JOIN hdv h ON h.HDV_ID = ta.HDV_ID WHERE b.tour_id = :tid ORDER BY h.HoTen";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':tid', $tourId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Throwable $e) {
+            error_log('Guide::listAssignedByTour error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
     public function create(array $data): int|false
     {
         $payload = $this->mapData($data);

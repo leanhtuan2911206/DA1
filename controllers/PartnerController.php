@@ -131,4 +131,80 @@ class PartnerController
         $currentTab = isset($_GET['tab']) && $_GET['tab'] === 'assignments' ? 'assignments' : 'detail';
         require_once PATH_VIEW . 'main.php';
     }
+
+    public function logs(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        if (!isset($_SESSION['user'])) { header('Location: ' . BASE_URL . '?action=login'); exit; }
+        $role = strtolower($_SESSION['user']['role'] ?? '');
+        if ($role !== 'hdv') { header('Location: ' . BASE_URL . '?action=admin'); exit; }
+        $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : 0;
+        $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+        $editId = isset($_GET['edit_id']) ? (int)$_GET['edit_id'] : 0;
+        $dayFilter = isset($_GET['day']) ? (int)$_GET['day'] : 0;
+        $typeFilter = isset($_GET['log_type']) ? trim((string)$_GET['log_type']) : '';
+        $statusFilter = isset($_GET['status']) ? trim((string)$_GET['status']) : '';
+        $view = 'admin/hdv_logs';
+        $title = 'Nhật ký tour';
+        $hideNavbar = true;
+        $showPartnerSidebar = true;
+        $tours = [];
+        $tour = null; $logs = []; $itinerary = []; $editingLog = null;
+        try {
+            $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+            $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+            $hasAssign = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            if ($hasAssign && $hasBookings && $guideId > 0) {
+                $st = $pdo->prepare('SELECT DISTINCT b.tour_id FROM tour_assignments ta JOIN bookings b ON b.id = ta.booking_id WHERE (ta.guide_id = :gid OR ta.HDV_ID = :gid) AND b.tour_id IS NOT NULL');
+                $st->execute([':gid' => $guideId]);
+                $ids = array_map(function($r){ return (int)($r['tour_id'] ?? 0); }, $st->fetchAll());
+                if (!empty($ids)) {
+                    $in = implode(',', array_map('intval', $ids));
+                    $st2 = $pdo->query('SELECT t.*, tc.name AS category_name, COALESCE(t.tour_status, "Hoạt động") AS status FROM tours t LEFT JOIN tour_categories tc ON tc.id = t.category_id WHERE t.id IN (' . $in . ') ORDER BY t.created_at DESC');
+                    $tours = $st2->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                }
+            }
+            if (empty($tours)) {
+                $tourModel = new Tour();
+                $tours = $tourModel->listWithCategory([]);
+            }
+        } catch (Throwable $e) {}
+        if ($tourId > 0) {
+            try {
+                $tourModel = new Tour();
+                $tour = $tourModel->find($tourId);
+                $itinerary = $tourModel->getItineraryByTourId($tourId);
+                $logModel = new TourLog();
+                $logs = $logModel->getByTourId($tourId, null);
+                // Fallback: raw query to ensure visibility
+                if (empty($logs)) {
+                    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+                    $pdo2 = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                    $st = $pdo2->prepare('SELECT * FROM tour_logs WHERE tour_id = :tid ORDER BY COALESCE(log_date, created_at) DESC');
+                    $st->execute([':tid' => $tourId]);
+                    $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                    if (!empty($rows)) { $logs = $rows; }
+                }
+                if ($dayFilter > 0) {
+                    $map = [];
+                    foreach ($itinerary as $item) { $map[(int)$item['id']] = (int)($item['day_number'] ?? 0); }
+                    $logs = array_values(array_filter($logs, function($l) use ($map, $dayFilter) {
+                        $iid = (int)($l['itinerary_id'] ?? 0);
+                        return $iid && isset($map[$iid]) && $map[$iid] === $dayFilter;
+                    }));
+                }
+                if ($typeFilter !== '') { $logs = array_values(array_filter($logs, function($l) use ($typeFilter) { return isset($l['log_type']) && $l['log_type'] === $typeFilter; })); }
+                if ($statusFilter !== '') { $logs = array_values(array_filter($logs, function($l) use ($statusFilter) { return isset($l['status']) && $l['status'] === $statusFilter; })); }
+
+                if ($editId > 0) {
+                    try {
+                        $editingLog = $logModel->find($editId);
+                        if ($editingLog && (int)($editingLog['tour_id'] ?? 0) !== $tourId) { $editingLog = null; }
+                    } catch (Throwable $e) { $editingLog = null; }
+                }
+            } catch (Throwable $e) {}
+        }
+        require_once PATH_VIEW . 'main.php';
+    }
 }

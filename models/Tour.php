@@ -189,15 +189,16 @@ class Tour extends BaseModel
 
     public function getItineraryByTourId($tourId)
     {
-        // Lấy dữ liệu từ bảng tour_itineraries (bảng thực tế)
-        $sql = "SELECT * FROM tour_itineraries 
-                WHERE tour_id = ? 
-                ORDER BY day_number ASC, time_start ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$tourId]);
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
+            if (!$exists) { return []; }
+            $sql = "SELECT * FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC, time_start ASC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return [];
+        }
     }
     
     // Lấy danh sách item từ mẫu (template) dựa trên template_id

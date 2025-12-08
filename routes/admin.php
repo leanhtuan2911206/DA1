@@ -8,6 +8,7 @@ match ($action) {
     'login'     => (new AuthController)->login(),
     'logout'    => (new AuthController)->logout(),
     'partner'   => (new PartnerController)->dashboard(),
+    'partner-logs' => (new PartnerController)->logs(),
     'tour-categories'  => (new TourCategoryController)->index(),
     'tours'             => (new TourController)->index(),
 
@@ -29,6 +30,13 @@ match ($action) {
     'tours-update'  => (new TourController)->update(),
     'tours-delete'  => (new TourController)->delete(),
     'tours-get-info' => (new TourController)->getTourInfo(),
+    'tours-itinerary-json' => (new TourController)->getItineraryJson(),
+
+    // Nhật ký tour: trang quản trị xem/lọc, HDV ghi chép
+    'tour-logs-list'   => (new TourController)->logsList(),
+    'tour-logs-store'  => (new TourController)->logsStore(),
+    'tour-logs-update' => (new TourController)->logsUpdate(),
+    'tour-logs-delete' => (new TourController)->logsDelete(),
 
     'bookings'              => (new BookingController)->index(),
     'bookings-create'        => (new BookingController)->create(),

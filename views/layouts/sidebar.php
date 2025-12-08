@@ -12,6 +12,8 @@ $activeMap = [
     'guides'           => ['guides', 'guides-create', 'guides-store', 'guides-edit', 'guides-update', 'guides-delete'],
     'assignments'      => ['assignments', 'assignments-create', 'assignments-store', 'assignments-delete'],
     'services'         => ['services', 'services-create', 'services-store', 'services-edit', 'services-update', 'services-delete'],
+    'tour-logs'        => ['tour-logs-list', 'tour-logs-store', 'tour-logs-update', 'tour-logs-delete'],
+    
 ];
 
 $isActive = function (string $key) use ($currentAction, $activeMap) {
@@ -61,6 +63,11 @@ $isActive = function (string $key) use ($currentAction, $activeMap) {
         <li class="nav-item mb-2">
             <a class="nav-link <?= $isActive('tour-management'); ?>" href="<?= BASE_URL ?>?action=tour-management">Quản lý đoàn khách và check-in</a>
         </li>
+
+        <li class="nav-item mb-2">
+            <a class="nav-link <?= $isActive('tour-logs'); ?>" href="<?= BASE_URL ?>?action=tour-logs-list">Nhật ký tour</a>
+        </li>
+        
         <li class="nav-item mb-2">
             <a class="nav-link <?= $isActive('customers'); ?>" href="<?= BASE_URL ?>?action=customers">Danh sách khách hàng</a>
         </li>
