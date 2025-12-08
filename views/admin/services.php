@@ -74,9 +74,9 @@
                 <tbody>
                     <?php if (empty($list ?? [])): ?>
                         <tr><td colspan="9" class="text-center text-muted py-4">Chưa có dịch vụ nào.</td></tr>
-                    <?php endif; ?>
+                    <?php endif; ?>                    
                     <?php 
-                    $typeLabels = [
+                     $typeLabels = [
                         'vehicle' => 'Xe',
                         'hotel' => 'Khách sạn',
                         'flight' => 'Vé máy bay',

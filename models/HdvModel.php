@@ -87,50 +87,8 @@ class HdvModel extends BaseModel {
         $stmt = $this->pdo->prepare($sqlItinerary);
         $stmt->execute([$bookingId, $data['tour_id']]);
         $rawItinerary = $stmt->fetchAll();
-
-        // Xử lý loại bỏ trùng lặp (Dedup) dựa trên Ngày + Giờ + Tên hoạt động
-        $deduped = [];
-        $seenKeys = []; // Track các key đã thấy để loại bỏ trùng lặp hoàn toàn
-        
-        foreach ($rawItinerary as $item) {
-            // Tạo key duy nhất dựa trên day_number + time_start + title để loại bỏ trùng lặp
-            $dayNum = (int)($item['day_number'] ?? 1);
-            $timeStart = trim($item['time_start'] ?? '');
-            $title = trim($item['title'] ?? '');
-            $uniqueKey = $dayNum . '|' . $timeStart . '|' . md5($title);
-            
-            // Nếu chưa thấy key này, thêm vào
-            if (!isset($seenKeys[$uniqueKey])) {
-                $seenKeys[$uniqueKey] = true;
-                $deduped[] = $item;
-            } else {
-                // Nếu đã tồn tại, kiểm tra xem có cần cập nhật status không
-                // Tìm item đã có trong deduped
-                foreach ($deduped as &$existingItem) {
-                    $existingDayNum = (int)($existingItem['day_number'] ?? 1);
-                    $existingTimeStart = trim($existingItem['time_start'] ?? '');
-                    $existingTitle = trim($existingItem['title'] ?? '');
-                    $existingKey = $existingDayNum . '|' . $existingTimeStart . '|' . md5($existingTitle);
-                    
-                    if ($existingKey === $uniqueKey) {
-                        // So sánh status và cập nhật nếu cần
-                        $currentStatus = $existingItem['current_status'] ?? 'pending';
-                        $newStatus = $item['current_status'] ?? 'pending';
-                        
-                        $statusPriority = ['pending' => 0, 'doing' => 1, 'completed' => 2];
-                        
-                        // Nếu item mới có trạng thái cao hơn, cập nhật
-                        if (($statusPriority[$newStatus] ?? 0) > ($statusPriority[$currentStatus] ?? 0)) {
-                            $existingItem = $item;
-                        }
-                        break;
-                    }
-                }
-                unset($existingItem);
-            }
-        }
-        // Gán lại mảng đã lọc trùng
-        $data['itinerary'] = $deduped;
+           
+        $data['itinerary'] = $rawItinerary;
 
         // C. Lấy khách hàng (Ưu tiên lấy từ tour_guests nếu đã sync/tạo group)
         $stmt = $this->pdo->prepare("SELECT id FROM tour_groups WHERE booking_id = ?");
