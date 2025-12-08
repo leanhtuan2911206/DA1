@@ -101,11 +101,15 @@ class GuideController
 
             // --- BƯỚC 1: TẠO TÀI KHOẢN USER TRƯỚC ---
             // Tự động tạo user dựa trên Contact (SĐT/Email) và Password nhập vào
+            // Role sẽ tự động được set là 'hdv' trong createAccount()
             $userId = $guideModel->createAccount($username, $password, $fullName);
             
             if ($userId === false) {
                  throw new RuntimeException('Không thể tạo tài khoản đăng nhập (có thể SĐT/Email đã tồn tại).');
             }
+            
+            // Đảm bảo role là 'hdv' (double check)
+            $guideModel->ensureUserRoleIsHdv($userId);
 
             // --- BƯỚC 2: GÁN USER_ID VÀO DỮ LIỆU HDV ---
             $data['user_id'] = $userId;
@@ -185,14 +189,27 @@ class GuideController
         try {
             $guideModel = new Guide();
             $guideModel->ensureStatusColumn();
+            $guideModel->ensureUserIdColumn();
+            
+            // Đảm bảo role của user liên kết là 'hdv' trước khi cập nhật
+            $existingGuide = $guideModel->find($id);
+            if ($existingGuide && !empty($existingGuide['user_id'])) {
+                $guideModel->ensureUserRoleIsHdv((int)$existingGuide['user_id']);
+            }
             
             if (!$guideModel->update($id, $data)) {
                 throw new RuntimeException('Không thể cập nhật nhân sự.');
             }
 
-            // Cập nhật mật khẩu user nếu có nhập
+            // Cập nhật mật khẩu user nếu có nhập (và đảm bảo role là 'hdv')
             if (!empty($data['password'])) {
                 $guideModel->updateAccountPassword($id, $data['password']);
+            }
+            
+            // Đảm bảo role vẫn là 'hdv' sau khi cập nhật
+            $updatedGuide = $guideModel->find($id);
+            if ($updatedGuide && !empty($updatedGuide['user_id'])) {
+                $guideModel->ensureUserRoleIsHdv((int)$updatedGuide['user_id']);
             }
 
             $_SESSION['success'] = 'Cập nhật nhân sự thành công.';

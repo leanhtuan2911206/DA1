@@ -40,6 +40,17 @@ class Guide extends BaseModel
         }
     }
 
+    public function ensureUserIdColumn(): void
+    {
+        try {
+            if (!$this->columnExists($this->table, 'user_id')) {
+                $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN user_id INT NULL DEFAULT NULL");
+            }
+        } catch (Throwable $e) {
+            error_log('Guide::ensureUserIdColumn error: ' . $e->getMessage());
+        }
+    }
+
     public function list(array $filters = []): array
     {
         $sql = "SELECT * FROM {$this->table}";
@@ -93,6 +104,26 @@ class Guide extends BaseModel
 
         $guide = $stmt->fetch(PDO::FETCH_ASSOC);
         return $guide ?: null;
+    }
+
+    public function listAssignedByTour(int $tourId): array
+    {
+        if ($tourId <= 0) { return []; }
+        try {
+            $hasAssignments = $this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = $this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            if (!$hasAssignments || !$hasBookings) { return []; }
+            $hasTourIdCol = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'bookings' AND column_name = 'tour_id'")->fetchColumn() > 0;
+            if (!$hasTourIdCol) { return []; }
+            $sql = "SELECT DISTINCT h.HDV_ID, h.HoTen FROM tour_assignments ta JOIN bookings b ON b.id = ta.booking_id JOIN hdv h ON h.HDV_ID = ta.HDV_ID WHERE b.tour_id = :tid ORDER BY h.HoTen";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':tid', $tourId, PDO::PARAM_INT);
+            $stmt->execute();
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Throwable $e) {
+            error_log('Guide::listAssignedByTour error: ' . $e->getMessage());
+            return [];
+        }
     }
 
     public function create(array $data): int|false
@@ -437,7 +468,7 @@ class Guide extends BaseModel
                 return false; 
             }
 
-            // 2. Tạo tài khoản mới
+            // 2. Tạo tài khoản mới với role = 'hdv' (bắt buộc)
             // Cột trong bảng users: id, name, email, password, role, created_at
             $sql = "INSERT INTO users (email, password, name, role, created_at) VALUES (:email, :password, :name, 'hdv', NOW())";
             $stmt = $this->pdo->prepare($sql);
@@ -447,13 +478,35 @@ class Guide extends BaseModel
             $stmt->bindValue(':email', $username);
             $stmt->bindValue(':password', $hashedPass);
             $stmt->bindValue(':name', $fullname);
+            // Role 'hdv' được hardcode trong SQL để đảm bảo luôn là 'hdv'
             
             if ($stmt->execute()) {
-                return (int)$this->pdo->lastInsertId();
+                $userId = (int)$this->pdo->lastInsertId();
+                // Đảm bảo role là 'hdv' (double check)
+                $this->ensureUserRoleIsHdv($userId);
+                return $userId;
             }
             return false;
         } catch (Throwable $e) {
             error_log('Guide::createAccount error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Đảm bảo user có role là 'hdv'
+     * @param int $userId ID của user
+     * @return bool true nếu thành công
+     */
+    public function ensureUserRoleIsHdv(int $userId): bool
+    {
+        try {
+            $sql = "UPDATE users SET role = 'hdv' WHERE id = :user_id AND role != 'hdv'";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            return $stmt->execute();
+        } catch (Throwable $e) {
+            error_log('Guide::ensureUserRoleIsHdv error: ' . $e->getMessage());
             return false;
         }
     }
@@ -468,10 +521,40 @@ class Guide extends BaseModel
             $userId = $find['user_id'];
             $hashedPass = password_hash($newPassword, PASSWORD_BCRYPT);
 
-            $stmt = $this->pdo->prepare("UPDATE users SET password = ? WHERE id = ?");
-            return $stmt->execute([$hashedPass, $userId]);
+            // Cập nhật password và đảm bảo role vẫn là 'hdv'
+            $stmt = $this->pdo->prepare("UPDATE users SET password = ?, role = 'hdv' WHERE id = ?");
+            $result = $stmt->execute([$hashedPass, $userId]);
+            
+            // Double check để đảm bảo role là 'hdv'
+            if ($result) {
+                $this->ensureUserRoleIsHdv($userId);
+            }
+            
+            return $result;
         } catch (Throwable $e) {
+            error_log('Guide::updateAccountPassword error: ' . $e->getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Đồng bộ role của tất cả user liên kết với HDV về 'hdv'
+     * Phương thức này có thể được gọi để đảm bảo tính nhất quán
+     * @return int Số lượng user đã được cập nhật
+     */
+    public function syncAllGuideRoles(): int
+    {
+        try {
+            $sql = "UPDATE users u
+                    INNER JOIN hdv h ON h.user_id = u.id
+                    SET u.role = 'hdv'
+                    WHERE u.role != 'hdv'";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute();
+            return (int)$stmt->rowCount();
+        } catch (Throwable $e) {
+            error_log('Guide::syncAllGuideRoles error: ' . $e->getMessage());
+            return 0;
         }
     } 
 

@@ -227,7 +227,18 @@ $filters = [
                                             <div class="d-flex gap-2">
                                                 <a href="<?= BASE_URL ?>?action=bookings-edit&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                                 <a href="<?= BASE_URL ?>?action=bookings-delete&id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa booking này không?')">🗑️</a>
-                                                <a href="<?= BASE_URL ?>?action=assignments-create&booking_id=<?= $booking['id'] ?>" class="btn btn-sm btn-outline-primary">Phân công</a>
+                                                <?php if (!empty($booking['has_assignment'])): ?>
+                                                    <a href="<?= BASE_URL ?>?action=assignments&booking_id=<?= $booking['id'] ?>" 
+                                                       class="btn btn-sm btn-outline-info" 
+                                                       title="Đã phân công: <?= htmlspecialchars($booking['assignment']['guide_name'] ?? 'HDV') ?>">
+                                                        👤 Đã phân công
+                                                    </a>
+                                                <?php else: ?>
+                                                    <a href="<?= BASE_URL ?>?action=assignments-create&booking_id=<?= $booking['id'] ?>" 
+                                                       class="btn btn-sm btn-outline-primary">
+                                                        ➕ Phân công
+                                                    </a>
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </td>

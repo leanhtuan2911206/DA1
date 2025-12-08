@@ -38,8 +38,8 @@ a{display:block;text-align:center;color:black;text-decoration:none;margin-top:12
 
         <form action="<?= BASE_URL ?>?action=login" method="POST">
             <div class="mb-3">
-                <label for="email" class="form-label">Email:</label>
-                <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" required>
+                <label for="email" class="form-label">Email hoặc Số điện thoại:</label>
+                <input type="text" class="form-control" id="email" name="email" value="<?= htmlspecialchars($_POST['email'] ?? '') ?>" placeholder="Nhập email hoặc số điện thoại" required>
             </div>
             <div class="mb-3">
                 <label for="password" class="form-label">Mật khẩu:</label>

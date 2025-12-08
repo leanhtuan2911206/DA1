@@ -218,14 +218,29 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                     </span>
                                 </td>
                                 <td>
-                                    <div class="d-flex gap-2">
-                                        <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" 
-                                            class="btn btn-sm btn-info text-white" 
-                                            title="Xem lịch trình chi tiết">
-                                            📄
-                                        </a>
-                                        <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
-                                        <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
+                                    <div class="d-flex flex-column gap-2">
+                                        <div class="d-flex gap-2">
+                                            <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" 
+                                                class="btn btn-sm btn-info text-white" 
+                                                title="Xem lịch trình chi tiết">
+                                                📄
+                                            </a>
+                                            <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
+                                            <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
+                                        </div>
+                                        <?php 
+                                            $assignedCount = (int)($tour['assigned_guide_count'] ?? 0);
+                                            $hasAssignment = !empty($tour['has_assignment']) || $assignedCount > 0;
+                                        ?>
+                                        <?php if ($hasAssignment): ?>
+                                            <div>
+                                                <a href="<?= BASE_URL ?>?action=assignments&tour_id=<?= $tour['id'] ?>" 
+                                                   class="btn btn-sm btn-outline-info" 
+                                                   title="Xem phân công HDV">
+                                                    👤 <?= $assignedCount ?> HDV
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

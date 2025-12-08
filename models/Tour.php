@@ -332,15 +332,16 @@ class Tour extends BaseModel
 
     public function getItineraryByTourId($tourId)
     {
-        // Lấy dữ liệu từ bảng tour_itineraries (bảng thực tế)
-        $sql = "SELECT * FROM tour_itineraries 
-                WHERE tour_id = ? 
-                ORDER BY day_number ASC, time_start ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([$tourId]);
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
+            if (!$exists) { return []; }
+            $sql = "SELECT * FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC, time_start ASC";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            return [];
+        }
     }
     // Mở file models/Tour.php và thêm các phương thức sau vào trong class Tour:
 
@@ -429,6 +430,214 @@ class Tour extends BaseModel
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$tour_id, $day_number, $time_start, $title]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Lấy danh sách hướng dẫn viên đã được phân công cho tour
+     * @param int $tourId ID của tour
+     * @return array Danh sách HDV với thông tin phân công
+     */
+    public function getAssignedGuides($tourId)
+    {
+        if ($tourId <= 0) {
+            return [];
+        }
+
+        try {
+            // Kiểm tra bảng tour_assignments và bookings có tồn tại không
+            $hasAssignments = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            
+            if (!$hasAssignments || !$hasBookings) {
+                return [];
+            }
+
+            $sql = "SELECT 
+                        ta.id AS assignment_id,
+                        ta.booking_id,
+                        ta.HDV_ID,
+                        ta.assign_date,
+                        ta.end_date,
+                        ta.meeting_point,
+                        ta.start_time,
+                        ta.end_time,
+                        ta.notes,
+                        h.HoTen AS guide_name,
+                        h.LienHe AS guide_contact,
+                        h.NgonNgu AS guide_languages,
+                        b.start_date AS booking_start_date,
+                        b.customer_name,
+                        b.total_people
+                    FROM tour_assignments ta
+                    INNER JOIN bookings b ON b.id = ta.booking_id
+                    INNER JOIN hdv h ON h.HDV_ID = ta.HDV_ID
+                    WHERE b.tour_id = ?
+                    ORDER BY ta.assign_date DESC, ta.id DESC";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            error_log('Tour::getAssignedGuides error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Lấy danh sách booking của tour đã được phân công cho HDV
+     * @param int $tourId ID của tour
+     * @return array Danh sách booking với thông tin phân công
+     */
+    public function getAssignedBookings($tourId)
+    {
+        if ($tourId <= 0) {
+            return [];
+        }
+
+        try {
+            $hasAssignments = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            
+            if (!$hasAssignments || !$hasBookings) {
+                return [];
+            }
+
+            $sql = "SELECT 
+                        b.id AS booking_id,
+                        b.start_date,
+                        b.customer_name,
+                        b.total_people,
+                        ta.id AS assignment_id,
+                        ta.HDV_ID,
+                        ta.assign_date,
+                        ta.end_date,
+                        ta.meeting_point,
+                        ta.start_time,
+                        ta.end_time,
+                        h.HoTen AS guide_name
+                    FROM bookings b
+                    INNER JOIN tour_assignments ta ON ta.booking_id = b.id
+                    INNER JOIN hdv h ON h.HDV_ID = ta.HDV_ID
+                    WHERE b.tour_id = ?
+                    ORDER BY b.start_date DESC, ta.assign_date DESC";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            error_log('Tour::getAssignedBookings error: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Kiểm tra tour có được phân công cho HDV nào chưa
+     * @param int $tourId ID của tour
+     * @return bool true nếu đã được phân công, false nếu chưa
+     */
+    public function hasAssignment($tourId)
+    {
+        if ($tourId <= 0) {
+            return false;
+        }
+
+        try {
+            $hasAssignments = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            
+            if (!$hasAssignments || !$hasBookings) {
+                return false;
+            }
+
+            $sql = "SELECT COUNT(*) 
+                    FROM tour_assignments ta
+                    INNER JOIN bookings b ON b.id = ta.booking_id
+                    WHERE b.tour_id = ?";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            $count = (int)$stmt->fetchColumn();
+            return $count > 0;
+        } catch (Throwable $e) {
+            error_log('Tour::hasAssignment error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Lấy số lượng booking của tour đã được phân công
+     * @param int $tourId ID của tour
+     * @return int Số lượng booking đã được phân công
+     */
+    public function getAssignedBookingCount($tourId)
+    {
+        if ($tourId <= 0) {
+            return 0;
+        }
+
+        try {
+            $hasAssignments = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            
+            if (!$hasAssignments || !$hasBookings) {
+                return 0;
+            }
+
+            $sql = "SELECT COUNT(DISTINCT ta.booking_id) 
+                    FROM tour_assignments ta
+                    INNER JOIN bookings b ON b.id = ta.booking_id
+                    WHERE b.tour_id = ?";
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            return (int)$stmt->fetchColumn();
+        } catch (Throwable $e) {
+            error_log('Tour::getAssignedBookingCount error: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    /**
+     * Lấy danh sách booking của tour chưa được phân công
+     * @param int $tourId ID của tour
+     * @return array Danh sách booking chưa được phân công
+     */
+    public function getUnassignedBookings($tourId)
+    {
+        if ($tourId <= 0) {
+            return [];
+        }
+
+        try {
+            $hasAssignments = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+            $hasBookings = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            
+            if (!$hasBookings) {
+                return [];
+            }
+
+            if ($hasAssignments) {
+                // Lấy các booking chưa có trong tour_assignments
+                $sql = "SELECT b.*
+                        FROM bookings b
+                        WHERE b.tour_id = ?
+                        AND b.id NOT IN (SELECT booking_id FROM tour_assignments WHERE booking_id IS NOT NULL)
+                        ORDER BY b.start_date DESC, b.created_at DESC";
+            } else {
+                // Nếu chưa có bảng tour_assignments, trả về tất cả booking của tour
+                $sql = "SELECT b.*
+                        FROM bookings b
+                        WHERE b.tour_id = ?
+                        ORDER BY b.start_date DESC, b.created_at DESC";
+            }
+
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([$tourId]);
+            return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            error_log('Tour::getUnassignedBookings error: ' . $e->getMessage());
+            return [];
+        }
     }
 }
 

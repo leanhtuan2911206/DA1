@@ -6,11 +6,12 @@ $currentTab    = $_GET['tab'] ?? 'assignments';
 $detailHref      = BASE_URL . '?action=partner&tab=detail';
 $assignmentsHref = BASE_URL . '?action=partner&tab=assignments';
 $itineraryHref   = BASE_URL . '?action=partner&tab=itinerary';
+$logsHref        = BASE_URL . '?action=partner-logs';
 
 $activeDetail      = ($currentAction === 'partner' && $currentTab === 'detail') ? 'active' : '';
 $activeAssignments = ($currentAction === 'partner' && $currentTab === 'assignments') ? 'active' : '';
 $activeItinerary   = ($currentAction === 'partner' && $currentTab === 'itinerary') ? 'active' : '';
-
+$activeLogs        = ($currentAction === 'partner-logs') ? 'active' : '';
 $uploadsDir = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 $logoFs     = $uploadsDir . 'logo.png';
 $logoUrl    = BASE_ASSETS_UPLOADS . 'logo.png';
@@ -33,6 +34,9 @@ $logoUrl    = BASE_ASSETS_UPLOADS . 'logo.png';
         </li>
         <li class="nav-item mb-2">
             <a class="nav-link <?= $activeItinerary ?>" href="<?= $itineraryHref ?>">Lịch trình tour</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link <?= $activeLogs ?>" href="<?= $logsHref ?>">Nhật ký tour</a>
         </li>
         <li class="nav-item mt-4 px-3">
             <a class="btn btn-sm btn-danger w-100" href="<?= BASE_URL ?>?action=logout">Đăng xuất</a>

@@ -21,6 +21,7 @@ class AssignmentController
         $filters = [
             'booking_id' => isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : null,
             'HDV_ID'     => isset($_GET['HDV_ID']) ? (int)$_GET['HDV_ID'] : null,
+            'tour_id'    => isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : null,
             'date_from'  => trim($_GET['date_from'] ?? ''),
             'date_to'    => trim($_GET['date_to'] ?? ''),
         ];

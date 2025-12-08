@@ -33,12 +33,24 @@ class BookingController
         try {
             $bookingModel = new Booking();
             $tourModel = new Tour();
+            $assignmentModel = new Assignment();
             
             // Lấy danh sách tour để hiển thị trong filter
             $tours = $tourModel->listWithCategory([]);
             
             // Lấy booking nhóm theo tour
             $bookingsGrouped = $bookingModel->getBookingsGroupedByTour($filters);
+            
+            // Thêm thông tin phân công cho mỗi booking
+            foreach ($bookingsGrouped as &$tourGroup) {
+                foreach ($tourGroup['bookings'] as &$booking) {
+                    $assignment = $assignmentModel->getAssignmentByBookingId($booking['id']);
+                    $booking['assignment'] = $assignment;
+                    $booking['has_assignment'] = !empty($assignment);
+                }
+                unset($booking);
+            }
+            unset($tourGroup);
         } catch (Throwable $e) {
             error_log("Error in BookingController::index: " . $e->getMessage());
             $bookingsGrouped = [];

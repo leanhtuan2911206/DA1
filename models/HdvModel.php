@@ -34,10 +34,21 @@ class HdvModel extends BaseModel {
     // 1. Lấy danh sách tour được phân công
     public function getMyAssignments($hdvId) {
         if ($hdvId <= 0) {
+            error_log('HdvModel::getMyAssignments - Invalid HDV_ID: ' . $hdvId);
             return [];
         }
         
         try {
+            // Log để debug
+            error_log('HdvModel::getMyAssignments - Searching for HDV_ID: ' . $hdvId);
+            
+            // Kiểm tra xem có phân bổ nào với HDV_ID này không
+            $checkSql = "SELECT COUNT(*) as cnt FROM tour_assignments WHERE HDV_ID = ?";
+            $checkStmt = $this->pdo->prepare($checkSql);
+            $checkStmt->execute([$hdvId]);
+            $checkResult = $checkStmt->fetch();
+            error_log('HdvModel::getMyAssignments - Found ' . ($checkResult['cnt'] ?? 0) . ' assignments for HDV_ID: ' . $hdvId);
+            
             $sql = "SELECT ta.*, b.customer_name, t.name as tour_name, b.total_people, b.start_date 
                     FROM tour_assignments ta
                     LEFT JOIN bookings b ON ta.booking_id = b.id
@@ -47,7 +58,10 @@ class HdvModel extends BaseModel {
             
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$hdvId]);
-            return $stmt->fetchAll();
+            $results = $stmt->fetchAll();
+            
+            error_log('HdvModel::getMyAssignments - Returning ' . count($results) . ' assignments');
+            return $results;
         } catch (Throwable $e) {
             error_log('HdvModel::getMyAssignments error: ' . $e->getMessage());
             return [];
@@ -71,7 +85,30 @@ class HdvModel extends BaseModel {
         $stmt->execute([$bookingId, $hdvId]);
         $data = $stmt->fetch();
 
-        if (!$data) return null;
+        if (!$data) {
+            error_log('HdvModel::getTripDetail - No data found for booking_id: ' . $bookingId . ', hdvId: ' . $hdvId);
+            return null;
+        }
+
+        // Log để debug
+        error_log('HdvModel::getTripDetail - Found trip detail. tour_id: ' . ($data['tour_id'] ?? 'NULL') . ', booking_id: ' . $bookingId);
+        
+        // Kiểm tra xem booking có tour_id đúng không
+        try {
+            $bookingCheckSql = "SELECT tour_id FROM bookings WHERE id = ?";
+            $bookingCheckStmt = $this->pdo->prepare($bookingCheckSql);
+            $bookingCheckStmt->execute([$bookingId]);
+            $bookingTourId = $bookingCheckStmt->fetchColumn();
+            error_log('HdvModel::getTripDetail - Booking tour_id from bookings table: ' . ($bookingTourId ?? 'NULL'));
+            
+            // Kiểm tra xem có lịch trình nào trong database không (không filter theo tour_id)
+            $allItinerarySql = "SELECT tour_id, day_number, COUNT(*) as cnt FROM tour_itineraries GROUP BY tour_id, day_number";
+            $allItineraryStmt = $this->pdo->query($allItinerarySql);
+            $allItineraryResults = $allItineraryStmt->fetchAll(PDO::FETCH_ASSOC);
+            error_log('HdvModel::getTripDetail - All itinerary in DB (by tour_id and day): ' . json_encode($allItineraryResults));
+        } catch (Throwable $e) {
+            error_log('HdvModel::getTripDetail - Error checking booking: ' . $e->getMessage());
+        }
 
         // B. Lấy các dữ liệu phụ (Dịch vụ)
         $stmt = $this->pdo->prepare("SELECT service_type as type, supplier_name as name, quantity as qty, status, master_vehicle_id FROM booking_services WHERE booking_id = ?");
@@ -118,74 +155,210 @@ class HdvModel extends BaseModel {
         // Đảm bảo bảng tồn tại trước khi query
         $this->ensureTripActivityStatusTable();
         
-        // Join bảng tour_itineraries với bảng trip_activity_status
-        $sqlItinerary = "SELECT i.*, 
-                                COALESCE(s.status, 'pending') as current_status 
-                         FROM tour_itineraries i
-                         LEFT JOIN trip_activity_status s 
-                            ON i.id = s.itinerary_id AND s.booking_id = ?
-                         WHERE i.tour_id = ? 
-                         ORDER BY i.day_number, i.time_start";
+        $tourId = isset($data['tour_id']) ? (int)$data['tour_id'] : 0;
+        error_log('HdvModel::getTripDetail - Fetching itinerary for tour_id: ' . $tourId . ', booking_id: ' . $bookingId);
         
-        try {
-            $stmt = $this->pdo->prepare($sqlItinerary);
-            $stmt->execute([$bookingId, $data['tour_id']]);
-            $rawItinerary = $stmt->fetchAll();
-        } catch (Throwable $e) {
-            error_log('HdvModel::getTripDetail - Error fetching itinerary: ' . $e->getMessage());
-            // Fallback: lấy itinerary không có status
-            $sqlItineraryFallback = "SELECT i.*, 'pending' as current_status 
-                                     FROM tour_itineraries i
-                                     WHERE i.tour_id = ? 
-                                     ORDER BY i.day_number, i.time_start";
-            $stmt = $this->pdo->prepare($sqlItineraryFallback);
-            $stmt->execute([$data['tour_id']]);
-            $rawItinerary = $stmt->fetchAll();
+        // Kiểm tra xem có bao nhiêu lịch trình trong database cho tour này
+        if ($tourId > 0) {
+            try {
+                // Kiểm tra tổng số lịch trình
+                $countSql = "SELECT COUNT(*) as total FROM tour_itineraries WHERE tour_id = ?";
+                $countStmt = $this->pdo->prepare($countSql);
+                $countStmt->execute([$tourId]);
+                $totalCount = $countStmt->fetch()['total'] ?? 0;
+                error_log('HdvModel::getTripDetail - Total itinerary in DB for tour_id ' . $tourId . ': ' . $totalCount);
+                
+                // Kiểm tra theo từng ngày
+                $checkSql = "SELECT day_number, COUNT(*) as cnt FROM tour_itineraries WHERE tour_id = ? GROUP BY day_number ORDER BY day_number";
+                $checkStmt = $this->pdo->prepare($checkSql);
+                $checkStmt->execute([$tourId]);
+                $checkResults = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+                $dayCounts = [];
+                foreach ($checkResults as $row) {
+                    $dayCounts[(int)$row['day_number']] = (int)$row['cnt'];
+                }
+                error_log('HdvModel::getTripDetail - Itinerary in DB by day: ' . json_encode($dayCounts));
+                
+                // Kiểm tra chi tiết lịch trình ngày 2
+                $day2Sql = "SELECT id, day_number, time_start, title FROM tour_itineraries WHERE tour_id = ? AND day_number = 2";
+                $day2Stmt = $this->pdo->prepare($day2Sql);
+                $day2Stmt->execute([$tourId]);
+                $day2Results = $day2Stmt->fetchAll(PDO::FETCH_ASSOC);
+                error_log('HdvModel::getTripDetail - Day 2 items in DB for tour_id ' . $tourId . ': ' . count($day2Results));
+                foreach ($day2Results as $day2Item) {
+                    error_log('HdvModel::getTripDetail - Day 2 item: id=' . ($day2Item['id'] ?? 'NULL') . ', time=' . ($day2Item['time_start'] ?? 'NULL') . ', title=' . substr($day2Item['title'] ?? '', 0, 30));
+                }
+                
+                // Kiểm tra xem có lịch trình ngày 2 cho tour_id khác không
+                $allDay2Sql = "SELECT tour_id, COUNT(*) as cnt FROM tour_itineraries WHERE day_number = 2 GROUP BY tour_id";
+                $allDay2Stmt = $this->pdo->query($allDay2Sql);
+                $allDay2Results = $allDay2Stmt->fetchAll(PDO::FETCH_ASSOC);
+                if (!empty($allDay2Results)) {
+                    error_log('HdvModel::getTripDetail - Day 2 exists for other tour_ids: ' . json_encode($allDay2Results));
+                }
+            } catch (Throwable $e) {
+                error_log('HdvModel::getTripDetail - Error checking DB: ' . $e->getMessage());
+            }
+        }
+        
+        $rawItinerary = [];
+        
+        if ($tourId <= 0) {
+            error_log('HdvModel::getTripDetail - Invalid tour_id: ' . $tourId);
+        } else {
+            // Lấy lịch trình từ tour_itineraries - DÙNG CÙNG QUERY NHƯ ADMIN
+            // Query giống hệt Tour::getItineraryByTourId() để đảm bảo nhất quán
+            try {
+                // Kiểm tra bảng tồn tại
+                $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
+                if (!$exists) {
+                    $rawItinerary = [];
+                    error_log('HdvModel::getTripDetail - Table tour_itineraries does not exist');
+                } else {
+                    // Query giống hệt Tour::getItineraryByTourId()
+                    $sqlItinerary = "SELECT * FROM tour_itineraries WHERE tour_id = ? ORDER BY day_number ASC, time_start ASC";
+                    $stmt = $this->pdo->prepare($sqlItinerary);
+                    $stmt->execute([$tourId]);
+                    $rawItinerary = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    
+                    error_log('HdvModel::getTripDetail - Query found ' . count($rawItinerary) . ' items');
+                    
+                    // Log chi tiết các day_number
+                    $dayNumbers = [];
+                    foreach ($rawItinerary as $item) {
+                        $dayNum = (int)($item['day_number'] ?? 0);
+                        if ($dayNum > 0) {
+                            $dayNumbers[$dayNum] = ($dayNumbers[$dayNum] ?? 0) + 1;
+                        }
+                    }
+                    error_log('HdvModel::getTripDetail - Day numbers in result: ' . json_encode($dayNumbers));
+                    
+                    // TỰ ĐỘNG KIỂM TRA VÀ SỬA: Nếu database có ngày 2 nhưng query không lấy được
+                    if (isset($dayCounts) && isset($dayCounts[2]) && $dayCounts[2] > 0 && !isset($dayNumbers[2])) {
+                        error_log('HdvModel::getTripDetail - AUTO-FIX: Day 2 exists in DB (' . $dayCounts[2] . ' items) but not in query result for tour_id ' . $tourId);
+                        
+                        // Thử query lại với điều kiện rõ ràng hơn
+                        $day2CheckSql = "SELECT * FROM tour_itineraries WHERE tour_id = ? AND day_number = 2 ORDER BY time_start ASC";
+                        $day2CheckStmt = $this->pdo->prepare($day2CheckSql);
+                        $day2CheckStmt->execute([$tourId]);
+                        $day2Items = $day2CheckStmt->fetchAll(PDO::FETCH_ASSOC);
+                        
+                        if (!empty($day2Items)) {
+                            error_log('HdvModel::getTripDetail - AUTO-FIX: Found ' . count($day2Items) . ' day 2 items with direct query, adding to result');
+                            // Thêm vào kết quả
+                            foreach ($day2Items as $day2Item) {
+                                $day2Item['current_status'] = 'pending';
+                                $rawItinerary[] = $day2Item;
+                            }
+                            // Sắp xếp lại
+                            usort($rawItinerary, function($a, $b) {
+                                $dayA = (int)($a['day_number'] ?? 0);
+                                $dayB = (int)($b['day_number'] ?? 0);
+                                if ($dayA !== $dayB) return $dayA <=> $dayB;
+                                $timeA = $a['time_start'] ?? '';
+                                $timeB = $b['time_start'] ?? '';
+                                return strcmp($timeA, $timeB);
+                            });
+                            error_log('HdvModel::getTripDetail - AUTO-FIX: After adding day 2, total items: ' . count($rawItinerary));
+                            
+                            // Cập nhật lại dayNumbers
+                            $dayNumbers = [];
+                            foreach ($rawItinerary as $item) {
+                                $dayNum = (int)($item['day_number'] ?? 0);
+                                if ($dayNum > 0) {
+                                    $dayNumbers[$dayNum] = ($dayNumbers[$dayNum] ?? 0) + 1;
+                                }
+                            }
+                            error_log('HdvModel::getTripDetail - AUTO-FIX: Updated day numbers: ' . json_encode($dayNumbers));
+                        } else {
+                            error_log('HdvModel::getTripDetail - AUTO-FIX: Direct query also found no day 2 items for tour_id ' . $tourId);
+                        }
+                    }
+                    
+                    // Sau đó lấy status từ trip_activity_status cho từng item
+                    foreach ($rawItinerary as &$item) {
+                        $itemId = isset($item['id']) ? (int)$item['id'] : 0;
+                        $item['current_status'] = 'pending'; // Mặc định
+                        
+                        if ($itemId > 0) {
+                            try {
+                                $statusSql = "SELECT status FROM trip_activity_status 
+                                              WHERE itinerary_id = ? AND booking_id = ? 
+                                              ORDER BY updated_at DESC, created_at DESC 
+                                              LIMIT 1";
+                                $statusStmt = $this->pdo->prepare($statusSql);
+                                $statusStmt->execute([$itemId, $bookingId]);
+                                $statusRow = $statusStmt->fetch();
+                                if ($statusRow && !empty($statusRow['status'])) {
+                                    $item['current_status'] = $statusRow['status'];
+                                }
+                            } catch (Throwable $e) {
+                                // Nếu lỗi khi lấy status, giữ nguyên 'pending'
+                            }
+                        }
+                    }
+                    unset($item);
+                }
+            } catch (Throwable $e) {
+                error_log('HdvModel::getTripDetail - Error fetching itinerary: ' . $e->getMessage());
+                error_log('HdvModel::getTripDetail - Stack trace: ' . $e->getTraceAsString());
+                // Fallback: lấy itinerary không có status
+                try {
+                    $sqlItineraryFallback = "SELECT i.*, 'pending' as current_status 
+                                             FROM tour_itineraries i
+                                             WHERE i.tour_id = ? 
+                                             ORDER BY i.day_number, i.time_start";
+                    $stmt = $this->pdo->prepare($sqlItineraryFallback);
+                    $stmt->execute([$tourId]);
+                    $rawItinerary = $stmt->fetchAll();
+                    error_log('HdvModel::getTripDetail - Fallback query found ' . count($rawItinerary) . ' itinerary items');
+                } catch (Throwable $e2) {
+                    error_log('HdvModel::getTripDetail - Fallback query also failed: ' . $e2->getMessage());
+                    $rawItinerary = [];
+                }
+            }
         }
 
-        // Xử lý loại bỏ trùng lặp (Dedup) dựa trên Ngày + Giờ + Tên hoạt động
+        // Xử lý loại bỏ trùng lặp (Dedup) dựa trên ID - CHỈ loại bỏ khi ID trùng
         $deduped = [];
-        $seenKeys = []; // Track các key đã thấy để loại bỏ trùng lặp hoàn toàn
+        $seenIds = []; // Track các ID đã thấy
         
         foreach ($rawItinerary as $item) {
-            // Tạo key duy nhất dựa trên day_number + time_start + title để loại bỏ trùng lặp
-            $dayNum = (int)($item['day_number'] ?? 1);
-            $timeStart = trim($item['time_start'] ?? '');
-            $title = trim($item['title'] ?? '');
-            $uniqueKey = $dayNum . '|' . $timeStart . '|' . md5($title);
+            $itemId = isset($item['id']) ? (int)$item['id'] : 0;
+            $dayNum = (int)($item['day_number'] ?? 0);
             
-            // Nếu chưa thấy key này, thêm vào
-            if (!isset($seenKeys[$uniqueKey])) {
-                $seenKeys[$uniqueKey] = true;
-                $deduped[] = $item;
-            } else {
-                // Nếu đã tồn tại, kiểm tra xem có cần cập nhật status không
-                // Tìm item đã có trong deduped
-                foreach ($deduped as &$existingItem) {
-                    $existingDayNum = (int)($existingItem['day_number'] ?? 1);
-                    $existingTimeStart = trim($existingItem['time_start'] ?? '');
-                    $existingTitle = trim($existingItem['title'] ?? '');
-                    $existingKey = $existingDayNum . '|' . $existingTimeStart . '|' . md5($existingTitle);
-                    
-                    if ($existingKey === $uniqueKey) {
-                        // So sánh status và cập nhật nếu cần
-                        $currentStatus = $existingItem['current_status'] ?? 'pending';
-                        $newStatus = $item['current_status'] ?? 'pending';
-                        
-                        $statusPriority = ['pending' => 0, 'doing' => 1, 'completed' => 2];
-                        
-                        // Nếu item mới có trạng thái cao hơn, cập nhật
-                        if (($statusPriority[$newStatus] ?? 0) > ($statusPriority[$currentStatus] ?? 0)) {
-                            $existingItem = $item;
-                        }
-                        break;
-                    }
+            // CHỈ loại bỏ nếu ID trùng (không loại bỏ theo day_number)
+            if ($itemId > 0) {
+                if (isset($seenIds[$itemId])) {
+                    // Item này đã tồn tại (theo ID), bỏ qua
+                    error_log('HdvModel::getTripDetail - Duplicate ID skipped: id=' . $itemId . ', day=' . $dayNum);
+                    continue;
                 }
-                unset($existingItem);
+                $seenIds[$itemId] = true;
             }
+            
+            // Thêm vào danh sách (kể cả khi không có ID)
+            $deduped[] = $item;
         }
         // Gán lại mảng đã lọc trùng
         $data['itinerary'] = $deduped;
+        
+        // Log chi tiết các ID và day_number sau khi dedup
+        $finalIds = [];
+        $finalDayNumbers = [];
+        foreach ($deduped as $item) {
+            $itemId = isset($item['id']) ? (int)$item['id'] : 0;
+            $dayNum = (int)($item['day_number'] ?? 0);
+            if ($itemId > 0) {
+                $finalIds[$itemId] = ($finalIds[$itemId] ?? 0) + 1;
+            }
+            if ($dayNum > 0) {
+                $finalDayNumbers[$dayNum] = ($finalDayNumbers[$dayNum] ?? 0) + 1;
+            }
+        }
+        error_log('HdvModel::getTripDetail - Final itinerary count: ' . count($deduped) . ' (after dedup)');
+        error_log('HdvModel::getTripDetail - Final IDs: ' . json_encode($finalIds));
+        error_log('HdvModel::getTripDetail - Final day numbers: ' . json_encode($finalDayNumbers));
 
         // C. Lấy khách hàng (Ưu tiên lấy từ tour_guests nếu đã sync/tạo group)
         $stmt = $this->pdo->prepare("SELECT id FROM tour_groups WHERE booking_id = ?");
@@ -267,6 +440,7 @@ class HdvModel extends BaseModel {
         }
         
         try {
+            // Ưu tiên 1: Tìm theo user_id
             if ($this->columnExists('hdv', 'user_id')) {
                 $sql = "SELECT HDV_ID FROM hdv WHERE user_id = ? LIMIT 1";
                 $stmt = $this->pdo->prepare($sql);
@@ -276,6 +450,55 @@ class HdvModel extends BaseModel {
                     return (int)$result['HDV_ID'];
                 }
             }
+            
+            // Ưu tiên 2: Nếu không tìm thấy, tìm theo email trong bảng users
+            try {
+                $userSql = "SELECT email, name FROM users WHERE id = ? LIMIT 1";
+                $userStmt = $this->pdo->prepare($userSql);
+                $userStmt->execute([$userId]);
+                $userData = $userStmt->fetch();
+                
+                if ($userData) {
+                    // Tìm theo LienHe (contact) - vì email đăng nhập có thể là contact
+                    if (!empty($userData['email'])) {
+                        $contactSql = "SELECT HDV_ID FROM hdv WHERE LienHe = ? LIMIT 1";
+                        $contactStmt = $this->pdo->prepare($contactSql);
+                        $contactStmt->execute([$userData['email']]);
+                        $contactResult = $contactStmt->fetch();
+                        if ($contactResult && isset($contactResult['HDV_ID'])) {
+                            $guideId = (int)$contactResult['HDV_ID'];
+                            // Cập nhật user_id vào bảng hdv để lần sau tìm nhanh hơn
+                            if ($this->columnExists('hdv', 'user_id')) {
+                                $updateSql = "UPDATE hdv SET user_id = ? WHERE HDV_ID = ?";
+                                $updateStmt = $this->pdo->prepare($updateSql);
+                                $updateStmt->execute([$userId, $guideId]);
+                            }
+                            return $guideId;
+                        }
+                    }
+                    
+                    // Tìm theo tên (HoTen)
+                    if (!empty($userData['name'])) {
+                        $nameSql = "SELECT HDV_ID FROM hdv WHERE HoTen = ? LIMIT 1";
+                        $nameStmt = $this->pdo->prepare($nameSql);
+                        $nameStmt->execute([$userData['name']]);
+                        $nameResult = $nameStmt->fetch();
+                        if ($nameResult && isset($nameResult['HDV_ID'])) {
+                            $guideId = (int)$nameResult['HDV_ID'];
+                            // Cập nhật user_id vào bảng hdv để lần sau tìm nhanh hơn
+                            if ($this->columnExists('hdv', 'user_id')) {
+                                $updateSql = "UPDATE hdv SET user_id = ? WHERE HDV_ID = ?";
+                                $updateStmt = $this->pdo->prepare($updateSql);
+                                $updateStmt->execute([$userId, $guideId]);
+                            }
+                            return $guideId;
+                        }
+                    }
+                }
+            } catch (Throwable $e) {
+                error_log('HdvModel::getGuideIdByUserId - Error finding by email/name: ' . $e->getMessage());
+            }
+            
             return 0;
         } catch (Throwable $e) {
             error_log('HdvModel::getGuideIdByUserId error: ' . $e->getMessage());

@@ -88,15 +88,35 @@ class Assignment extends BaseModel
     {
         $this->ensureTableExists();
         $this->ensureColumns();
-        $sql = "SELECT id, booking_id, HDV_ID, assign_date, end_date, meeting_point, start_time, end_time, driver_id, support_id, notes FROM {$this->table}";
+        
+        // Kiểm tra xem có cần JOIN với bookings để filter theo tour_id không
+        $needsJoin = !empty($filters['tour_id']);
+        
+        if ($needsJoin) {
+            // Kiểm tra bảng bookings có tồn tại không
+            $hasBookings = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+            if ($hasBookings) {
+                $sql = "SELECT ta.id, ta.booking_id, ta.HDV_ID, ta.assign_date, ta.end_date, ta.meeting_point, ta.start_time, ta.end_time, ta.driver_id, ta.support_id, ta.notes 
+                        FROM {$this->table} ta
+                        INNER JOIN bookings b ON b.id = ta.booking_id";
+            } else {
+                $sql = "SELECT id, booking_id, HDV_ID, assign_date, end_date, meeting_point, start_time, end_time, driver_id, support_id, notes FROM {$this->table}";
+                $needsJoin = false; // Không thể JOIN nếu bảng không tồn tại
+            }
+        } else {
+            $sql = "SELECT id, booking_id, HDV_ID, assign_date, end_date, meeting_point, start_time, end_time, driver_id, support_id, notes FROM {$this->table}";
+        }
+        
         $where = [];
         $params = [];
-        if (!empty($filters['booking_id'])) { $where[] = 'booking_id = :bid'; $params[':bid'] = (int)$filters['booking_id']; }
-        if (!empty($filters['HDV_ID'])) { $where[] = 'HDV_ID = :gid'; $params[':gid'] = (int)$filters['HDV_ID']; }
-        if (!empty($filters['date_from'])) { $where[] = 'assign_date >= :df'; $params[':df'] = $filters['date_from']; }
-        if (!empty($filters['date_to'])) { $where[] = 'assign_date <= :dt'; $params[':dt'] = $filters['date_to']; }
+        if (!empty($filters['booking_id'])) { $where[] = ($needsJoin ? 'ta.' : '') . 'booking_id = :bid'; $params[':bid'] = (int)$filters['booking_id']; }
+        if (!empty($filters['HDV_ID'])) { $where[] = ($needsJoin ? 'ta.' : '') . 'HDV_ID = :gid'; $params[':gid'] = (int)$filters['HDV_ID']; }
+        if (!empty($filters['date_from'])) { $where[] = ($needsJoin ? 'ta.' : '') . 'assign_date >= :df'; $params[':df'] = $filters['date_from']; }
+        if (!empty($filters['date_to'])) { $where[] = ($needsJoin ? 'ta.' : '') . 'assign_date <= :dt'; $params[':dt'] = $filters['date_to']; }
+        if ($needsJoin && !empty($filters['tour_id'])) { $where[] = 'b.tour_id = :tid'; $params[':tid'] = (int)$filters['tour_id']; }
+        
         if ($where) { $sql .= ' WHERE ' . implode(' AND ', $where); }
-        $sql .= ' ORDER BY assign_date ASC, id DESC';
+        $sql .= ' ORDER BY ' . ($needsJoin ? 'ta.' : '') . 'assign_date ASC, ' . ($needsJoin ? 'ta.' : '') . 'id DESC';
         try {
             $stmt = $this->pdo->prepare($sql);
             foreach ($params as $k => $v) { $stmt->bindValue($k, $v, is_int($v)?PDO::PARAM_INT:PDO::PARAM_STR); }
@@ -208,6 +228,31 @@ class Assignment extends BaseModel
         } catch (Throwable $e) {
             error_log('Assignment::getAssignedGuideIds error: ' . $e->getMessage());
             return [];
+        }
+    }
+
+    /**
+     * Kiểm tra booking đã được phân công cho HDV chưa
+     * @param int $bookingId ID của booking
+     * @return array|null Thông tin assignment nếu đã phân công, null nếu chưa
+     */
+    public function getAssignmentByBookingId($bookingId)
+    {
+        $this->ensureTableExists();
+        try {
+            $sql = "SELECT ta.*, h.HoTen AS guide_name 
+                    FROM {$this->table} ta
+                    LEFT JOIN hdv h ON h.HDV_ID = ta.HDV_ID
+                    WHERE ta.booking_id = :booking_id
+                    LIMIT 1";
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+            $stmt->execute();
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $result ?: null;
+        } catch (Throwable $e) {
+            error_log('Assignment::getAssignmentByBookingId error: ' . $e->getMessage());
+            return null;
         }
     }
 
