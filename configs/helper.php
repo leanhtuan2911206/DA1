@@ -21,3 +21,18 @@ if (!function_exists('upload_file')) {
         throw new Exception('Upload file không thành công!');
     }
 }
+
+// Helper function để loại bỏ "VN " ở đầu tên tour
+if (!function_exists('removeVNPrefix')) {
+    function removeVNPrefix($name) {
+        if (empty($name)) return $name;
+        $name = trim($name);
+        // Loại bỏ "VN " ở đầu (case-insensitive)
+        if (stripos($name, 'VN ') === 0) {
+            $name = substr($name, 3);
+        } elseif (stripos($name, 'VN') === 0 && strlen($name) > 2 && $name[2] === ' ') {
+            $name = substr($name, 3);
+        }
+        return trim($name);
+    }
+}

@@ -77,7 +77,7 @@
                 <select name="tour_id" class="form-select form-select-sm w-auto" id="revTourId">
                     <option value="0">Tất cả tour</option>
                     <?php foreach (($toursList ?? []) as $t): ?>
-                        <option value="<?= (int)$t['id'] ?>" <?= (int)($revTourId ?? 0) === (int)$t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['name']) ?></option>
+                        <option value="<?= (int)$t['id'] ?>" <?= (int)($revTourId ?? 0) === (int)$t['id'] ? 'selected' : '' ?>><?= htmlspecialchars(removeVNPrefix($t['name'])) ?></option>
                     <?php endforeach; ?>
                 </select>
                 <select name="period" class="form-select form-select-sm w-auto" id="revPeriod">
@@ -133,7 +133,7 @@
                         <?php foreach ($completedTours as $tour): ?>
                             <tr>
                                 <td>
-                                    <div class="fw-semibold"><?= htmlspecialchars($tour['tour_name'] ?: '—') ?></div>
+                                    <div class="fw-semibold"><?= htmlspecialchars(removeVNPrefix($tour['tour_name'] ?: '—')) ?></div>
                                 </td>
                                 <td><?= htmlspecialchars($tour['category_name'] ?: '—') ?></td>
                                 <td>
@@ -318,7 +318,7 @@
                     <tr>
                         <td>
                             <span class="flag me-2">🇻🇳</span>
-                            <?= htmlspecialchars($t['name'] ?: '—') ?>
+                            <?= htmlspecialchars(removeVNPrefix($t['name'] ?: '—')) ?>
                         </td>
                         <td><?= htmlspecialchars($t['type'] ?: '—') ?></td>
                         <td><?= htmlspecialchars($t['place'] ?: '—') ?></td>

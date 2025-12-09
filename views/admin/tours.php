@@ -167,7 +167,7 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                     <div class="d-flex align-items-center gap-3">
                                         <img src="<?= htmlspecialchars($thumb) ?>" alt="" class="tour-thumb rounded">
                                         <div>
-                                            <div class="fw-semibold"><?= htmlspecialchars($tour['name'] ?? '—') ?></div>
+                                            <div class="fw-semibold"><?= htmlspecialchars(removeVNPrefix($tour['name'] ?? '—')) ?></div>
                                             <div class="text-muted small"><?= htmlspecialchars($tour['policy'] ?? '') ?></div>
                                         </div>
                                     </div>

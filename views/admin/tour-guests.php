@@ -58,7 +58,7 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
             <h4 class="mb-1"><?= htmlspecialchars($group['group_name']) ?></h4>
             <p class="text-muted mb-0 small">
                 Booking: <strong>#<?= htmlspecialchars($group['booking_id'] ?? '?') ?></strong> ·
-                Tour: <?= htmlspecialchars($group['tour_name'] ?? '—') ?> ·
+                Tour: <?= htmlspecialchars(removeVNPrefix($group['tour_name'] ?? '—')) ?> ·
                 Khởi hành: <?= htmlspecialchars($group['start_date'] ?? '—') ?> ·
                 Số khách: <?= (int)$group['total_guests'] ?> · 
                 Trạng thái: <?= htmlspecialchars($group['status'] ?? '—') ?>

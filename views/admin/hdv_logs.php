@@ -48,7 +48,7 @@ $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_
                         <select name="tour_id" class="form-select" style="min-width:260px;" required>
                             <option value="">-- Chọn tour --</option>
                             <?php foreach ($tours as $t): ?>
-                                <option value="<?= (int)$t['id'] ?>">#<?= (int)$t['id'] ?> - <?= htmlspecialchars($t['name'] ?? 'Tour') ?></option>
+                                <option value="<?= (int)$t['id'] ?>">#<?= (int)$t['id'] ?> - <?= htmlspecialchars(removeVNPrefix($t['name'] ?? 'Tour')) ?></option>
                             <?php endforeach; ?>
                         </select>
                         <button type="submit" class="btn btn-primary">Vào nhật ký</button>
@@ -74,7 +74,7 @@ $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_
                         <select class="form-select" name="tour_id" id="add_tour_id" required>
                             <option value="">-- Chọn tour --</option>
                             <?php foreach ($tours as $t): ?>
-                                <option value="<?= (int)$t['id'] ?>" <?= ((int)($tour['id'] ?? 0) === (int)$t['id'])?'selected':'' ?>>#<?= (int)$t['id'] ?> - <?= htmlspecialchars($t['name'] ?? 'Tour') ?></option>
+                                <option value="<?= (int)$t['id'] ?>" <?= ((int)($tour['id'] ?? 0) === (int)$t['id'])?'selected':'' ?>>#<?= (int)$t['id'] ?> - <?= htmlspecialchars(removeVNPrefix($t['name'] ?? 'Tour')) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

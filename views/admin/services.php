@@ -20,7 +20,7 @@
                 <option value="">Tất cả Tour</option>
                 <?php $curBid = $_GET['booking_id'] ?? ''; foreach (($bookings ?? []) as $b): ?>
                     <option value="<?= $b['id'] ?>" <?= ((string)$curBid === (string)$b['id'])?'selected':'' ?>>
-                        #<?= $b['id'] ?> - <?= htmlspecialchars($b['tour_name'] ?? ($b['customer_name'] ?? '')) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)
+                        #<?= $b['id'] ?> - <?= htmlspecialchars(removeVNPrefix($b['tour_name'] ?? ($b['customer_name'] ?? ''))) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -93,7 +93,7 @@
                         $tourLabel = '#' . $bookingId;
                         foreach (($bookings ?? []) as $b) {
                             if ((string)$b['id'] === (string)$bookingId) {
-                                $tourLabel = '#' . $b['id'] . ' - ' . ($b['tour_name'] ?? ($b['customer_name'] ?? ''));
+                                $tourLabel = '#' . $b['id'] . ' - ' . removeVNPrefix($b['tour_name'] ?? ($b['customer_name'] ?? ''));
                                 break;
                             }
                         }

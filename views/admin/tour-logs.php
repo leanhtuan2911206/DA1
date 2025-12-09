@@ -1,4 +1,8 @@
 <?php
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
+$userRole = isset($_SESSION['user']['role']) ? strtolower($_SESSION['user']['role']) : '';
+$isAdmin = ($userRole === 'admin');
+
 $tour = isset($tour) && is_array($tour) ? $tour : null;
 $logs = isset($logs) && is_array($logs) ? $logs : [];
 $guides = isset($guides) && is_array($guides) ? $guides : [];
@@ -50,7 +54,7 @@ function extractLogParts(string $desc): array {
                     <select name="tour_id" class="form-select" style="min-width:260px;" required>
                         <option value="">-- Chọn tour --</option>
                         <?php foreach (($tours ?? []) as $t): ?>
-                            <option value="<?= (int)$t['id'] ?>">#<?= (int)$t['id'] ?> - <?= htmlspecialchars($t['name'] ?? 'Tour') ?></option>
+                            <option value="<?= (int)$t['id'] ?>">#<?= (int)$t['id'] ?> - <?= htmlspecialchars(removeVNPrefix($t['name'] ?? 'Tour')) ?></option>
                         <?php endforeach; ?>
                     </select>
                     <input type="text" name="keyword" class="form-control" placeholder="Tìm theo tên/mô tả" style="min-width:260px;" value="<?= htmlspecialchars($_GET['keyword'] ?? '') ?>">
@@ -76,7 +80,7 @@ function extractLogParts(string $desc): array {
                                 <?php $st = $t['status'] ?? 'Hoạt động'; $cls = 'bg-secondary'; if ($st === 'Hoạt động') $cls='bg-success'; ?>
                                 <tr>
                                     <td class="text-muted">#<?= (int)$t['id'] ?></td>
-                                    <td class="fw-semibold"><?= htmlspecialchars($t['name'] ?? 'Tour') ?></td>
+                                    <td class="fw-semibold"><?= htmlspecialchars(removeVNPrefix($t['name'] ?? 'Tour')) ?></td>
                                     <td><?= htmlspecialchars($t['category_name'] ?? '—') ?></td>
                                     <td><span class="badge <?= $cls ?>"><?= htmlspecialchars($st) ?></span></td>
                                     <td>
@@ -167,7 +171,7 @@ function extractLogParts(string $desc): array {
         <div>
             <p class="text-uppercase text-muted small mb-1">Quản lý</p>
             <h2 class="page-title mb-0">
-                Nhật ký tour - <?= htmlspecialchars($tour['name'] ?? 'Tour') ?>
+                Nhật ký tour - <?= htmlspecialchars(removeVNPrefix($tour['name'] ?? 'Tour')) ?>
                 <?php if ($selectedBookingId > 0): ?>
                     <small class="text-muted">(Booking #<?= $selectedBookingId ?>)</small>
                 <?php endif; ?>
@@ -221,7 +225,9 @@ function extractLogParts(string $desc): array {
                     <button class="btn btn-outline-primary" type="submit">Lọc</button>
                 </div>
             </form>
-            <a href="<?= BASE_URL ?>?action=tour-logs-create&tour_id=<?= (int)$tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-success rounded-pill px-4">+ Thêm nhật ký</a>
+            <?php if (!$isAdmin): ?>
+                <a href="<?= BASE_URL ?>?action=tour-logs-create&tour_id=<?= (int)$tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-success rounded-pill px-4">+ Thêm nhật ký</a>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -239,7 +245,8 @@ function extractLogParts(string $desc): array {
     $editingLog = isset($editingLog) && is_array($editingLog) ? $editingLog : null;
     ?>
     
-    <?php if ($editingLog): ?>
+    <?php if ($editingLog && !$isAdmin): 
+    ?>
     <div class="card-like mb-3">
         <div class="p-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -370,8 +377,28 @@ function extractLogParts(string $desc): array {
                                 <td class="text-muted"><?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="<?= BASE_URL ?>?action=tour-logs-edit&id=<?= $log['id'] ?>&tour_id=<?= $tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
-                                        <a href="<?= BASE_URL ?>?action=tour-logs-delete&id=<?= $log['id'] ?>&tour_id=<?= $tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa nhật ký này?')">🗑️</a>
+                                        <?php if ($isAdmin): 
+                                            // Admin chỉ có thể đánh giá
+                                        ?>
+                                            <form method="post" action="<?= BASE_URL ?>?action=tour-logs-update" style="display:inline;">
+                                                <input type="hidden" name="id" value="<?= $log['id'] ?>">
+                                                <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
+                                                <?php if ($selectedBookingId > 0): ?>
+                                                    <input type="hidden" name="booking_id" value="<?= $selectedBookingId ?>">
+                                                <?php endif; ?>
+                                                <select name="rating" class="form-select form-select-sm" style="display:inline-block;width:auto;min-width:100px;" onchange="this.form.submit()">
+                                                    <option value="">-- Đánh giá --</option>
+                                                    <option value="1" <?= (isset($log['rating']) && (int)$log['rating'] === 1) ? 'selected' : '' ?>>1 - Rất kém</option>
+                                                    <option value="2" <?= (isset($log['rating']) && (int)$log['rating'] === 2) ? 'selected' : '' ?>>2 - Kém</option>
+                                                    <option value="3" <?= (isset($log['rating']) && (int)$log['rating'] === 3) ? 'selected' : '' ?>>3 - Trung bình</option>
+                                                    <option value="4" <?= (isset($log['rating']) && (int)$log['rating'] === 4) ? 'selected' : '' ?>>4 - Tốt</option>
+                                                    <option value="5" <?= (isset($log['rating']) && (int)$log['rating'] === 5) ? 'selected' : '' ?>>5 - Rất tốt</option>
+                                                </select>
+                                            </form>
+                                        <?php else: ?>
+                                            <a href="<?= BASE_URL ?>?action=tour-logs-edit&id=<?= $log['id'] ?>&tour_id=<?= $tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
+                                            <a href="<?= BASE_URL ?>?action=tour-logs-delete&id=<?= $log['id'] ?>&tour_id=<?= $tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa nhật ký này?')">🗑️</a>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

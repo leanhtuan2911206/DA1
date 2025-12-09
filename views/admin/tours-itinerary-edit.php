@@ -14,7 +14,7 @@
 
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
-            <h2 class="h3 mb-0 text-gray-800">Sửa hoạt động: <span class="text-primary"><?= htmlspecialchars($tour['name']) ?></span></h2>
+            <h2 class="h3 mb-0 text-gray-800">Sửa hoạt động: <span class="text-primary"><?= htmlspecialchars(removeVNPrefix($tour['name'])) ?></span></h2>
         </div>
         <?php 
             $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;

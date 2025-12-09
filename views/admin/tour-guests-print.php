@@ -101,7 +101,7 @@ $guests = isset($guests) && is_array($guests) ? $guests : [];
         <?php if ($group): ?>
         <div class="info-section">
             <p><strong>Tên đoàn:</strong> <?= htmlspecialchars($group['group_name']) ?></p>
-            <p><strong>Tour:</strong> <?= htmlspecialchars($group['tour_name'] ?? '—') ?></p>
+            <p><strong>Tour:</strong> <?= htmlspecialchars(removeVNPrefix($group['tour_name'] ?? '—')) ?></p>
             <p><strong>Khởi hành:</strong> <?= htmlspecialchars($group['start_date'] ?? '—') ?> - <strong>Kết thúc:</strong> <?= htmlspecialchars($group['end_date'] ?? '—') ?></p>
             <p><strong>Người đặt:</strong> <?= htmlspecialchars($group['customer_name'] ?? '—') ?></p>
             <p><strong>Số khách đăng ký:</strong> <?= (int)$group['total_guests'] ?> | <strong>Số khách thực tế:</strong> <?= count($guests) ?></p>

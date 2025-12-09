@@ -46,7 +46,7 @@ if (!$booking) {
                         <option value="">-- Chọn tour --</option>
                         <?php foreach ($tours as $tour): ?>
                             <option value="<?= $tour['id'] ?>" <?= (string)$booking['tour_id'] === (string)$tour['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($tour['name']) ?> - <?= number_format((float)$tour['price'], 0, ',', '.') ?>đ
+                                <?= htmlspecialchars(removeVNPrefix($tour['name'])) ?> - <?= number_format((float)$tour['price'], 0, ',', '.') ?>đ
                             </option>
                         <?php endforeach; ?>
                     </select>

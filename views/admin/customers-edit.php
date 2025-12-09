@@ -42,7 +42,7 @@ $paymentStatuses = isset($paymentStatuses) && is_array($paymentStatuses)
                     <?php else: ?>
                         <?php foreach ($bookings as $booking): ?>
                             <option value="<?= $booking['id'] ?>" <?= (string) $bookingId === (string) $booking['id'] ? 'selected' : '' ?>>
-                                #<?= $booking['id'] ?> · <?= htmlspecialchars($booking['customer_name']) ?> · <?= htmlspecialchars($booking['tour_name'] ?? '') ?>
+                                #<?= $booking['id'] ?> · <?= htmlspecialchars($booking['customer_name']) ?> · <?= htmlspecialchars(removeVNPrefix($booking['tour_name'] ?? '')) ?>
                             </option>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -73,7 +73,7 @@ $paymentStatuses = isset($paymentStatuses) && is_array($paymentStatuses)
             <div>
                 <h4 class="mb-1">Booking #<?= htmlspecialchars((string) $selectedBooking['id']) ?> · <?= htmlspecialchars($selectedBooking['customer_name']) ?></h4>
                 <p class="text-muted mb-0 small">
-                    Tour: <?= htmlspecialchars($selectedBooking['tour_name'] ?? 'Chưa xác định') ?> ·
+                    Tour: <?= htmlspecialchars(removeVNPrefix($selectedBooking['tour_name'] ?? 'Chưa xác định')) ?> ·
                     Khởi hành: <?= htmlspecialchars($selectedBooking['start_date']) ?> ·
                     Số khách đăng ký: <?= htmlspecialchars((string) $selectedBooking['total_people']) ?> ·
                     Trạng thái: <?= htmlspecialchars($selectedBooking['status']) ?>

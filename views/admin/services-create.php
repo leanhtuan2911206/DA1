@@ -21,7 +21,7 @@
                     <select class="form-select" name="booking_id" id="booking_id" required>
                         <option value="">-- Chọn tour --</option>
                         <?php foreach (($bookings ?? []) as $b): ?>
-                            <option value="<?= $b['id'] ?>" data-people="<?= (int)($b['total_people'] ?? 1) ?>">#<?= $b['id'] ?> - <?= htmlspecialchars($b['tour_name'] ?? ($b['customer_name'] ?? '')) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)</option>
+                            <option value="<?= $b['id'] ?>" data-people="<?= (int)($b['total_people'] ?? 1) ?>">#<?= $b['id'] ?> - <?= htmlspecialchars(removeVNPrefix($b['tour_name'] ?? ($b['customer_name'] ?? ''))) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>

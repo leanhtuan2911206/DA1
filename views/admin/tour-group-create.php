@@ -35,7 +35,7 @@ $bookings = isset($bookings) && is_array($bookings) ? $bookings : [];
                     <select id="tour_select" class="form-select" name="tour_id" required>
                         <option value="">-- Chọn tour --</option>
                         <?php foreach ($tours as $tour): ?>
-                            <option value="<?= $tour['id'] ?>"><?= htmlspecialchars($tour['name']) ?></option>
+                            <option value="<?= $tour['id'] ?>"><?= htmlspecialchars(removeVNPrefix($tour['name'])) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
@@ -46,10 +46,10 @@ $bookings = isset($bookings) && is_array($bookings) ? $bookings : [];
                         <?php foreach ($bookings as $booking): ?>
                             <option value="<?= $booking['id'] ?>"
                                 data-tour-id="<?= $booking['tour_id'] ?? '' ?>"
-                                data-tour-name="<?= htmlspecialchars($booking['tour_name'] ?? '') ?>"
+                                data-tour-name="<?= htmlspecialchars(removeVNPrefix($booking['tour_name'] ?? '')) ?>"
                                 data-customer-name="<?= htmlspecialchars($booking['customer_name'] ?? '') ?>"
                                 data-total="<?= (int)($booking['total_people'] ?? 0) ?>">
-                                #<?= $booking['id'] ?> - <?= htmlspecialchars($booking['customer_name']) ?><?php if (!empty($booking['tour_name'])): ?> · <?= htmlspecialchars($booking['tour_name']) ?><?php endif; ?>
+                                #<?= $booking['id'] ?> - <?= htmlspecialchars($booking['customer_name']) ?><?php if (!empty($booking['tour_name'])): ?> · <?= htmlspecialchars(removeVNPrefix($booking['tour_name'])) ?><?php endif; ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

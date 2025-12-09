@@ -46,7 +46,7 @@ $filters = [
                 <option value="">-- Tất cả tour --</option>
                 <?php foreach ($tours as $tour): ?>
                     <option value="<?= $tour['id'] ?>" <?= (string)$filters['tour_id'] === (string)$tour['id'] ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($tour['name']) ?>
+                        <?= htmlspecialchars(removeVNPrefix($tour['name'])) ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -93,7 +93,7 @@ $filters = [
                                             <strong><?= htmlspecialchars($group['group_name'] ?? '—') ?></strong>
                                         </td>
                                         <td>
-                                            <?= htmlspecialchars($group['tour_name'] ?? '—') ?>
+                                            <?= htmlspecialchars(removeVNPrefix($group['tour_name'] ?? '—')) ?>
                                         </td>
                                         <td>
                                             <span class="badge bg-info"><?= (int)($group['actual_guests'] ?? 0) ?> / <?= (int)($group['total_guests'] ?? 0) ?></span>

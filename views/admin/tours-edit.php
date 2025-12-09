@@ -13,7 +13,7 @@
 
             <div class="mb-3">
                 <label class="form-label">Tên tour</label>
-                <input type="text" name="name" class="form-control" value="<?= htmlspecialchars($tour['name']) ?>" required>
+                <input type="text" name="name" class="form-control" value="<?= htmlspecialchars(removeVNPrefix($tour['name'])) ?>" required>
             </div>
 
             <div class="mb-3">

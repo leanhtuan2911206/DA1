@@ -56,7 +56,7 @@ $filters = [
                         <option value="">Tất cả tour</option>
                         <?php foreach ($tours as $tour): ?>
                             <option value="<?= $tour['id'] ?>" <?= (string)$filters['tour_id'] === (string)$tour['id'] ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($tour['name']) ?>
+                                <?= htmlspecialchars(removeVNPrefix($tour['name'])) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -125,7 +125,7 @@ $filters = [
             <div class="card-like mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                     <div>
-                        <h4 class="mb-1"><?= htmlspecialchars($tourGroup['tour_name']) ?></h4>
+                        <h4 class="mb-1"><?= htmlspecialchars(removeVNPrefix($tourGroup['tour_name'])) ?></h4>
                         <p class="text-muted small mb-0">
                             Loại: <?= htmlspecialchars($tourGroup['category_name']) ?> | 
                             Giá: <?= number_format((float)$tourGroup['tour_price'], 0, ',', '.') ?>đ | 

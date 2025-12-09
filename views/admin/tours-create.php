@@ -39,7 +39,7 @@
                     <optgroup label="Tour Có Sẵn">
                         <?php foreach ($existingTours as $tour): ?>
                             <option value="tour_<?= $tour['id'] ?>" data-type="tour" data-id="<?= $tour['id'] ?>">
-                                <?= htmlspecialchars($tour['name']) ?> (Tour #<?= $tour['id'] ?>)
+                                <?= htmlspecialchars(removeVNPrefix($tour['name'])) ?> (Tour #<?= $tour['id'] ?>)
                             </option>
                         <?php endforeach; ?>
                     </optgroup>

@@ -84,7 +84,7 @@
             </div>
             
             <div class="flex-grow-1">
-                <h3 class="text-primary mb-3"><?= htmlspecialchars($tour['name']) ?></h3>
+                <h3 class="text-primary mb-3"><?= htmlspecialchars(removeVNPrefix($tour['name'])) ?></h3>
                 
                 <div class="row g-3">
                     <div class="col-md-6">

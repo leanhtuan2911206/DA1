@@ -21,7 +21,7 @@
                 <option value="">Tất cả Tour</option>
                 <?php $curBid = $_GET['booking_id'] ?? ''; foreach (($bookings ?? []) as $b): ?>
                     <option value="<?= $b['id'] ?>" <?= ((string)$curBid === (string)$b['id'])?'selected':'' ?>>
-                        #<?= $b['id'] ?> - <?= htmlspecialchars($b['tour_name'] ?? ($b['customer_name'] ?? '')) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)
+                        #<?= $b['id'] ?> - <?= htmlspecialchars(removeVNPrefix($b['tour_name'] ?? ($b['customer_name'] ?? ''))) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -69,7 +69,7 @@
                             <td><span class="badge bg-secondary"><?= htmlspecialchars((string)$id) ?></span></td>
                             <td>
                                 <?php $label = $bid ? ('#'.$bid) : '-';
-                                foreach (($bookings ?? []) as $b) { if ((string)$b['id'] === (string)$bid) { $label = '#'.$b['id'].' - '.($b['tour_name'] ?? ($b['customer_name'] ?? '')); break; } }
+                                foreach (($bookings ?? []) as $b) { if ((string)$b['id'] === (string)$bid) { $label = '#'.$b['id'].' - '.removeVNPrefix($b['tour_name'] ?? ($b['customer_name'] ?? '')); break; } }
                                 ?>
                                 <div class="fw-semibold"><?= htmlspecialchars($label) ?></div>
                             </td>

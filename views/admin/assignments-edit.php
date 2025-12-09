@@ -20,7 +20,7 @@
                     <?php $curBid = $assignment['booking_id'] ?? ''; ?>
                     <select class="form-select" name="booking_id" required>
                         <?php foreach (($bookings ?? []) as $b): ?>
-                            <option value="<?= $b['id'] ?>" <?= ((string)$curBid === (string)$b['id']) ? 'selected' : '' ?>>#<?= $b['id'] ?> - <?= htmlspecialchars($b['tour_name'] ?? ($b['customer_name'] ?? '')) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)</option>
+                            <option value="<?= $b['id'] ?>" <?= ((string)$curBid === (string)$b['id']) ? 'selected' : '' ?>>#<?= $b['id'] ?> - <?= htmlspecialchars(removeVNPrefix($b['tour_name'] ?? ($b['customer_name'] ?? ''))) ?> (<?= htmlspecialchars($b['start_date'] ?? '') ?>)</option>
                         <?php endforeach; ?>
                     </select>
                 </div>

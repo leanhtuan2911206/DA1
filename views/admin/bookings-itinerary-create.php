@@ -14,7 +14,7 @@
 
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
-            <h2 class="h3 mb-0 text-gray-800">Thêm hoạt động: <span class="text-primary"><?= htmlspecialchars($tour['name']) ?></span></h2>
+            <h2 class="h3 mb-0 text-gray-800">Thêm hoạt động: <span class="text-primary"><?= htmlspecialchars(removeVNPrefix($tour['name'])) ?></span></h2>
             <p class="text-muted mb-0">Booking ID: <?= $booking_id ?></p>
         </div>
         <a href="<?= BASE_URL ?>?action=bookings" class="btn btn-secondary">

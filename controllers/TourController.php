@@ -39,10 +39,6 @@ class TourController
             $tours = [];
         }
 
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-
         try {
             $categories = $categoryModel->getAll();
         } catch (Throwable $e) {
@@ -166,13 +162,7 @@ class TourController
                 }
                 $_SESSION['success'] = 'Cập nhật tour thành công.';
             } else {
-                $err = $tourModel->getLastError();
                 $_SESSION['error'] = 'Không thể cập nhật tour.';
-                $_SESSION['update_tour_debug'] = [
-                    'id' => $id,
-                    'error' => $err,
-                    'post' => $_POST
-                ];
                 header('Location: ' . BASE_URL . '?action=tours-edit&id=' . $id);
                 exit;
             }
@@ -468,8 +458,7 @@ class TourController
     }
     public function detail()
     {
-        if(session_status() === PHP_SESSION_NONE){ session_start(); }
-        if(!isset($_SESSION['user'])){ header('Location: ' . BASE_URL . '?action=login'); exit; }
+        $this->ensureAuthenticated();
 
         $id = $_GET['id'] ?? null;
         if (!$id) {
@@ -495,7 +484,6 @@ class TourController
         $hideNavbar = true;
         require_once PATH_VIEW . 'main.php'; 
     }
-    // Mở file controllers/TourController.php và thêm các phương thức sau:
 
     public function editItinerary(): void
     {
@@ -627,7 +615,6 @@ class TourController
     public function logsList(): void
     {
         $this->ensureAuthenticated();
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         $role = strtolower($_SESSION['user']['role'] ?? '');
         if ($role !== 'admin') {
             header('Location: ' . BASE_URL . '?action=partner-logs');
@@ -714,6 +701,15 @@ class TourController
     {
         $this->ensureAuthenticated();
         
+        // Admin không được chỉnh sửa nhật ký
+        $role = strtolower($_SESSION['user']['role'] ?? '');
+        if ($role === 'admin') {
+            $_SESSION['error'] = 'Admin chỉ có thể xem và đánh giá nhật ký, không được chỉnh sửa.';
+            $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+            header('Location: ' . BASE_URL . '?action=tour-logs-list' . ($tourId > 0 ? '&tour_id=' . $tourId : ''));
+            exit;
+        }
+        
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
         
@@ -774,7 +770,6 @@ class TourController
             header('Location: ' . BASE_URL . '?action=tours');
             exit;
         }
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         $role = strtolower($_SESSION['user']['role'] ?? '');
         $tourId = (int)($_POST['tour_id'] ?? 0);
         $logType = trim($_POST['log_type'] ?? '');
@@ -979,7 +974,6 @@ class TourController
         }
         
         // Xác định role và redirect URL base
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
         $role = strtolower($_SESSION['user']['role'] ?? '');
         $isAdmin = ($role === 'admin');
         
@@ -993,6 +987,43 @@ class TourController
         $guideId = isset($_POST['guide_id']) ? (int)$_POST['guide_id'] : 0;
         $itineraryId = isset($_POST['itinerary_id']) ? (int)$_POST['itinerary_id'] : 0;
         $logDate = trim($_POST['log_date'] ?? '');
+        
+        // Admin chỉ có thể cập nhật rating, không được chỉnh sửa nội dung
+        if ($isAdmin) {
+            if ($id <= 0 || $tourId <= 0) {
+                $_SESSION['error'] = 'Dữ liệu không hợp lệ.';
+                header('Location: ' . BASE_URL . '?action=tour-logs-list&tour_id=' . $tourId);
+                exit;
+            }
+            
+            $logModel = new TourLog();
+            $existing = $logModel->find($id);
+            
+            if (!$existing) {
+                $_SESSION['error'] = 'Nhật ký không tồn tại.';
+                header('Location: ' . BASE_URL . '?action=tour-logs-list&tour_id=' . $tourId);
+                exit;
+            }
+            
+            // Chỉ cập nhật rating
+            try {
+                $ok = $logModel->update($id, ['rating' => $rating]);
+                if ($ok) {
+                    $_SESSION['success'] = 'Đánh giá nhật ký thành công.';
+                } else {
+                    $_SESSION['error'] = 'Không thể cập nhật đánh giá.';
+                }
+            } catch (Throwable $e) {
+                $_SESSION['error'] = 'Có lỗi xảy ra khi cập nhật đánh giá.';
+            }
+            
+            $redirectUrl = BASE_URL . '?action=tour-logs-list&tour_id=' . $tourId;
+            if ($bookingId > 0) {
+                $redirectUrl .= '&booking_id=' . $bookingId;
+            }
+            header('Location: ' . $redirectUrl);
+            exit;
+        }
         
         // Helper function để tạo redirect URL
         $getRedirectUrl = function($tourId, $bookingId = 0) use ($isAdmin) {
@@ -1133,6 +1164,16 @@ class TourController
     public function logsDelete(): void
     {
         $this->ensureAuthenticated();
+        
+        // Admin không được xóa nhật ký
+        $role = strtolower($_SESSION['user']['role'] ?? '');
+        if ($role === 'admin') {
+            $_SESSION['error'] = 'Admin không được phép xóa nhật ký.';
+            $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+            header('Location: ' . BASE_URL . '?action=tour-logs-list' . ($tourId > 0 ? '&tour_id=' . $tourId : ''));
+            exit;
+        }
+        
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
         if ($id <= 0 || $tourId <= 0) {

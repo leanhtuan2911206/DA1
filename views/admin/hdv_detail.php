@@ -109,7 +109,7 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
     
     <div class="topbar">
         <div>
-            <h2 class="page-title mb-0"><?= htmlspecialchars($trip_detail['tour_name'] ?? 'Thông tin tour đã được phân bổ') ?></h2>
+            <h2 class="page-title mb-0"><?= htmlspecialchars(removeVNPrefix($trip_detail['tour_name'] ?? 'Thông tin tour đã được phân bổ')) ?></h2>
         </div>
         <div>
             <a class="btn btn-light rounded-pill px-4" href="<?= BASE_URL ?>?action=logout">Đăng xuất</a>
@@ -130,7 +130,7 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                         ?>
                         <a href="<?= BASE_URL ?>?action=partner&tab=<?= $__tab ?>&booking_id=<?= $assBookingId ?>" 
                            class="btn btn-sm <?= $isActive ? 'btn-primary' : 'btn-outline-primary' ?>">
-                            <?= htmlspecialchars($ass['tour_name'] ?? 'Tour #' . $assBookingId) ?>
+                            <?= htmlspecialchars(removeVNPrefix($ass['tour_name'] ?? 'Tour #' . $assBookingId)) ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -478,7 +478,7 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                         <div class="fw-bold"><?= isset($row['booking_id']) ? '#' . htmlspecialchars((string)$row['booking_id']) : '—' ?></div>
                                     </td>
                                     <td>
-                                        <div class="fw-bold text-primary"><?= htmlspecialchars($row['tour_name'] ?? 'Chưa có tên tour') ?></div>
+                                        <div class="fw-bold text-primary"><?= htmlspecialchars(removeVNPrefix($row['tour_name'] ?? 'Chưa có tên tour')) ?></div>
                                     </td>
                                     <td>
                                         <?php if (!empty($row['customer_name'])): ?>

@@ -13,15 +13,13 @@ $logoFs = $uploadsDir . 'img/logo.png';
 $logoUrl = BASE_ASSETS_UPLOADS . 'img/logo.png';
 ?>
 <style>
-.login-page{min-height:100vh;display:flex;align-items:center;justify-content:center;background:url('<?= $bgUrl ?>') center/cover no-repeat fixed}
-.login-card{width:560px;max-width:95%;background:rgba(255,255,255,.58);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:22px 26px 26px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
-.login-header{position:relative;min-height:80px;margin-bottom:16px}
-.login-logo{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:68px;height:68px;border-radius:12px;object-fit:contain}
-.login-title{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;font-weight:700;font-size:24px;color:#333}
-.form-label{font-weight:600;color:#0f172a;margin-bottom:6px}
-.form-control{border-radius:14px;background:#e6e6e6;border:1px solid #d0d5dd;padding:12px 16px}
-.btn-login{background:linear-gradient(180deg,#3b82f6,#5ea0ff);color:#fff;border:none;border-radius:12px;padding:10px 16px;font-weight:600;width:200px;display:block;margin:8px auto 0;box-shadow:0 2px 8px rgba(0,0,0,.15)}
-a{display:block;text-align:center;color:black;text-decoration:none;margin-top:12px;font-weight:500}
+/* Background image override - dynamic from PHP */
+.login-page {
+    background: url('<?= $bgUrl ?>') center/cover no-repeat fixed !important;
+}
+.login-page::before {
+    background: url('<?= $bgUrl ?>') center/cover no-repeat !important;
+}
 </style>
 
 <div class="login-page">
@@ -45,7 +43,7 @@ a{display:block;text-align:center;color:black;text-decoration:none;margin-top:12
                 <label for="password" class="form-label">Mật khẩu:</label>
                 <input type="password" class="form-control" id="password" name="password" required>
             </div>
-            <button type="submit" class="btn btn-login mt-2">Đăng nhập</button>
+            <button type="submit" class="btn btn-primary mt-2">Đăng nhập</button>
             <a>Chưa có tài khoản liên hệ Admin ngay?</a>
         </form>
     </div>
