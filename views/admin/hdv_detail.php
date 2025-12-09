@@ -83,7 +83,7 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
     .st-done { background: #dcfce7; color: #166534; }
     .st-doing { background: #dbeafe; color: #1e40af; }
     .st-pending { background: #f3f4f6; color: #6b7280; }
-    .btn-tl { border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; width: 100%; text-align: center; }
+    .btn-tl { border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; width: auto; min-width: fit-content; text-align: center; white-space: normal; word-break: break-word; display: inline-flex; align-items: center; justify-content: center; line-height: 1.4; min-height: 36px; }
     .btn-tl-start { background: #6366f1; color: #fff; }
     .btn-tl-start:hover { background: #4f46e5; }
     .btn-tl-finish { background: #22c55e; color: #fff; }
@@ -385,7 +385,7 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                                     <span class="text-muted">—</span>
                                                 <?php endif; ?>
                                                 <?php if (isset($cus['id']) && $cus['id'] > 0): ?>
-                                                    <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 12px;" data-bs-toggle="modal" data-bs-target="#modalSpecialRequests<?= $cus['id'] ?>" title="Cập nhật yêu cầu đặc biệt">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalSpecialRequests<?= $cus['id'] ?>" title="Cập nhật yêu cầu đặc biệt">
                                                         ✏️
                                                     </button>
                                                 <?php endif; ?>

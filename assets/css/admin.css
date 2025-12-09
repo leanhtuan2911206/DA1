@@ -124,7 +124,7 @@ body {
     max-width: 100%;
     height: auto;
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
+    box-shadow: none;
 }
 
 .sidebar h4 {
@@ -1388,7 +1388,7 @@ textarea.form-control {
     height: 80px;
     border-radius: var(--radius-lg);
     object-fit: contain;
-    box-shadow: var(--shadow-md);
+    box-shadow: none;
 }
 
 .login-title {
@@ -1666,5 +1666,150 @@ textarea.form-control {
     .card-like {
         box-shadow: none;
         border: 1px solid var(--border-color);
+    }
+}
+
+/* ============================================
+   HDV/PARTNER BUTTONS
+   ============================================ */
+
+/* Buttons trong HDV interface - rộng ra và chữ nằm trong button */
+.hdv-container .btn,
+.hdv-container .btn-sm,
+.hdv-container .btn-primary,
+.hdv-container .btn-success,
+.hdv-container .btn-danger,
+.hdv-container .btn-secondary,
+.hdv-container .btn-light,
+.hdv-container .btn-outline-primary,
+.hdv-container .btn-outline-secondary,
+.hdv-container .btn-outline-danger {
+    width: auto;
+    min-width: fit-content;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0.4rem 0.8rem;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.4;
+}
+
+/* Buttons trong modal HDV */
+.modal .btn,
+.modal .btn-sm,
+.modal-footer .btn {
+    width: auto;
+    min-width: fit-content;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0.4rem 0.8rem;
+    min-height: 36px;
+}
+
+/* Buttons timeline trong HDV */
+.btn-tl,
+.btn-tl-start,
+.btn-tl-finish,
+.btn-tl-undo {
+    width: auto;
+    min-width: fit-content;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0.4rem 0.8rem;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.4;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    transition: all var(--transition-base);
+}
+
+.btn-tl-start {
+    background: #6366f1;
+    color: #fff;
+}
+
+.btn-tl-start:hover {
+    background: #4f46e5;
+    opacity: 1;
+}
+
+.btn-tl-finish {
+    background: #22c55e;
+    color: #fff;
+}
+
+.btn-tl-finish:hover {
+    background: #16a34a;
+    opacity: 1;
+}
+
+.btn-tl-undo {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    color: #4b5563;
+}
+
+.btn-tl-undo:hover {
+    background: #f9fafb;
+    opacity: 1;
+}
+
+/* Button edit itinerary */
+.btn-edit-itinerary {
+    width: auto;
+    min-width: fit-content;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0.4rem 0.8rem;
+    min-height: 36px;
+}
+
+.btn-edit-itinerary:hover {
+    background: #e5e7eb !important;
+    border-color: #9ca3af !important;
+    opacity: 1;
+}
+
+/* Buttons trong list-group HDV */
+.list-group-item .btn,
+.list-group-item .btn-sm {
+    width: auto;
+    min-width: fit-content;
+    white-space: normal;
+    word-break: break-word;
+    padding: 0.35rem 0.7rem;
+    min-height: 32px;
+}
+
+/* Buttons trong card-like HDV */
+.card-like .btn,
+.card-like .btn-sm {
+    width: auto;
+    min-width: fit-content;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* Responsive cho HDV buttons */
+@media (max-width: 768px) {
+    .hdv-container .btn,
+    .hdv-container .btn-sm {
+        padding: 0.35rem 0.7rem;
+        min-height: 32px;
+        font-size: 0.7rem;
+    }
+    
+    .btn-tl,
+    .btn-tl-start,
+    .btn-tl-finish,
+    .btn-tl-undo {
+        padding: 0.35rem 0.7rem;
+        min-height: 32px;
+        font-size: 0.7rem;
     }
 }
