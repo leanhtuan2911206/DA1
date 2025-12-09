@@ -215,15 +215,13 @@
                 <span class="small text-muted">(Dữ liệu được lấy từ bảng <b>tour_itineraries</b>)</span>
             </div>
         <?php else: ?>
+            <!-- DEBUG PANEL - XÓA SAU KHI SỬA XONG -->
             <?php
-                // Nhóm lịch trình theo ngày - xử lý cẩn thận để không bỏ sót ngày nào
                 $groupedByDay = [];
-                $seenItemIds = []; // Để tránh duplicate
+                $seenItemIds = [];
                 
                 foreach ($itineraries as $item) {
                     $itemId = isset($item['id']) ? (int)$item['id'] : 0;
-                    
-                    // Loại bỏ duplicate dựa trên ID (chỉ nếu ID > 0)
                     if ($itemId > 0 && isset($seenItemIds[$itemId])) {
                         continue;
                     }
@@ -231,68 +229,51 @@
                         $seenItemIds[$itemId] = true;
                     }
                     
-                    // Xử lý day_number - đảm bảo là integer và >= 1
                     $rawDayNum = $item['day_number'] ?? null;
-                    $dayNum = 1; // Mặc định
-                    
-                    if ($rawDayNum !== null) {
+                    $dayNum = 1;
+                    if ($rawDayNum !== null && $rawDayNum !== '') {
                         if (is_numeric($rawDayNum)) {
-                            $dayNum = (int)$rawDayNum;
+                            $dayNum = (int)floatval($rawDayNum);
                         } elseif (is_string($rawDayNum)) {
-                            $dayNum = (int)trim($rawDayNum);
+                            $trimmed = trim($rawDayNum);
+                            if (is_numeric($trimmed)) {
+                                $dayNum = (int)floatval($trimmed);
+                            }
                         } else {
                             $dayNum = (int)$rawDayNum;
                         }
                     }
-                    
-                    // Đảm bảo day_number >= 1
-                    $dayNum = max(1, $dayNum);
-                    
-                    // Nhóm vào mảng
+                    $dayNum = max(1, (int)$dayNum);
                     if (!isset($groupedByDay[$dayNum])) {
                         $groupedByDay[$dayNum] = [];
                     }
                     $groupedByDay[$dayNum][] = $item;
                 }
                 
-                // Sắp xếp theo ngày
                 ksort($groupedByDay);
-                
-                // Lấy tất cả các ngày có dữ liệu
                 $allDays = array_keys($groupedByDay);
-                
-                // Lấy ngày được chọn từ GET parameter
+                $maxDay = !empty($allDays) ? max($allDays) : 1;
                 $selectedDayNum = isset($_GET['day']) ? (int)$_GET['day'] : 0;
-                
-                // Nếu không có day trong GET hoặc day không hợp lệ, chọn ngày đầu tiên có dữ liệu
-                if ($selectedDayNum <= 0 || !isset($groupedByDay[$selectedDayNum])) {
-                    if (!empty($allDays)) {
-                        $selectedDayNum = min($allDays);
-                    } else {
-                        $selectedDayNum = 1;
-                    }
+                if ($selectedDayNum <= 0 || ($selectedDayNum > $maxDay && !isset($groupedByDay[$selectedDayNum]))) {
+                    $selectedDayNum = !empty($allDays) ? min($allDays) : 1;
+                }
+                if ($selectedDayNum < 1) {
+                    $selectedDayNum = 1;
                 }
             ?>
             
-            <!-- Day Selector -->
-            <?php 
-                // Tính số ngày tối đa để hiển thị
-                $maxDay = !empty($allDays) ? max($allDays) : 1;
-                
-                // Nếu có nhiều hơn 1 ngày hoặc có ngày > 1, hiển thị selector
-                if ($maxDay > 1 || count($allDays) > 1): 
-            ?>
+            <?php if ($maxDay > 1 || !empty($allDays)): ?>
                 <div class="mb-4 d-flex align-items-center gap-3 flex-wrap">
                     <label class="fw-bold mb-0">Chọn ngày:</label>
-                    <div class="btn-group" role="group">
-                        <?php 
-                            // Hiển thị tất cả các ngày từ 1 đến maxDay để người dùng thấy đầy đủ
-                            for ($dayNum = 1; $dayNum <= $maxDay; $dayNum++): 
-                                $hasData = isset($groupedByDay[$dayNum]);
-                                $itemCount = $hasData ? count($groupedByDay[$dayNum]) : 0;
+                    <div class="btn-group flex-wrap" role="group">
+                        <?php for ($dayNum = 1; $dayNum <= $maxDay; $dayNum++): 
+                            $dayKey = (int)$dayNum;
+                            $hasData = isset($groupedByDay[$dayKey]);
+                            $itemCount = $hasData ? count($groupedByDay[$dayKey]) : 0;
+                            $isSelected = ($selectedDayNum == $dayKey);
                         ?>
                             <a href="<?= BASE_URL ?>?action=bookings-detail&id=<?= $booking['id'] ?>&day=<?= $dayNum ?>" 
-                               class="btn <?= $selectedDayNum == $dayNum ? 'btn-primary' : ($hasData ? 'btn-outline-primary' : 'btn-outline-secondary') ?>"
+                               class="btn <?= $isSelected ? 'btn-primary' : ($hasData ? 'btn-outline-primary' : 'btn-outline-secondary') ?>"
                                title="<?= $hasData ? 'Có ' . $itemCount . ' hoạt động' : 'Chưa có hoạt động' ?>"
                                style="<?= !$hasData ? 'opacity: 0.6;' : '' ?>">
                                 Ngày <?= $dayNum ?> <?= !$hasData ? '<small>(Trống)</small>' : '<small>(' . $itemCount . ')</small>' ?>
@@ -304,12 +285,21 @@
             
             <div class="timeline-wrapper">
                 <?php 
-                    // Chỉ hiển thị lịch trình của ngày được chọn
-                    $dayItems = isset($groupedByDay[$selectedDayNum]) ? $groupedByDay[$selectedDayNum] : [];
-                    
+                    $dayItems = [];
+                    if (isset($groupedByDay[$selectedDayNum]) && is_array($groupedByDay[$selectedDayNum])) {
+                        $dayItems = $groupedByDay[$selectedDayNum];
+                    } elseif (isset($groupedByDay[(string)$selectedDayNum]) && is_array($groupedByDay[(string)$selectedDayNum])) {
+                        $dayItems = $groupedByDay[(string)$selectedDayNum];
+                    }
                     if (empty($dayItems)): ?>
                         <div class="alert alert-info text-center py-4">
+                            <i class="mb-2 d-block" style="font-size: 2rem;">📅</i>
                             Không có lịch trình cho ngày <?= $selectedDayNum ?>
+                            <br>
+                            <small class="text-muted">Vui lòng thêm hoạt động cho ngày này.</small>
+                            <?php if (!empty($allDays)): ?>
+                                <br><small class="text-muted">Các ngày có dữ liệu: <?= implode(', ', $allDays) ?></small>
+                            <?php endif; ?>
                         </div>
                     <?php else: ?>
                         <?php foreach ($dayItems as $item): ?>

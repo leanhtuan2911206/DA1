@@ -53,6 +53,7 @@ class TourLog extends BaseModel
     {
         $cols = ['tour_id','log_type','title','description','status','rating'];
         $place = [':tour_id',':log_type',':title',':description',':status',':rating'];
+        if (isset($data['booking_id'])) { $cols[] = 'booking_id'; $place[] = ':booking_id'; }
         if (isset($data['itinerary_id'])) { $cols[] = 'itinerary_id'; $place[] = ':itinerary_id'; }
         if (isset($data['log_date'])) { $cols[] = 'log_date'; $place[] = ':log_date'; }
         if (isset($data['guide_id'])) { $cols[] = 'guide_id'; $place[] = ':guide_id'; }
@@ -69,6 +70,7 @@ class TourLog extends BaseModel
         } else {
             $stmt->bindValue(':rating', null, PDO::PARAM_NULL);
         }
+        if (isset($data['booking_id'])) { $stmt->bindValue(':booking_id', (int)$data['booking_id'], PDO::PARAM_INT); }
         if (isset($data['itinerary_id'])) { $stmt->bindValue(':itinerary_id', (int)$data['itinerary_id'], PDO::PARAM_INT); }
         if (isset($data['log_date'])) { $stmt->bindValue(':log_date', $data['log_date']); }
         if (isset($data['guide_id'])) { $stmt->bindValue(':guide_id', (int)$data['guide_id'], PDO::PARAM_INT); }
@@ -116,23 +118,43 @@ class TourLog extends BaseModel
 
     public function update(int $id, array $data): bool
     {
-        $set = [];
-        $bind = [];
-        foreach (['title','description','status','rating','guide_id','itinerary_id','log_date','image_path'] as $col) {
-            if (array_key_exists($col, $data)) { $set[] = "$col = :$col"; $bind[":$col"] = $data[$col]; }
-        }
-        if (!$set) { return false; }
-        $sql = 'UPDATE ' . $this->table . ' SET ' . implode(', ', $set) . ' WHERE id = :id';
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
-        foreach ($bind as $k=>$v) {
-            if ($k === ':rating' || $k === ':guide_id' || $k === ':itinerary_id') {
-                $stmt->bindValue($k, ($v === '' ? null : (int)$v), $v === '' ? PDO::PARAM_NULL : PDO::PARAM_INT);
-            } else {
-                $stmt->bindValue($k, ($v === '' ? null : $v));
+        try {
+            $set = [];
+            $bind = [];
+            foreach (['title','description','status','rating','guide_id','itinerary_id','log_date','image_path'] as $col) {
+                if (array_key_exists($col, $data)) { 
+                    $set[] = "$col = :$col"; 
+                    $bind[":$col"] = $data[$col]; 
+                }
             }
+            if (!$set) { 
+                error_log('TourLog::update - No fields to update for id=' . $id);
+                return false; 
+            }
+            $sql = 'UPDATE ' . $this->table . ' SET ' . implode(', ', $set) . ' WHERE id = :id';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            foreach ($bind as $k=>$v) {
+                if ($k === ':rating' || $k === ':guide_id' || $k === ':itinerary_id') {
+                    if ($v === '' || $v === null) {
+                        $stmt->bindValue($k, null, PDO::PARAM_NULL);
+                    } else {
+                        $stmt->bindValue($k, (int)$v, PDO::PARAM_INT);
+                    }
+                } else {
+                    $stmt->bindValue($k, ($v === '' ? null : $v));
+                }
+            }
+            $result = $stmt->execute();
+            if (!$result) {
+                $errorInfo = $stmt->errorInfo();
+                error_log('TourLog::update - SQL error: ' . json_encode($errorInfo));
+            }
+            return $result;
+        } catch (Throwable $e) {
+            error_log('TourLog::update - Exception: ' . $e->getMessage());
+            return false;
         }
-        return $stmt->execute();
     }
 
     public function find(int $id): array|false

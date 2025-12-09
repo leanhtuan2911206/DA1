@@ -15,7 +15,6 @@ class TourTemplate extends BaseModel
             $stmt = $this->pdo->query($sql);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("TourTemplate::getAll() error: " . $e->getMessage());
             return [];
         }
     }
@@ -33,7 +32,6 @@ class TourTemplate extends BaseModel
             $stmt->execute([$id]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("TourTemplate::find() error: " . $e->getMessage());
             return false;
         }
     }
@@ -51,7 +49,6 @@ class TourTemplate extends BaseModel
             $stmt->execute([$categoryId]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("TourTemplate::findByCategoryId() error: " . $e->getMessage());
             return false;
         }
     }
@@ -69,7 +66,6 @@ class TourTemplate extends BaseModel
             $stmt->execute([$categoryId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            error_log("TourTemplate::getAllByCategoryId() error: " . $e->getMessage());
             return [];
         }
     }

@@ -79,15 +79,23 @@
                                     <?php else: ?>
                                         <div class="list-group list-group-flush">
                                             <?php foreach ($templateItems as $temp): ?>
-                                                <button type="button" class="list-group-item list-group-item-action p-3" 
-                                                        onclick="fillForm(<?= htmlspecialchars(json_encode($temp)) ?>)">
-                                                    <div class="d-flex w-100 justify-content-between">
-                                                        <h6 class="mb-1 fw-bold text-dark">Ngày <?= $temp['day_number'] ?> - <?= $temp['time_start'] ?></h6>
-                                                        <small class="text-muted">📋 Chọn</small>
-                                                    </div>
-                                                    <p class="mb-1 text-primary"><?= htmlspecialchars($temp['title']) ?></p>
-                                                    <small class="text-muted text-truncate d-block"><?= htmlspecialchars($temp['description']) ?></small>
-                                                </button>
+                                                <form method="post" action="<?= BASE_URL ?>?action=bookings-itinerary-store" style="margin: 0;">
+                                                    <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
+                                                    <input type="hidden" name="booking_id" value="<?= $booking['id'] ?>">
+                                                    <input type="hidden" name="day_number" value="<?= $temp['day_number'] ?>">
+                                                    <input type="hidden" name="time_start" value="<?= htmlspecialchars($temp['time_start']) ?>">
+                                                    <input type="hidden" name="title" value="<?= htmlspecialchars($temp['title']) ?>">
+                                                    <input type="hidden" name="description" value="<?= htmlspecialchars($temp['description']) ?>">
+                                                    <input type="hidden" name="location" value="<?= htmlspecialchars($temp['location'] ?? '') ?>">
+                                                    <button type="submit" class="list-group-item list-group-item-action p-3 w-100 text-start" style="border: none; background: transparent;">
+                                                        <div class="d-flex w-100 justify-content-between">
+                                                            <h6 class="mb-1 fw-bold text-dark">Ngày <?= $temp['day_number'] ?> - <?= $temp['time_start'] ?></h6>
+                                                            <small class="text-muted">📋 Chọn</small>
+                                                        </div>
+                                                        <p class="mb-1 text-primary"><?= htmlspecialchars($temp['title']) ?></p>
+                                                        <small class="text-muted text-truncate d-block"><?= htmlspecialchars($temp['description']) ?></small>
+                                                    </button>
+                                                </form>
                                             <?php endforeach; ?>
                                         </div>
                                     <?php endif; ?>
@@ -101,19 +109,4 @@
     </div>
 </main>
 
-<script>
-    // Hàm Javascript đổ dữ liệu từ template vào form
-    function fillForm(data) {
-        document.getElementById('inp_day').value = data.day_number;
-        document.getElementById('inp_time').value = data.time_start;
-        document.getElementById('inp_title').value = data.title;
-        document.getElementById('inp_desc').value = data.description;
-        document.getElementById('inp_loc').value = data.location;
-        
-        // Hiệu ứng nháy nhẹ để báo đã nhận
-        const formCard = document.querySelector('.card-body form');
-        formCard.style.opacity = '0.5';
-        setTimeout(() => formCard.style.opacity = '1', 200);
-    }
-</script>
 

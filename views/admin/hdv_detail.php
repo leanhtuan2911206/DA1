@@ -4,13 +4,11 @@ $guideId     = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['gu
 $trip_detail = isset($trip_detail) && is_array($trip_detail) ? $trip_detail : null;
 $assignments = isset($assignments) && is_array($assignments) ? $assignments : [];
 
-// Xác định tab hiện tại - mặc định là 'detail' nếu có trip_detail, ngược lại là 'assignments'
 $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' : 'assignments');
 ?>
 
 <main class="main-content">
     <style>
-    /* --- CSS GỐC (GIỮ NGUYÊN TỪ FILE CŨ CỦA BẠN) --- */
     .main-content{background:transparent;padding:0}
     .hdv-container{max-width:1200px;margin:0 auto}
     .hdv-hero{background:#fff;border:2px solid #d9ccff;border-radius:18px;padding:14px;margin-bottom:14px;color:#111;box-shadow:0 8px 24px rgba(0,0,0,.08)}
@@ -70,7 +68,6 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
     .mb-2{margin-bottom:8px}
     .mb-3{margin-bottom:12px}
 
-    /* --- CSS MỚI: DÀNH RIÊNG CHO TAB LỊCH TRÌNH (Tab Itinerary) --- */
     .timeline-container-new { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
     .timeline-header { padding: 20px; border-bottom: 1px solid #f3f4f6; background: #fff; display: flex; justify-content: space-between; align-items: center; }
     .timeline-table { width: 100%; border-collapse: separate; border-spacing: 0; }
@@ -78,21 +75,14 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
     .timeline-table td { padding: 20px 24px; vertical-align: top; border-bottom: 1px solid #f3f4f6; }
     .timeline-table tr:last-child td { border-bottom: none; }
     
-    /* Cột Thời gian */
     .col-time .time-val { font-size: 16px; font-weight: 800; color: #111827; }
     .col-time .time-sub { font-size: 13px; font-weight: 500; color: #6b7280; margin-top: 4px; }
-    
-    /* Cột Hoạt động */
     .col-act .act-title { font-size: 15px; font-weight: 700; color: #111827; margin-bottom: 4px; }
     .col-act .act-loc { font-size: 13px; font-weight: 600; color: #4b5563; display: flex; align-items: center; gap: 4px; }
-    
-    /* Cột Trạng thái */
     .status-badge-tl { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.025em; }
     .st-done { background: #dcfce7; color: #166534; }
     .st-doing { background: #dbeafe; color: #1e40af; }
     .st-pending { background: #f3f4f6; color: #6b7280; }
-    
-    /* Nút bấm */
     .btn-tl { border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 8px; width: 100%; text-align: center; }
     .btn-tl-start { background: #6366f1; color: #fff; }
     .btn-tl-start:hover { background: #4f46e5; }
@@ -100,22 +90,16 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
     .btn-tl-finish:hover { background: #16a34a; }
     .btn-tl-undo { background: #fff; border: 1px solid #d1d5db; color: #4b5563; }
     .btn-tl-undo:hover { background: #f9fafb; }
-    
-    /* Dropdown trạng thái điểm danh */
     .status-select {
         transition: all 0.2s;
     }
     .status-select option {
         padding: 8px;
     }
-    
-    /* Nút chỉnh sửa */
     .btn-edit-itinerary:hover {
         background: #e5e7eb !important;
         border-color: #9ca3af !important;
     }
-    
-    /* Footer thống kê */
     .tl-footer { background: #f9fafb; border-top: 1px solid #e5e7eb; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
     .tl-stat-box { background: #eff6ff; padding: 10px 20px; border-radius: 8px; color: #1e40af; font-weight: 600; font-size: 14px; }
     .tl-stat-success { background: #f0fdf4; color: #15803d; }
@@ -183,16 +167,85 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
             </div>
         <?php else: ?>
         <div class="hdv-container">
+            <?php if (!empty($_SESSION['success'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert" style="margin-bottom: 12px;">
+                    <?= htmlspecialchars($_SESSION['success']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['success']); ?>
+            <?php endif; ?>
+            <?php if (!empty($_SESSION['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 12px;">
+                    <?= htmlspecialchars($_SESSION['error']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                <?php unset($_SESSION['error']); ?>
+            <?php endif; ?>
+            
             <div class="hdv-hero">
                 <h2 class="hero-title">Bảng Điều Khiển Hướng Dẫn Viên</h2>
                 <div class="hero-sub">Quản lý thông tin tour và lịch trình hằng ngày</div>
                 <?php
-                $servicesList = isset($trip_detail['services']) && is_array($trip_detail['services']) ? $trip_detail['services'] : [];
-                $transport = null; $transportStatus = '';$transportQty=0;
-                foreach ($servicesList as $s){ $t=strtolower((string)($s['type']??'')); if(strpos($t,'vận chuyển')!==false||strpos($t,'transport')!==false||strpos($t,'xe')!==false){ $transport=$s; $transportStatus=$s['status']??''; $transportQty=(int)($s['qty']??0); break; }}
+                $vehicleInfo = $trip_detail['vehicle_info'] ?? null;
+                $transportService = $trip_detail['transport_service'] ?? null;
+                $supplierName = '—';
+                $vehicleQuantity = 0;
+                $vehicleStatus = '';
+                if ($vehicleInfo) {
+                    $supplierName = $vehicleInfo['supplier_name'] ?? ($vehicleInfo['name'] ?? '—');
+                    $vehicleQuantity = (int)($vehicleInfo['quantity'] ?? 0);
+                    $vehicleStatus = $vehicleInfo['status'] ?? '';
+                } elseif ($transportService) {
+                    $supplierName = $transportService['name'] ?? '—';
+                    $vehicleQuantity = (int)($transportService['qty'] ?? 0);
+                    $vehicleStatus = $transportService['status'] ?? '';
+                }
+                
+                $driverName = '—';
+                $driverPhone = '—';
+                if ($vehicleInfo && !empty($vehicleInfo['driver_name'])) {
+                    $driverName = htmlspecialchars($vehicleInfo['driver_name']);
+                    $driverPhone = !empty($vehicleInfo['driver_phone']) ? htmlspecialchars($vehicleInfo['driver_phone']) : '—';
+                } elseif (!empty($trip_detail['assigned_driver'])) {
+                    $driverName = htmlspecialchars($trip_detail['assigned_driver']);
+                }
+                
+                $licensePlate = $vehicleInfo['license_plate'] ?? '—';
+                $vehicleCapacity = $vehicleInfo['capacity'] ?? null;
+                
                 $cc = isset($trip_detail['customer_list']) ? count($trip_detail['customer_list']) : 0;
-                $ad = !empty($trip_detail['assigned_driver']) ? htmlspecialchars($trip_detail['assigned_driver']) : '—';
-                $driverPhone = 'SDT: 0912 345 678';
+                
+                // Tính toán trạng thái check-in dựa trên danh sách khách
+                $checkinStatus = 'not_arrived'; // Mặc định: Chưa đến
+                $checkinCount = 0;
+                $checkedInCount = 0;
+                
+                if (!empty($trip_detail['customer_list'])) {
+                    foreach ($trip_detail['customer_list'] as $customer) {
+                        $status = $customer['checkin_status'] ?? 'not_arrived';
+                        if ($status === 'checked_in') {
+                            $checkedInCount++;
+                        } elseif ($status === 'arrived') {
+                            $checkinCount++;
+                        }
+                    }
+                    
+                    // Xác định trạng thái tổng thể
+                    if ($checkedInCount === $cc && $cc > 0) {
+                        $checkinStatus = 'all_checked_in';
+                    } elseif ($checkedInCount > 0 || $checkinCount > 0) {
+                        $checkinStatus = 'in_progress';
+                    }
+                }
+                
+                // Hiển thị badge check-in
+                $checkinLabels = [
+                    'all_checked_in' => 'Đã check-in',
+                    'in_progress' => 'Đang check-in',
+                    'not_arrived' => 'Chưa check-in'
+                ];
+                $checkinText = $checkinLabels[$checkinStatus] ?? 'Chưa check-in';
+                $checkinClass = $checkinStatus === 'all_checked_in' ? 'status-ok' : ($checkinStatus === 'in_progress' ? 'status-run' : 'status-wait');
                 ?>
                 <div class="grid grid-3 gap-10 mt-2">
                     <div class="mini-card">
@@ -200,24 +253,43 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                         <div>
                             <div class="label">Số lượng khách</div>
                             <div class="value"><?= $cc ?> người</div>
-                            <span class="status-pill status-ok">Đã xác nhận</span>
+                            <span class="status-pill <?= $checkinClass ?>"><?= $checkinText ?></span>
+                            <?php if ($cc > 0): ?>
+                                <div class="text-muted small mt-1"><?= $checkedInCount ?>/<?= $cc ?> đã check-in</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="mini-card">
                         <div class="icon-wrap">↔</div>
                         <div>
                             <div class="label">Nhà xe</div>
-                            <div class="value"><?= htmlspecialchars($transport['name']??'—') ?></div>
-                            <div class="text-muted small">SL: <?= $transportQty ?> <?= $transportQty? ' | TT:':'' ?><span class="status-pill status-run"><?= htmlspecialchars($transportStatus) ?></span></div>
+                            <div class="value"><?= htmlspecialchars($supplierName) ?></div>
+                            <?php if ($vehicleQuantity > 0 || !empty($vehicleStatus)): ?>
+                                <div class="text-muted small">
+                                    <?php if ($vehicleQuantity > 0): ?>
+                                        SL: <?= $vehicleQuantity ?>
+                                    <?php endif; ?>
+                                    <?php if (!empty($vehicleStatus)): ?>
+                                        <?= $vehicleQuantity > 0 ? ' | ' : '' ?>TT: <span class="status-pill status-run"><?= htmlspecialchars($vehicleStatus) ?></span>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($licensePlate !== '—'): ?>
+                                <div class="text-muted small">Biển số: <?= htmlspecialchars($licensePlate) ?></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <div class="mini-card">
                         <div class="icon-wrap">👤</div>
                         <div>
                             <div class="label">Tài xế</div>
-                            <div class="value"><?= $ad ?></div>
-                            <div class="text-muted small"><?= htmlspecialchars($driverPhone) ?></div>
-                            <div class="text-muted small">⭐ 4.8/5 (120 đánh giá)</div>
+                            <div class="value"><?= $driverName ?></div>
+                            <?php if ($driverPhone !== '—'): ?>
+                                <div class="text-muted small">SDT: <?= $driverPhone ?></div>
+                            <?php endif; ?>
+                            <?php if ($vehicleCapacity): ?>
+                                <div class="text-muted small">Sức chứa: <?= $vehicleCapacity ?> chỗ</div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -305,11 +377,64 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                             <?php endif; ?>
                                         </td>
                                         <td>
-                                            <?php $note = $cus['special_requests'] ?? ''; $hasNote = !empty($note) && $note !== 'ko có' && trim($note) !== ''; ?>
-                                            <?php if ($hasNote): ?>
-                                                <div class="status-pill" style="background:#fff8db; color:#b45309; border:1px solid #fde68a;">⚠️ <?= htmlspecialchars($note) ?></div>
-                                            <?php else: ?> 
-                                                <span class="text-muted">—</span>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <?php $note = $cus['special_requests'] ?? ''; $hasNote = !empty($note) && $note !== 'ko có' && trim($note) !== ''; ?>
+                                                <?php if ($hasNote): ?>
+                                                    <div class="status-pill" style="background:#fff8db; color:#b45309; border:1px solid #fde68a;">⚠️ <?= htmlspecialchars($note) ?></div>
+                                                <?php else: ?> 
+                                                    <span class="text-muted">—</span>
+                                                <?php endif; ?>
+                                                <?php if (isset($cus['id']) && $cus['id'] > 0): ?>
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" style="padding: 2px 8px; font-size: 12px;" data-bs-toggle="modal" data-bs-target="#modalSpecialRequests<?= $cus['id'] ?>" title="Cập nhật yêu cầu đặc biệt">
+                                                        ✏️
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                            
+                                            <?php if (isset($cus['id']) && $cus['id'] > 0): ?>
+                                            <!-- Modal cập nhật yêu cầu đặc biệt -->
+                                            <div class="modal fade" id="modalSpecialRequests<?= $cus['id'] ?>" tabindex="-1" aria-labelledby="modalSpecialRequestsLabel<?= $cus['id'] ?>" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="modalSpecialRequestsLabel<?= $cus['id'] ?>">
+                                                                Cập nhật yêu cầu đặc biệt
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <form method="post" action="<?= BASE_URL ?>?action=partner-guest-update-special-requests">
+                                                            <div class="modal-body">
+                                                                <input type="hidden" name="guest_id" value="<?= $cus['id'] ?>">
+                                                                <input type="hidden" name="booking_id" value="<?= $trip_detail['booking_code'] ?? 0 ?>">
+                                                                
+                                                                <div class="mb-3">
+                                                                    <label class="form-label"><strong>Khách:</strong> <?= htmlspecialchars($cus['full_name']) ?></label>
+                                                                </div>
+                                                                
+                                                                <div class="mb-3">
+                                                                    <label for="special_requests_<?= $cus['id'] ?>" class="form-label">
+                                                                        Yêu cầu đặc biệt <small class="text-muted">(ăn chay, bệnh lý, dị ứng, v.v.)</small>
+                                                                    </label>
+                                                                    <textarea 
+                                                                        class="form-control" 
+                                                                        id="special_requests_<?= $cus['id'] ?>" 
+                                                                        name="special_requests" 
+                                                                        rows="4" 
+                                                                        placeholder="Ví dụ: Ăn chay, Dị ứng hải sản, Bệnh tiểu đường, Không ăn thịt bò, v.v."
+                                                                    ><?= htmlspecialchars($note !== 'ko có' ? $note : '') ?></textarea>
+                                                                    <div class="form-text">
+                                                                        Ghi nhận, cập nhật và nhắc lại các nhu cầu riêng biệt của khách để chuẩn bị phục vụ phù hợp suốt tour.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                                <button type="submit" class="btn btn-primary">Lưu cập nhật</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -400,21 +525,14 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
 
     <?php if ($__tab === 'itinerary'): ?>
         <?php 
-            // Lấy danh sách lịch trình từ model
             $itList = isset($trip_detail['itinerary']) && is_array($trip_detail['itinerary']) ? $trip_detail['itinerary'] : [];
-            
-            // Lấy thông tin ngày phân công
             $assignDate = $trip_detail['assign_date'] ?? null;
             $endDate = $trip_detail['end_date'] ?? null;
-            
-            // Nhóm lịch trình theo ngày - Loại bỏ duplicate và xử lý day_number đúng
             $groupedByDay = [];
             $seenItemIds = [];
-            
+
             foreach ($itList as $item) {
                 $itemId = isset($item['id']) ? (int)$item['id'] : 0;
-                
-                // Loại bỏ duplicate dựa trên ID (chỉ nếu ID > 0)
                 if ($itemId > 0 && isset($seenItemIds[$itemId])) {
                     continue;
                 }
@@ -422,24 +540,21 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                     $seenItemIds[$itemId] = true;
                 }
                 
-                // Xử lý day_number - đảm bảo là integer và >= 1
                 $rawDayNum = $item['day_number'] ?? null;
-                $dayNum = 1; // Mặc định
-                
-                if ($rawDayNum !== null) {
+                $dayNum = 1;
+                if ($rawDayNum !== null && $rawDayNum !== '') {
                     if (is_numeric($rawDayNum)) {
-                        $dayNum = (int)$rawDayNum;
+                        $dayNum = (int)floatval($rawDayNum);
                     } elseif (is_string($rawDayNum)) {
-                        $dayNum = (int)trim($rawDayNum);
+                        $trimmed = trim($rawDayNum);
+                        if (is_numeric($trimmed)) {
+                            $dayNum = (int)floatval($trimmed);
+                        }
                     } else {
                         $dayNum = (int)$rawDayNum;
                     }
                 }
-                
-                // Đảm bảo day_number >= 1
                 $dayNum = max(1, $dayNum);
-                
-                // Nhóm vào mảng
                 if (!isset($groupedByDay[$dayNum])) {
                     $groupedByDay[$dayNum] = [];
                 }
@@ -447,68 +562,61 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
             }
             ksort($groupedByDay);
             
-            // Tính toán các ngày thực tế từ assign_date
             $actualDates = [];
             $allDays = array_keys($groupedByDay);
             $maxDayFromData = !empty($allDays) ? max($allDays) : 1;
             
             if ($assignDate) {
                 $date1 = new DateTime($assignDate);
-                
-                // Tính maxDay: Lấy max từ dữ liệu hoặc từ end_date
                 $maxDayFromEndDate = 1;
-                
-                // Nếu có end_date, tính số ngày từ assign_date đến end_date
                 if ($endDate && $endDate != $assignDate) {
                     $date2 = new DateTime($endDate);
                     $diff = $date1->diff($date2);
                     $maxDayFromEndDate = $diff->days + 1;
                 }
-                
-                // maxDay = max(ngày lớn nhất có dữ liệu, số ngày từ end_date)
                 $maxDay = max($maxDayFromData, $maxDayFromEndDate);
-                
-                // Tạo mảng actualDates cho TẤT CẢ các ngày từ 1 đến maxDay
                 for ($i = 1; $i <= $maxDay; $i++) {
                     $date = clone $date1;
                     $date->modify('+' . ($i - 1) . ' days');
                     $actualDates[$i] = $date->format('Y-m-d');
                 }
             } else {
-                // Nếu không có assign_date, tạo actualDates từ groupedByDay
-                // Đảm bảo hiển thị tất cả các ngày từ 1 đến maxDay
                 $maxDay = $maxDayFromData;
                 for ($i = 1; $i <= $maxDay; $i++) {
                     $actualDates[$i] = date('Y-m-d', strtotime('+' . ($i - 1) . ' days'));
                 }
             }
             
-            // Đảm bảo tất cả các ngày có dữ liệu đều có trong actualDates
             if ($assignDate && !empty($allDays)) {
                 $date1 = new DateTime($assignDate);
                 foreach ($allDays as $dayNum) {
-                    if (!isset($actualDates[$dayNum])) {
+                    $dayKey = (int)$dayNum;
+                    if (!isset($actualDates[$dayKey])) {
                         $date = clone $date1;
-                        $date->modify('+' . ($dayNum - 1) . ' days');
-                        $actualDates[$dayNum] = $date->format('Y-m-d');
+                        $date->modify('+' . ($dayKey - 1) . ' days');
+                        $actualDates[$dayKey] = $date->format('Y-m-d');
+                    }
+                }
+                if (!empty($allDays)) {
+                    $maxDayFromData = max($allDays);
+                    if ($maxDayFromData > $maxDay) {
+                        $maxDay = $maxDayFromData;
+                        for ($i = $maxDay + 1; $i <= $maxDayFromData; $i++) {
+                            if (!isset($actualDates[$i])) {
+                                $date = clone $date1;
+                                $date->modify('+' . ($i - 1) . ' days');
+                                $actualDates[$i] = $date->format('Y-m-d');
+                            }
+                        }
                     }
                 }
                 ksort($actualDates);
             }
             
-            // Lấy ngày được chọn từ GET parameter
             $selectedDayNum = isset($_GET['day']) ? (int)$_GET['day'] : 0;
-            
-            // Nếu không có day trong GET, chọn ngày đầu tiên có dữ liệu hoặc ngày 1
             if ($selectedDayNum <= 0) {
-                if (!empty($groupedByDay)) {
-                    $selectedDayNum = min(array_keys($groupedByDay));
-                } else {
-                    $selectedDayNum = 1;
-                }
+                $selectedDayNum = !empty($groupedByDay) ? min(array_keys($groupedByDay)) : 1;
             }
-            
-            // Đảm bảo selectedDayNum hợp lệ
             if (!isset($actualDates[$selectedDayNum]) && !empty($actualDates)) {
                 $selectedDayNum = min(array_keys($actualDates));
             }
@@ -525,40 +633,40 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <?php if (!empty($actualDates) || !empty($groupedByDay)): ?>
                             <label style="font-weight: 600; color: #1e40af; margin-right: 8px;">Chọn ngày:</label>
-                            <select id="daySelector" onchange="changeDay(this.value)" style="padding: 6px 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: 600; color: #1e40af; background: #fff; cursor: pointer;">
-                                <?php 
-                                    // Hiển thị tất cả các ngày từ actualDates (đã bao gồm tất cả ngày có dữ liệu)
-                                    foreach ($actualDates as $dayNum => $dateStr): 
-                                        $displayText = 'Ngày ' . $dayNum;
-                                        
-                                        // Format ngày tháng hiển thị
-                                        if ($dateStr) {
-                                            $dateObj = new DateTime($dateStr);
-                                            $displayText .= ' (' . $dateObj->format('d/m/Y') . ')';
-                                        }
-                                        
-                                        // Kiểm tra xem ngày này đã có dữ liệu chưa để đánh dấu
-                                        $hasData = isset($groupedByDay[$dayNum]);
-                                    ?>
-                                        <option value="<?= $dayNum ?>" <?= $dayNum == $selectedDayNum ? 'selected' : '' ?>>
-                                            <?= $displayText ?> <?= !$hasData ? '(Trống)' : '' ?>
-                                        </option>
-                                    <?php endforeach; ?>
+                            <form method="get" action="<?= BASE_URL ?>" style="display: inline;">
+                                <input type="hidden" name="action" value="partner">
+                                <input type="hidden" name="tab" value="itinerary">
+                                <input type="hidden" name="booking_id" value="<?= $trip_detail['booking_code'] ?? 0 ?>">
+                                <select name="day" onchange="this.form.submit()" style="padding: 6px 12px; border: 2px solid #3b82f6; border-radius: 6px; font-size: 14px; font-weight: 600; color: #1e40af; background: #fff; cursor: pointer;">
+                                <?php foreach ($actualDates as $dayNum => $dateStr): 
+                                    $displayText = 'Ngày ' . $dayNum;
+                                    if ($dateStr) {
+                                        $dateObj = new DateTime($dateStr);
+                                        $displayText .= ' (' . $dateObj->format('d/m/Y') . ')';
+                                    }
+                                    $hasData = isset($groupedByDay[$dayNum]);
+                                ?>
+                                    <option value="<?= $dayNum ?>" <?= $dayNum == $selectedDayNum ? 'selected' : '' ?>>
+                                        <?= $displayText ?> <?= !$hasData ? '(Trống)' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
+                            </form>
                         <?php endif; ?>
                         <div class="date-pill"><span>Hôm nay: <?= date('d/m/Y') ?></span></div>
                     </div>
                 </div>
 
                 <?php 
-                    // Khởi tạo biến trước khi sử dụng
                     $total = 0; 
                     $done = 0;
-                    
-                    // Hiển thị lịch trình của ngày được chọn (ngay cả khi trống)
-                    $dayItems = isset($groupedByDay[$selectedDayNum]) ? $groupedByDay[$selectedDayNum] : [];
-                    
-                    // Tạo tiêu đề ngày với ngày thực tế (luôn hiển thị)
+                    $dayKey = (int)$selectedDayNum;
+                    $dayItems = [];
+                    if (isset($groupedByDay[$dayKey]) && is_array($groupedByDay[$dayKey])) {
+                        $dayItems = $groupedByDay[$dayKey];
+                    } elseif (isset($groupedByDay[(string)$dayKey]) && is_array($groupedByDay[(string)$dayKey])) {
+                        $dayItems = $groupedByDay[(string)$dayKey];
+                    }
                     $dayTitle = 'Ngày ' . $selectedDayNum;
                     $actualDate = $actualDates[$selectedDayNum] ?? null;
                     if ($actualDate) {
@@ -589,17 +697,10 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                     $total++;
                                     $stt = $item['current_status'] ?? 'pending'; 
                                     if($stt==='completed') $done++;
-                                    
-                                    // Lấy thời gian
                                     preg_match('/(\d{1,2}:\d{2})/', $item['time_start'] . ($item['title']??''), $m);
                                     $time = $m[1] ?? substr($item['time_start']??'',0,5);
-                                    
-                                    // Tính thời lượng
                                     $duration = '';
-                                    
-                                    // Thử tìm trong description (ví dụ: "30 phút", "2 giờ", "1h30")
                                     if (!empty($item['description'])) {
-                                        // Tìm pattern như "30 phút", "2 giờ", "1h30", "1 giờ 30 phút"
                                         if (preg_match('/(\d+)\s*(?:giờ|h|hour)(?:\s*(\d+)\s*(?:phút|ph|minute))?/i', $item['description'], $dm)) {
                                             $hours = (int)$dm[1];
                                             $minutes = isset($dm[2]) ? (int)$dm[2] : 0;
@@ -614,18 +715,15 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                             $duration = $dm[1] . ' phút';
                                         }
                                     }
-                                    
-                                    // Nếu không tìm thấy trong description, tính từ khoảng cách với hoạt động tiếp theo
                                     if (empty($duration) && isset($dayItems[$idx + 1])) {
                                         $nextItem = $dayItems[$idx + 1];
                                         $nextTime = null;
                                         if (!empty($nextItem['time_start'])) {
                                             preg_match('/(\d{1,2}):(\d{2})/', $nextItem['time_start'], $nm);
                                             if (!empty($nm)) {
-                                                $nextTime = (int)$nm[1] * 60 + (int)$nm[2]; // phút trong ngày
+                                                $nextTime = (int)$nm[1] * 60 + (int)$nm[2];
                                             }
                                         }
-                                        
                                         if ($nextTime !== null) {
                                             preg_match('/(\d{1,2}):(\d{2})/', $time, $tm);
                                             if (!empty($tm)) {
@@ -662,25 +760,22 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                         <td style="text-align: right;">
                                             <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                                                 <!-- Dropdown trạng thái điểm danh -->
-                                                <select class="status-select" 
-                                                        data-itinerary-id="<?= $item['id'] ?>" 
-                                                        onchange="updateStatus(<?= $item['id'] ?>, this.value)"
-                                                        style="padding: 6px 12px; border: 2px solid; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; min-width: 150px;">
+                                                <form method="post" action="<?= BASE_URL ?>?action=partner-update-activity" style="display: inline;">
+                                                    <input type="hidden" name="booking_id" value="<?= $trip_detail['booking_code'] ?? 0 ?>">
+                                                    <input type="hidden" name="itinerary_id" value="<?= $item['id'] ?>">
+                                                    <select name="status" onchange="this.form.submit()" 
+                                                            style="padding: 6px 12px; border: 2px solid; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; min-width: 150px; <?= $stt === 'pending' ? 'background: #f3f4f6; border-color: #9ca3af; color: #6b7280;' : ($stt === 'doing' ? 'background: #dbeafe; border-color: #3b82f6; color: #1e40af;' : 'background: #dcfce7; border-color: #22c55e; color: #166534;') ?>">
                                                     <option value="pending" <?= $stt === 'pending' ? 'selected' : '' ?> style="background: #f3f4f6; color: #6b7280;"> CHƯA BẮT ĐẦU</option>
                                                     <option value="doing" <?= $stt === 'doing' ? 'selected' : '' ?> style="background: #dbeafe; color: #1e40af;"> ĐANG THỰC HIỆN</option>
                                                     <option value="completed" <?= $stt === 'completed' ? 'selected' : '' ?> style="background: #dcfce7; color: #166534;">HOÀN THÀNH</option>
                                                 </select>
+                                                </form>
                                                 <!-- Nút chỉnh sửa -->
-                                                <button class="btn-edit-itinerary" 
-                                                        onclick="editItinerary(<?= $item['id'] ?>)"
-                                                        data-title="<?= htmlspecialchars($item['title'], ENT_QUOTES) ?>"
-                                                        data-time="<?= htmlspecialchars($item['time_start'] ?? '', ENT_QUOTES) ?>"
-                                                        data-description="<?= htmlspecialchars($item['description'] ?? '', ENT_QUOTES) ?>"
-                                                        data-location="<?= htmlspecialchars($item['location'] ?? '', ENT_QUOTES) ?>"
-                                                        data-day="<?= $item['day_number'] ?>"
-                                                        style="padding: 4px 10px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; font-size: 11px; cursor: pointer; color: #4b5563;">
+                                                <a href="<?= BASE_URL ?>?action=partner-edit-itinerary&id=<?= $item['id'] ?>&booking_id=<?= $trip_detail['booking_code'] ?? 0 ?>&day=<?= $selectedDayNum ?>" 
+                                                   class="btn-edit-itinerary" 
+                                                   style="padding: 4px 10px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; font-size: 11px; cursor: pointer; color: #4b5563; text-decoration: none; display: inline-block;">
                                                     ✏️ Chỉnh sửa
-                                                </button>
+                                                </a>
                                             </div>
                                         </td>
                                     </tr>
@@ -698,7 +793,11 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                             <p class="small text-muted">(<?= $dateObj->format('d/m/Y') ?>)</p>
                         <?php endif; ?>
                         <?php if (!empty($groupedByDay)): ?>
-                            <p class="small text-muted mt-2">Có lịch trình cho các ngày: <?= implode(', ', array_keys($groupedByDay)) ?></p>
+                            <?php if (!empty($groupedByDay)): ?>
+                                <p class="small text-muted mt-2">Có lịch trình cho các ngày: <?= implode(', ', array_keys($groupedByDay)) ?></p>
+                            <?php else: ?>
+                                <p class="small text-muted mt-2">Chưa có lịch trình cho tour này.</p>
+                            <?php endif; ?>
                         <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -712,156 +811,6 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
             </div>
         </div>
 
-        <!-- Modal chỉnh sửa lịch trình -->
-        <div id="editModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
-            <div style="background: white; padding: 24px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="margin: 0; font-size: 18px; font-weight: 700;">✏️ Chỉnh sửa lịch trình</h3>
-                    <button onclick="closeEditModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">&times;</button>
-                </div>
-                <form id="editForm" onsubmit="saveItinerary(event)">
-                    <input type="hidden" id="edit_id" name="id">
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151;">Thời gian:</label>
-                        <input type="text" id="edit_time_start" name="time_start" required
-                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;"
-                               placeholder="VD: 08:00">
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151;">Tiêu đề:</label>
-                        <input type="text" id="edit_title" name="title" required
-                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;"
-                               placeholder="VD: Đón khách tại khách sạn">
-                    </div>
-                    <div style="margin-bottom: 16px;">
-                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151;">Mô tả:</label>
-                        <textarea id="edit_description" name="description" rows="4"
-                                  style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; resize: vertical;"
-                                  placeholder="Mô tả chi tiết hoạt động..."></textarea>
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 6px; font-weight: 600; color: #374151;">Địa điểm:</label>
-                        <input type="text" id="edit_location" name="location"
-                               style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px;"
-                               placeholder="VD: Khách sạn ABC, Hà Nội">
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button type="button" onclick="closeEditModal()" 
-                                style="padding: 10px 20px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-weight: 600; color: #4b5563;">
-                            Hủy
-                        </button>
-                        <button type="submit" 
-                                style="padding: 10px 20px; background: #3b82f6; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; color: white;">
-                            💾 Lưu thay đổi
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <script>
-        function changeDay(day) {
-            const url = new URL(window.location.href);
-            // Giữ nguyên tất cả các parameters hiện tại
-            url.searchParams.set('day', day);
-            // Đảm bảo có booking_id và tab
-            const bookingId = <?= $trip_detail['booking_code'] ?? 0 ?>;
-            if (bookingId > 0) {
-                url.searchParams.set('booking_id', bookingId);
-            }
-            // Đảm bảo tab là 'itinerary'
-            url.searchParams.set('tab', 'itinerary');
-            // Đảm bảo action là 'partner'
-            url.searchParams.set('action', 'partner');
-            window.location.href = url.toString();
-        }
-        
-        function updateStatus(itineraryId, status) {
-            const bookingId = <?= $trip_detail['booking_code'] ?? 0 ?>;
-            if(bookingId == 0) return;
-            
-            // Cập nhật style của select ngay lập tức
-            const select = event.target;
-            const colors = {
-                'pending': {bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280'},
-                'doing': {bg: '#dbeafe', border: '#3b82f6', text: '#1e40af'},
-                'completed': {bg: '#dcfce7', border: '#22c55e', text: '#166534'}
-            };
-            const color = colors[status] || colors.pending;
-            select.style.background = color.bg;
-            select.style.borderColor = color.border;
-            select.style.color = color.text;
-            
-            fetch('<?= BASE_URL ?>?action=partner-update-activity', {
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({booking_id: bookingId, itinerary_id: itineraryId, status: status})
-            }).then(r=>r.json()).then(d=>{ 
-                if(d.success) {
-                    // Cập nhật số hoạt động hoàn thành
-                    setTimeout(() => location.reload(), 300);
-                } else {
-                    alert('Lỗi khi cập nhật trạng thái');
-                    location.reload();
-                }
-            });
-        }
-        
-        function editItinerary(id, title, timeStart, description, location, dayNumber) {
-            document.getElementById('edit_id').value = id;
-            document.getElementById('edit_title').value = title;
-            document.getElementById('edit_time_start').value = timeStart;
-            document.getElementById('edit_description').value = description || '';
-            document.getElementById('edit_location').value = location || '';
-            document.getElementById('editModal').style.display = 'flex';
-        }
-        
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-        }
-        
-        function saveItinerary(event) {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            const data = {
-                id: formData.get('id'),
-                time_start: formData.get('time_start'),
-                title: formData.get('title'),
-                description: formData.get('description'),
-                location: formData.get('location')
-            };
-            
-            fetch('<?= BASE_URL ?>?action=partner-update-itinerary', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(data)
-            }).then(r=>r.json()).then(d=>{
-                if(d.success) {
-                    alert('Đã cập nhật lịch trình thành công!');
-                    location.reload();
-                } else {
-                    alert('Lỗi: ' + (d.message || 'Không thể cập nhật'));
-                }
-            });
-        }
-        
-        // Cập nhật style cho các select khi load trang
-        document.addEventListener('DOMContentLoaded', function() {
-            const selects = document.querySelectorAll('.status-select');
-            selects.forEach(select => {
-                const status = select.value;
-                const colors = {
-                    'pending': {bg: '#f3f4f6', border: '#9ca3af', text: '#6b7280'},
-                    'doing': {bg: '#dbeafe', border: '#3b82f6', text: '#1e40af'},
-                    'completed': {bg: '#dcfce7', border: '#22c55e', text: '#166534'}
-                };
-                const color = colors[status] || colors.pending;
-                select.style.background = color.bg;
-                select.style.borderColor = color.border;
-                select.style.color = color.text;
-            });
-        });
-        </script>
         <?php endif; ?>
     <?php endif; ?>
 </main>

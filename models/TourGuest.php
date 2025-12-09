@@ -86,7 +86,6 @@ class TourGuest extends BaseModel
             }
             return false;
         } catch (PDOException $e) {
-            error_log('TourGuest::create error: ' . $e->getMessage());
             return false;
         }
     }
@@ -125,7 +124,6 @@ class TourGuest extends BaseModel
             
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGuest::update error: ' . $e->getMessage());
             return false;
         }
     }
@@ -140,7 +138,6 @@ class TourGuest extends BaseModel
             $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGuest::updateCheckinStatus error: ' . $e->getMessage());
             return false;
         }
     }
@@ -155,7 +152,20 @@ class TourGuest extends BaseModel
             $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGuest::updatePaymentStatus error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    public function updateSpecialRequests(int $id, ?string $specialRequests): bool
+    {
+        $sql = "UPDATE {$this->table} SET special_requests = :special_requests, updated_at = NOW() WHERE id = :id";
+        
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $this->bindNullable($stmt, ':special_requests', $specialRequests);
+            return $stmt->execute();
+        } catch (PDOException $e) {
             return false;
         }
     }
@@ -170,7 +180,6 @@ class TourGuest extends BaseModel
             $stmt->bindValue(':room_id', $roomId, PDO::PARAM_INT);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGuest::assignRoom error: ' . $e->getMessage());
             return false;
         }
     }
@@ -184,7 +193,6 @@ class TourGuest extends BaseModel
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGuest::delete error: ' . $e->getMessage());
             return false;
         }
     }

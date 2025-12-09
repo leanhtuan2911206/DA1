@@ -171,7 +171,6 @@ class AdminController
                 }
                 unset($tour);
             } catch (Throwable $e) {
-                error_log('Error fetching completed tours: ' . $e->getMessage());
                 $completedTours = [];
             }
         } catch (Throwable $e) {
@@ -317,9 +316,7 @@ class AdminController
             // getAll() là hàm lấy danh sách và đếm số tour (đã có trong file TourCategory bạn gửi)
             $listCategories = $model->getAll(); 
         } catch (Throwable $e) {
-            // Ghi log lỗi nếu database/model có vấn đề
-            error_log("Database error in AdminController::tourCategories: " . $e->getMessage());
-            $listCategories = []; // Trả về mảng rỗng để trang không bị crash
+            $listCategories = [];
         }
         
         // 3. Tải Layout chính (Truyền $view, $title, $hideNavbar, và $listCategories)

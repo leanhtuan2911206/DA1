@@ -128,7 +128,8 @@ class Booking extends BaseModel
             $sql .= ' WHERE ' . implode(' AND ', $conditions);
         }
 
-        $sql .= ' ORDER BY t.name ASC, b.start_date ASC, b.created_at DESC';
+        // Sort để booking mới nhất hiện lên đầu tiên trong mỗi tour
+        $sql .= ' ORDER BY t.name ASC, b.created_at DESC, b.start_date ASC, b.id DESC';
 
         $stmt = $this->pdo->prepare($sql);
         foreach ($params as $key => $value) {
@@ -217,7 +218,6 @@ class Booking extends BaseModel
             }
             return false;
         } catch (PDOException $e) {
-            error_log('Booking::create error: ' . $e->getMessage());
             return false;
         }
     }
@@ -271,13 +271,13 @@ class Booking extends BaseModel
 
             return $result;
         } catch (PDOException $e) {
-            error_log('Booking::update error: ' . $e->getMessage());
             return false;
         }
     }
 
     /**
      * Cập nhật chỉ trạng thái booking
+     * Tự động đồng bộ payment_status cho tất cả khách trong booking
      */
     public function updateStatus($id, string $newStatus, ?int $changedBy = null): bool
     {
@@ -295,6 +295,45 @@ class Booking extends BaseModel
             
             $result = $stmt->execute();
 
+            // Tự động đồng bộ payment_status cho tất cả khách trong booking
+            // Khi booking status = 'deposit' thì payment_status của khách = 'deposit'
+            // Khi booking status = 'paid' hoặc 'completed' thì payment_status của khách = 'paid'
+            if ($result && $oldBooking['status'] !== $newStatus) {
+                $customerPaymentStatus = null;
+                if ($newStatus === 'deposit') {
+                    $customerPaymentStatus = 'deposit';
+                } elseif (in_array($newStatus, ['paid', 'completed', 'confirmed'])) {
+                    $customerPaymentStatus = 'paid';
+                } elseif ($newStatus === 'pending' || $newStatus === 'cancelled') {
+                    $customerPaymentStatus = 'unpaid';
+                }
+                
+                if ($customerPaymentStatus !== null) {
+                    try {
+                        $customerModel = new Customer();
+                        $customers = $customerModel->getByBooking($id);
+                        foreach ($customers as $customer) {
+                            $customerId = (int)($customer['id'] ?? 0);
+                            if ($customerId > 0 && ($customer['payment_status'] ?? '') !== $customerPaymentStatus) {
+                                $customerModel->update($customerId, [
+                                    'payment_status' => $customerPaymentStatus,
+                                    'full_name' => $customer['full_name'] ?? '',
+                                    'gender' => $customer['gender'] ?? null,
+                                    'date_of_birth' => $customer['date_of_birth'] ?? null,
+                                    'id_type' => $customer['id_type'] ?? null,
+                                    'id_number' => $customer['id_number'] ?? null,
+                                    'contact_phone' => $customer['contact_phone'] ?? null,
+                                    'email' => $customer['email'] ?? null,
+                                    'address' => $customer['address'] ?? null,
+                                    'special_requests' => $customer['special_requests'] ?? null,
+                                ]);
+                            }
+                        }
+                    } catch (Throwable $e) {
+                    }
+                }
+            }
+
             // Ghi lịch sử thay đổi trạng thái
             if ($result && $oldBooking['status'] !== $newStatus) {
                 $this->recordStatusHistory($id, $oldBooking['status'], $newStatus, $changedBy);
@@ -302,7 +341,6 @@ class Booking extends BaseModel
 
             return $result;
         } catch (PDOException $e) {
-            error_log('Booking::updateStatus error: ' . $e->getMessage());
             return false;
         }
     }
@@ -328,7 +366,6 @@ class Booking extends BaseModel
             
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('Booking::recordStatusHistory error: ' . $e->getMessage());
             return false;
         }
     }
@@ -393,7 +430,6 @@ class Booking extends BaseModel
             }
         } catch (PDOException $e) {
             $this->pdo->rollBack();
-            error_log('Booking::delete error: ' . $e->getMessage());
             return false;
         }
     }
@@ -468,7 +504,6 @@ class Booking extends BaseModel
             try {
                 $this->pdo->exec("SET FOREIGN_KEY_CHECKS = 1");
             } catch (PDOException $_) {}
-            error_log('Booking::resequenceIds error: ' . $e->getMessage());
             return false;
         }
     }

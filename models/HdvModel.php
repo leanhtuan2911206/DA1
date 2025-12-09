@@ -37,7 +37,7 @@ class HdvModel extends BaseModel {
         }
         
         try {
-            $sql = "SELECT ta.*, b.customer_name, t.name as tour_name, b.total_people, b.start_date 
+            $sql = "SELECT ta.*, b.customer_name, b.tour_id, t.name as tour_name, t.id as tour_id_full, b.total_people, b.start_date 
                     FROM tour_assignments ta
                     LEFT JOIN bookings b ON ta.booking_id = b.id
                     LEFT JOIN tours t ON b.tour_id = t.id
@@ -46,9 +46,17 @@ class HdvModel extends BaseModel {
             
             $stmt = $this->pdo->prepare($sql);
             $stmt->execute([$hdvId]);
-            return $stmt->fetchAll();
+            $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Đảm bảo tour_id có trong kết quả
+            foreach ($results as &$row) {
+                if (!isset($row['tour_id']) && isset($row['tour_id_full'])) {
+                    $row['tour_id'] = $row['tour_id_full'];
+                }
+            }
+            
+            return $results;
         } catch (Throwable $e) {
-            error_log('HdvModel::getMyAssignments error: ' . $e->getMessage());
             return [];
         }
     }
@@ -122,25 +130,14 @@ class HdvModel extends BaseModel {
         
         if ($tourId > 0) {
             try {
-                // Lấy lịch trình theo booking_id để mỗi booking có lịch trình riêng
-                // Ưu tiên lấy lịch trình riêng của booking (booking_id = ?)
-                // Nếu không có, lấy lịch trình chung của tour (booking_id IS NULL)
+                // Lấy lịch trình riêng của booking (KHÔNG fallback về lịch trình chung)
+                // Mỗi booking chỉ hiển thị lịch trình riêng của nó
                 $sql = "SELECT * FROM tour_itineraries 
                         WHERE tour_id = ? AND booking_id = ?
                         ORDER BY day_number ASC, time_start ASC";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([$tourId, $bookingId]);
                 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Nếu không có lịch trình riêng của booking, lấy lịch trình chung của tour
-                if (empty($items)) {
-                    $sql = "SELECT * FROM tour_itineraries 
-                            WHERE tour_id = ? AND (booking_id IS NULL OR booking_id = 0)
-                            ORDER BY day_number ASC, time_start ASC";
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([$tourId]);
-                    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                }
                 
                 // Xử lý và chuẩn hóa dữ liệu - loại bỏ duplicate và đảm bảo kiểu dữ liệu đúng
                 $processedItems = [];
@@ -199,7 +196,6 @@ class HdvModel extends BaseModel {
                 
                 $itinerary = $processedItems;
             } catch (Throwable $e) {
-                error_log('HdvModel::getTripDetail - Error fetching itinerary: ' . $e->getMessage());
                 $itinerary = [];
             }
         }
@@ -276,7 +272,6 @@ class HdvModel extends BaseModel {
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute([$bookingId, $itineraryId, $status]);
         } catch (Throwable $e) {
-            error_log('HdvModel::updateActivityStatus error: ' . $e->getMessage());
             return false;
         }
     }
@@ -365,7 +360,6 @@ class HdvModel extends BaseModel {
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute([$timeStart, $title, $description, $location, $itineraryId]);
         } catch (PDOException $e) {
-            error_log('HdvModel::updateItinerary error: ' . $e->getMessage());
             return false;
         }
     }
@@ -394,7 +388,6 @@ class HdvModel extends BaseModel {
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute([$checkinStatus, $guestId]);
         } catch (PDOException $e) {
-            error_log('HdvModel::updateGuestCheckin error: ' . $e->getMessage());
             return false;
         }
     }

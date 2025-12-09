@@ -8,6 +8,7 @@ $genderOptions = isset($genderOptions) && is_array($genderOptions)
 $paymentStatuses = isset($paymentStatuses) && is_array($paymentStatuses)
     ? $paymentStatuses
     : ['unpaid', 'deposit', 'paid'];
+$defaultPaymentStatus = $defaultPaymentStatus ?? 'unpaid';
 ?>
 
 <main class="main-content">
@@ -126,12 +127,20 @@ $paymentStatuses = isset($paymentStatuses) && is_array($paymentStatuses)
                 </div>
                 <div class="mt-3">
                     <label class="form-label">Tình trạng thanh toán</label>
-                    <select class="form-select" name="payment_status">
-                        <?php $labels = ['unpaid' => 'Chưa thanh toán', 'deposit' => 'Đã đặt cọc', 'paid' => 'Đã thanh toán']; ?>
+                    <select class="form-select" name="payment_status" id="payment_status_select">
+                        <?php 
+                        $labels = ['unpaid' => 'Chưa thanh toán', 'deposit' => 'Đã đặt cọc', 'paid' => 'Đã thanh toán'];
+                        $defaultStatus = $defaultPaymentStatus ?? 'unpaid';
+                        ?>
                         <?php foreach ($paymentStatuses as $status): ?>
-                            <option value="<?= $status ?>"><?= $labels[$status] ?? $status ?></option>
+                            <option value="<?= $status ?>" <?= $status === $defaultStatus ? 'selected' : '' ?>>
+                                <?= $labels[$status] ?? $status ?>
+                            </option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if (isset($defaultPaymentStatus) && $defaultPaymentStatus !== 'unpaid'): ?>
+                        <small class="text-muted">💡 Trạng thái mặc định từ khách đầu tiên trong booking để đảm bảo đồng nhất</small>
+                    <?php endif; ?>
                 </div>
                 <div class="mt-3">
                     <label class="form-label">Yêu cầu cá nhân</label>

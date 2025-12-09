@@ -43,28 +43,6 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
         <div class="alert alert-danger mb-3"><?= htmlspecialchars($_SESSION['error']) ?></div>
         <?php unset($_SESSION['error']); ?>
     <?php endif; ?>
-    <?php if (!empty($_SESSION['new_tour_debug'])): $dbg = $_SESSION['new_tour_debug']; ?>
-        <div class="mb-3">
-            <?php if ($dbg['foundInList']): ?>
-                <div class="alert alert-success"><?= htmlspecialchars($dbg['message']) ?></div>
-            <?php else: ?>
-                <div class="alert alert-warning">
-                    <?= htmlspecialchars($dbg['message']) ?>
-                    <?php if (!empty($dbg['error'])): ?>
-                        <div class="small mt-2">
-                            <strong>Chi tiết lỗi:</strong>
-                            <pre style="white-space:pre-wrap; background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 5px;"><?= htmlspecialchars(is_array($dbg['error']) ? json_encode($dbg['error'], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT) : $dbg['error']) ?></pre>
-                        </div>
-                    <?php endif; ?>
-                    <?php if (!empty($dbg['direct'])): ?>
-                        <div class="small mt-2">Dữ liệu lưu trực tiếp: <pre style="white-space:pre-wrap"><?= htmlspecialchars(json_encode($dbg['direct'], JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT)) ?></pre></div>
-                    <?php else: ?>
-                        <div class="small mt-2 text-muted">Không tìm thấy bản ghi trong CSDL.</div>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-    <?php unset($_SESSION['new_tour_debug']); endif; ?>
 
     <div class="card-like mb-4">
         <form class="filter-bar" method="get" action="<?= BASE_URL ?>">
@@ -154,7 +132,6 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                     : BASE_ASSETS_UPLOADS . 'img/1.jpg';
                                 $price = $tour['price'] ?? null;
                                 $estRevenue = is_numeric($price) ? (float)$price * 0.4 : null;
-                                // hiển thi thị trạng thái tour
                                 $rawStatus = strtolower($tour['status'] ?? 'active');
                                 $statusText = 'Hoạt động';
                                 $statusClass = 'bg-secondary';
@@ -177,7 +154,6 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                         $statusClass = 'bg-danger';
                                         break;
                                     default:
-                                        // Nếu DB lưu sẵn tiếng Việt thì dùng trực tiếp
                                         $statusText = $tour['status'] ?? 'Hoạt động';
                                         if (in_array(mb_strtolower($statusText), ['hoạt động'])) {
                                             $statusClass = 'bg-success';
@@ -220,11 +196,12 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                 <td>
                                     <div class="d-flex flex-column gap-2">
                                         <div class="d-flex gap-2">
-                                            <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" 
+                                            <button type="button" 
                                                 class="btn btn-sm btn-info text-white" 
-                                                title="Xem lịch trình chi tiết">
+                                                title="Xem lịch trình chi tiết"
+                                                href="<?= BASE_URL ?>?action=tours-itinerary-view&tour_id=<?= $tour['id'] ?>">
                                                 📄
-                                            </a>
+                                            </button>
                                             <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                             <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
                                         </div>
@@ -251,4 +228,5 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
         </div>
     </div>
 </main>
+
 

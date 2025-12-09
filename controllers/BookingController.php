@@ -52,7 +52,6 @@ class BookingController
             }
             unset($tourGroup);
         } catch (Throwable $e) {
-            error_log("Error in BookingController::index: " . $e->getMessage());
             $bookingsGrouped = [];
             $tours = [];
         }
@@ -82,7 +81,6 @@ class BookingController
             $tourModel = new Tour();
             $tours = $tourModel->listWithCategory([]);
         } catch (Throwable $e) {
-            error_log("Error loading tours: " . $e->getMessage());
         }
 
         require_once PATH_VIEW . 'main.php';
@@ -141,6 +139,33 @@ class BookingController
             $bookingId = $bookingModel->create($data);
 
             if ($bookingId) {
+                // Tự động tạo customer record đầu tiên từ thông tin booking
+                // Để khi xem danh sách khách hàng, tên người đặt tour tự động có trong đó
+                try {
+                    $customerModel = new Customer();
+                    $existingCustomers = $customerModel->getByBooking($bookingId);
+                    
+                    // Chỉ tạo nếu chưa có customer nào trong booking
+                    if (empty($existingCustomers) && !empty($customer_name)) {
+                        $customerData = [
+                            'booking_id' => $bookingId,
+                            'full_name' => $customer_name,
+                            'contact_phone' => $customer_phone ?: null,
+                            'email' => $customer_email ?: null,
+                            'payment_status' => $status === 'deposit' ? 'deposit' : ($status === 'paid' || $status === 'completed' || $status === 'confirmed' ? 'paid' : 'unpaid'),
+                            'gender' => null,
+                            'date_of_birth' => null,
+                            'id_type' => null,
+                            'id_number' => null,
+                            'address' => null,
+                            'special_requests' => null,
+                        ];
+                        
+                        $customerModel->create($customerData);
+                    }
+                } catch (Throwable $e) {
+                }
+                
                 $_SESSION['success'] = 'Tạo booking thành công!';
                 header('Location: ' . BASE_URL . '?action=bookings');
                 exit;
@@ -150,7 +175,6 @@ class BookingController
                 exit;
             }
         } catch (Throwable $e) {
-            error_log("Error creating booking: " . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra: ' . $e->getMessage();
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
@@ -197,7 +221,6 @@ class BookingController
                 exit;
             }
         } catch (Throwable $e) {
-            error_log("Error loading booking edit: " . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra khi tải dữ liệu!';
             header('Location: ' . BASE_URL . '?action=bookings');
             exit;
@@ -264,7 +287,6 @@ class BookingController
                 $tourLogs = $logModel->getByBookingId($booking['id']);
             }
         } catch (Throwable $e) {
-            error_log("Error loading booking detail: " . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra khi tải dữ liệu!';
             header('Location: ' . BASE_URL . '?action=bookings');
             exit;
@@ -329,7 +351,6 @@ class BookingController
 
     public function storeLog()
     {
-        // Kiểm tra đăng nhập
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -340,6 +361,12 @@ class BookingController
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=bookings');
+            exit;
+        }
+
+        // Nếu là preview (chọn log_type), quay lại form với log_type đã chọn
+        if (isset($_POST['preview']) && $_POST['preview'] == '1' && !empty($_POST['log_type'])) {
+            header('Location: ' . BASE_URL . '?action=bookings-log-create&booking_id=' . (int)$_POST['booking_id'] . '&log_type=' . urlencode($_POST['log_type']));
             exit;
         }
 
@@ -516,7 +543,6 @@ class BookingController
                 exit;
             }
         } catch (Throwable $e) {
-            error_log("Error updating booking: " . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra: ' . $e->getMessage();
             header('Location: ' . BASE_URL . '?action=bookings-edit&id=' . $id);
             exit;
@@ -548,15 +574,36 @@ class BookingController
         // Cập nhật trạng thái
         try {
             $bookingModel = new Booking();
+            $oldBooking = $bookingModel->find($id);
             $result = $bookingModel->updateStatus($id, $status, $changed_by);
 
             if ($result) {
-                $_SESSION['success'] = 'Cập nhật trạng thái thành công!';
+                // Kiểm tra xem có cần đồng bộ payment_status cho khách không
+                $customerModel = new Customer();
+                $customers = $customerModel->getByBooking($id);
+                $customerCount = count($customers);
+                
+                $statusMessages = [
+                    'deposit' => 'Đã đặt cọc',
+                    'paid' => 'Đã thanh toán',
+                    'completed' => 'Đã hoàn thành',
+                    'confirmed' => 'Đã xác nhận',
+                    'pending' => 'Chờ xác nhận',
+                    'cancelled' => 'Đã hủy'
+                ];
+                
+                $statusText = $statusMessages[$status] ?? $status;
+                
+                if ($customerCount > 0 && in_array($status, ['deposit', 'paid', 'completed', 'confirmed'])) {
+                    $paymentStatusText = $status === 'deposit' ? 'đã đặt cọc' : 'đã thanh toán';
+                    $_SESSION['success'] = "Cập nhật trạng thái booking thành '$statusText' và đồng bộ trạng thái thanh toán ($paymentStatusText) cho $customerCount khách trong booking.";
+                } else {
+                    $_SESSION['success'] = "Cập nhật trạng thái booking thành '$statusText' thành công!";
+                }
             } else {
                 $_SESSION['error'] = 'Có lỗi xảy ra khi cập nhật trạng thái!';
             }
         } catch (Throwable $e) {
-            error_log("Error updating status: " . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra: ' . $e->getMessage();
         }
 
@@ -594,7 +641,6 @@ class BookingController
                 $_SESSION['error'] = 'Có lỗi xảy ra khi xóa booking!';
             }
         } catch (Throwable $e) {
-            error_log("Error deleting booking: " . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra: ' . $e->getMessage();
         }
 
@@ -722,7 +768,12 @@ class BookingController
             if (isset($_POST['save_and_continue']) && $booking_id > 0) {
                 header('Location: ' . BASE_URL . '?action=bookings-itinerary-create&booking_id=' . $booking_id);
             } else {
-                header('Location: ' . BASE_URL . '?action=bookings');
+                // Redirect về bookings-detail để xem lịch trình vừa thêm
+                if ($booking_id > 0) {
+                    header('Location: ' . BASE_URL . '?action=bookings-detail&id=' . $booking_id);
+                } else {
+                    header('Location: ' . BASE_URL . '?action=bookings');
+                }
             }
         } else {
             $_SESSION['error'] = 'Lỗi khi lưu dữ liệu.';

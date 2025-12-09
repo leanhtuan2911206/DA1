@@ -80,7 +80,6 @@ class TourIssue extends BaseModel
             }
             return false;
         } catch (PDOException $e) {
-            error_log('TourIssue::create error: ' . $e->getMessage());
             return false;
         }
     }

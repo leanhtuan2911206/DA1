@@ -24,9 +24,6 @@ class TourCategoryController
             $model = new TourCategory(); 
             $listCategories = $model->getAll(); 
         } catch (Throwable $e) {
-            // Xử lý lỗi - ghi log để debug
-            error_log("Database error in TourCategoryController: " . $e->getMessage());
-            // Hiển thị lỗi để debug (tạm thời)
             // echo "Error: " . $e->getMessage(); die;
             $listCategories = [];
         }
@@ -82,7 +79,6 @@ class TourCategoryController
                 $_SESSION['success'] = "Thêm danh mục **\"" . htmlspecialchars($name) . "\"** thành công!";
                 
             } catch (Throwable $e) {
-                error_log("TourCategoryController::store() error: " . $e->getMessage());
                 $_SESSION['error'] = 'Lỗi database: Không thể thêm danh mục.';
                 header('Location:' . BASE_URL . '?action=tour-categories-create');
                 exit;
@@ -168,7 +164,6 @@ class TourCategoryController
                 $_SESSION['success'] = 'Đã cập nhật danh mục "' . htmlspecialchars($name) . '".';
             }
         } catch (Throwable $e) {
-            error_log("TourCategoryController::update() error: " . $e->getMessage());
             $_SESSION['error'] = 'Không thể cập nhật danh mục lúc này.';
             header('Location:' . BASE_URL . '?action=tour-categories-edit&id=' . $id);
             exit;
@@ -204,7 +199,6 @@ class TourCategoryController
                 $_SESSION['success'] = 'Đã xóa danh mục "' . htmlspecialchars($category['name']) . '".';
             }
         } catch (Throwable $e) {
-            error_log("TourCategoryController::delete() error: " . $e->getMessage());
             $_SESSION['error'] = 'Không thể xóa danh mục lúc này.';
         }
 

@@ -43,7 +43,6 @@ class AuthController
                                 $user = $userModel->find((int)$row['user_id']);
                             }
                         } catch (Throwable $e) {
-                            error_log('AuthController::login - Error finding user by contact: ' . $e->getMessage());
                         }
                     }
 
@@ -113,8 +112,7 @@ class AuthController
                                         $updateStmt->execute([':uid' => (int)$user['id'], ':gid' => $guideId]);
                                     }
                                 }
-                            } catch (Throwable $e) { 
-                                error_log('AuthController::login - Error finding guide_id: ' . $e->getMessage());
+                            } catch (Throwable $e) {
                             }
                         }
                         $_SESSION['user'] = [
@@ -151,8 +149,8 @@ class AuthController
         $_SESSION = [];
         // Hủy session
         session_destroy();
-        // Chuyển hướng về trang chủ hoặc trang đăng nhập
-        header('Location: ' . BASE_URL);
+        // Chuyển hướng về trang đăng nhập
+        header('Location: ' . BASE_URL . '?action=login');
         exit;
     }
 }

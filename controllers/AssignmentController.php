@@ -103,7 +103,6 @@ class AssignmentController
                 }
             }
         } catch (Throwable $e) {
-            error_log('Error checking guide status: ' . $e->getMessage());
         }
         
         // Kiểm tra HDV đã được phân bổ chưa
@@ -115,7 +114,6 @@ class AssignmentController
                 exit;
             }
         } catch (Throwable $e) {
-            error_log('Error checking guide assignment: ' . $e->getMessage());
         }
         
         try {
@@ -251,7 +249,6 @@ class AssignmentController
                 }
             }
         } catch (Throwable $e) {
-            error_log('Error checking guide status: ' . $e->getMessage());
         }
         
         // Kiểm tra HDV đã được phân bổ chưa (loại trừ assignment hiện tại)
@@ -263,7 +260,6 @@ class AssignmentController
                 exit;
             }
         } catch (Throwable $e) {
-            error_log('Error checking guide assignment: ' . $e->getMessage());
         }
         
         try {

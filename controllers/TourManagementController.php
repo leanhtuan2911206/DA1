@@ -36,7 +36,6 @@ class TourManagementController
                 });
             }
         } catch (Throwable $e) {
-            error_log('TourManagementController::index error: ' . $e->getMessage());
             $tours = [];
             $allGroups = [];
         }
@@ -74,7 +73,6 @@ class TourManagementController
             $guests = $guestModel->getByGroup($groupId);
             $rooms = $roomModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourManagementController::listGuests error: ' . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra';
             header('Location: ' . BASE_URL . '?action=tour-management');
             exit;
@@ -98,7 +96,6 @@ class TourManagementController
             $tours = $tourModel->listWithCategory([]);
             $bookings = $bookingModel->listSimple([]);
         } catch (Throwable $e) {
-            error_log('TourManagementController::createGroup error: ' . $e->getMessage());
             $tours = [];
             $bookings = [];
         }
@@ -240,7 +237,6 @@ class TourManagementController
             }
             $rooms = $roomModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourManagementController::addGuest error: ' . $e->getMessage());
             $group = null;
             $rooms = [];
         }
@@ -300,7 +296,6 @@ class TourManagementController
                 header('Location: ' . BASE_URL . '?action=tour-guest-add&group_id=' . $group_id);
             }
         } catch (Throwable $e) {
-            error_log('TourManagementController::storeGuest error: ' . $e->getMessage());
             $_SESSION['error'] = 'Lỗi: ' . $e->getMessage();
             header('Location: ' . BASE_URL . '?action=tour-guest-add&group_id=' . $group_id);
         }
@@ -336,7 +331,6 @@ class TourManagementController
             }
             $rooms = $roomModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourManagementController::editGuest error: ' . $e->getMessage());
             $_SESSION['error'] = 'Có lỗi xảy ra';
             header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $groupId);
             exit;
@@ -477,6 +471,46 @@ class TourManagementController
         exit;
     }
 
+    public function updateGuestSpecialRequests(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=tour-management');
+            exit;
+        }
+
+        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
+        $group_id = isset($_POST['group_id']) ? (int) $_POST['group_id'] : 0;
+        $special_requests = isset($_POST['special_requests']) ? trim($_POST['special_requests']) : '';
+
+        if ($id <= 0 || $group_id <= 0) {
+            $_SESSION['error'] = 'Dữ liệu không hợp lệ';
+            header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $group_id);
+            exit;
+        }
+
+        $guestModel = new TourGuest();
+        $special_requests = $special_requests !== '' ? $special_requests : null;
+        
+        if ($guestModel->updateSpecialRequests($id, $special_requests)) {
+            $_SESSION['success'] = 'Cập nhật yêu cầu đặc biệt thành công';
+            
+            // Lấy thông tin khách để hiển thị cảnh báo nếu có yêu cầu đặc biệt
+            $guest = $guestModel->find($id);
+            if ($guest && $special_requests && trim($special_requests) !== '') {
+                $idDoc = trim($guest['id_number'] ?? '');
+                $extra = $idDoc !== '' ? (' · Số giấy tờ: ' . $idDoc) : '';
+                $_SESSION['warning_special'] = 'Ghi nhận yêu cầu đặc biệt cho khách #' . $guest['id'] . ' (' . $guest['full_name'] . ')' . $extra . ': ' . $special_requests;
+            }
+        } else {
+            $_SESSION['error'] = 'Không thể cập nhật yêu cầu đặc biệt';
+        }
+
+        header('Location: ' . BASE_URL . '?action=tour-guests&group_id=' . $group_id);
+        exit;
+    }
+
     public function deleteGuest(): void
     {
         $this->ensureAuthenticated();
@@ -516,7 +550,6 @@ class TourManagementController
             $group = $groupModel->getWithDetails($groupId);
             $guests = $guestModel->getByGroup($groupId);
         } catch (Throwable $e) {
-            error_log('TourManagementController::printList error: ' . $e->getMessage());
             $group = null;
             $guests = [];
         }

@@ -50,7 +50,6 @@ class Tour extends BaseModel
         $existing = $this->find($id);
         if (!$existing) {
             $this->lastError = ['error' => 'Tour không tồn tại', 'id' => $id];
-            error_log('Tour::update - Tour không tồn tại: ' . $id);
             return false;
         }
         
@@ -60,11 +59,9 @@ class Tour extends BaseModel
             $checkCat->execute([$category_id]);
             if (!$checkCat->fetch()) {
                 $this->lastError = ['error' => 'Category không tồn tại', 'category_id' => $category_id];
-                error_log('Tour::update - Category không tồn tại: ' . $category_id);
                 return false;
             }
         } catch (Throwable $e) {
-            error_log('Tour::update - Lỗi kiểm tra category: ' . $e->getMessage());
         }
         
         // Kiểm tra các cột có tồn tại không
@@ -128,7 +125,6 @@ class Tour extends BaseModel
                     'hasUpdatedAt' => $hasUpdatedAt
                 ]
             ];
-            error_log('Tour::update - execute returned false; errorInfo: ' . json_encode($this->lastError));
             return false;
         } catch (PDOException $e) {
             $this->lastError = [
@@ -146,7 +142,6 @@ class Tour extends BaseModel
                     'hasUpdatedAt' => $hasUpdatedAt
                 ]
             ];
-            error_log('Tour::update exception: ' . $e->getMessage() . ' | Code: ' . $e->getCode() . ' | SQL: ' . $sql);
             return false;
         }
     }
@@ -166,11 +161,9 @@ class Tour extends BaseModel
             $checkCat->execute([$category_id]);
             if (!$checkCat->fetch()) {
                 $this->lastError = ['error' => 'Category không tồn tại', 'category_id' => $category_id];
-                error_log('Tour::insert - Category không tồn tại: ' . $category_id);
                 return false;
             }
         } catch (Throwable $e) {
-            error_log('Tour::insert - Lỗi kiểm tra category: ' . $e->getMessage());
         }
         
         // Kiểm tra xem bảng có các cột không
@@ -219,7 +212,6 @@ class Tour extends BaseModel
                     'hasCreatedAt' => $hasCreatedAt
                 ]
             ];
-            error_log('Tour::insert - execute returned false; errorInfo: ' . json_encode($this->lastError));
             return false;
         } catch (PDOException $e) {
             $this->lastError = [
@@ -236,7 +228,6 @@ class Tour extends BaseModel
                     'hasCreatedAt' => $hasCreatedAt
                 ]
             ];
-            error_log('Tour::insert exception: ' . $e->getMessage() . ' | Code: ' . $e->getCode() . ' | SQL: ' . $sql);
             return false;
         }
     }
@@ -265,7 +256,6 @@ class Tour extends BaseModel
             return true;
         } catch (PDOException $e) {
             try { $this->pdo->rollBack(); } catch (Throwable $_) {}
-            error_log('Tour::resequenceIds error: ' . $e->getMessage());
             return false;
         }
     }
@@ -336,37 +326,28 @@ class Tour extends BaseModel
             $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
             if (!$exists) { return []; }
             
-            // Ưu tiên lấy lịch trình riêng của booking, nếu không có thì lấy lịch trình chung của tour
+            // Nếu có booking_id, chỉ lấy lịch trình riêng của booking (KHÔNG fallback về lịch trình chung)
             if ($bookingId !== null && $bookingId > 0) {
-                // Thử lấy lịch trình riêng của booking trước
+                // Chỉ lấy lịch trình riêng của booking
+                // Sử dụng nhiều cách so sánh để đảm bảo tìm được dữ liệu (xử lý cả string, int, và NULL)
                 $sql = "SELECT * FROM tour_itineraries 
-                        WHERE tour_id = ? AND booking_id = ? 
-                        ORDER BY day_number ASC, time_start ASC";
+                        WHERE tour_id = ? AND (booking_id = ? OR booking_id = CAST(? AS UNSIGNED) OR CAST(COALESCE(booking_id, 0) AS UNSIGNED) = ?)
+                        ORDER BY CAST(day_number AS UNSIGNED) ASC, time_start ASC";
                 $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([$tourId, $bookingId]);
-                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                $stmt->execute([$tourId, $bookingId, $bookingId, $bookingId]);
+                $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
-                // Nếu không có lịch trình riêng, lấy lịch trình chung của tour
-                if (empty($items)) {
-                    $sql = "SELECT * FROM tour_itineraries 
-                            WHERE tour_id = ? AND (booking_id IS NULL OR booking_id = 0)
-                            ORDER BY day_number ASC, time_start ASC";
-                    $stmt = $this->pdo->prepare($sql);
-                    $stmt->execute([$tourId]);
-                    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                }
-                return $items;
+                return $results;
             } else {
                 // Lấy lịch trình chung của tour (booking_id IS NULL hoặc = 0)
                 $sql = "SELECT * FROM tour_itineraries 
-                        WHERE tour_id = ? AND (booking_id IS NULL OR booking_id = 0)
-                        ORDER BY day_number ASC, time_start ASC";
+                        WHERE tour_id = ? AND (booking_id IS NULL OR CAST(booking_id AS UNSIGNED) = 0)
+                        ORDER BY CAST(day_number AS UNSIGNED) ASC, time_start ASC";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([$tourId]);
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
             }
         } catch (Throwable $e) {
-            error_log('Tour::getItineraryByTourId error: ' . $e->getMessage());
             return [];
         }
     }
@@ -414,26 +395,44 @@ class Tour extends BaseModel
                         $this->pdo->exec("ALTER TABLE tour_itineraries ADD INDEX idx_booking_id (booking_id)");
                         $this->pdo->exec("ALTER TABLE tour_itineraries ADD FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE");
                     } catch (Throwable $e) {
-                        error_log('Tour::insertItinerary - Error adding booking_id column: ' . $e->getMessage());
                     }
                 }
             }
         } catch (Throwable $e) {
-            error_log('Tour::insertItinerary - Error checking/creating table: ' . $e->getMessage());
         }
+        
+        // Đảm bảo booking_id là null hoặc integer > 0
+        $bookingIdValue = null;
+        if ($booking_id !== null && $booking_id > 0) {
+            $bookingIdValue = (int)$booking_id;
+        }
+        
         
         $sql = "INSERT INTO tour_itineraries (tour_id, booking_id, day_number, time_start, title, description, location, created_at) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
         try {
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute([$tour_id, $booking_id, $day_number, $time_start, $title, $description, $location]);
+            // Bind parameters với đúng kiểu dữ liệu
+            $stmt->bindValue(1, (int)$tour_id, PDO::PARAM_INT);
+            if ($bookingIdValue !== null) {
+                $stmt->bindValue(2, $bookingIdValue, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue(2, null, PDO::PARAM_NULL);
+            }
+            $stmt->bindValue(3, (int)$day_number, PDO::PARAM_INT);
+            $stmt->bindValue(4, $time_start ?: null, PDO::PARAM_STR);
+            $stmt->bindValue(5, $title, PDO::PARAM_STR);
+            $stmt->bindValue(6, $description ?: null, PDO::PARAM_STR);
+            $stmt->bindValue(7, $location ?: null, PDO::PARAM_STR);
+            
+            $result = $stmt->execute();
+            
+            return $result;
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
-            error_log('Tour::insertItinerary error: ' . $e->getMessage());
             return false;
         } catch (Throwable $e) {
             $this->lastError = $e->getMessage();
-            error_log('Tour::insertItinerary error: ' . $e->getMessage());
             return false;
         }
     }
@@ -457,7 +456,6 @@ class Tour extends BaseModel
             return $result;
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
-            error_log('Tour::updateItinerary error: ' . $e->getMessage());
             return false;
         }
     }
@@ -472,7 +470,6 @@ class Tour extends BaseModel
             return $stmt->fetch(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
-            error_log('Tour::getItineraryById error: ' . $e->getMessage());
             return false;
         }
     }
@@ -486,7 +483,6 @@ class Tour extends BaseModel
             return $stmt->execute([$id]);
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
-            error_log('Tour::deleteItinerary error: ' . $e->getMessage());
             return false;
         }
     }
@@ -512,7 +508,6 @@ class Tour extends BaseModel
             return $result ? $result['id'] : false;
         } catch (PDOException $e) {
             $this->lastError = $e->getMessage();
-            error_log('Tour::findItineraryByDetails error: ' . $e->getMessage());
             return false;
         }
     }
@@ -563,7 +558,6 @@ class Tour extends BaseModel
             $stmt->execute([$tourId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
-            error_log('Tour::getAssignedGuides error: ' . $e->getMessage());
             return [];
         }
     }
@@ -610,7 +604,6 @@ class Tour extends BaseModel
             $stmt->execute([$tourId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
-            error_log('Tour::getAssignedBookings error: ' . $e->getMessage());
             return [];
         }
     }
@@ -644,7 +637,6 @@ class Tour extends BaseModel
             $count = (int)$stmt->fetchColumn();
             return $count > 0;
         } catch (Throwable $e) {
-            error_log('Tour::hasAssignment error: ' . $e->getMessage());
             return false;
         }
     }
@@ -677,7 +669,6 @@ class Tour extends BaseModel
             $stmt->execute([$tourId]);
             return (int)$stmt->fetchColumn();
         } catch (Throwable $e) {
-            error_log('Tour::getAssignedBookingCount error: ' . $e->getMessage());
             return 0;
         }
     }
@@ -720,7 +711,6 @@ class Tour extends BaseModel
             $stmt->execute([$tourId]);
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (Throwable $e) {
-            error_log('Tour::getUnassignedBookings error: ' . $e->getMessage());
             return [];
         }
     }

@@ -36,61 +36,16 @@ class TourController
             }
             unset($tour); // Hủy tham chiếu
         } catch (Throwable $e) {
-            error_log('TourController::index list error: ' . $e->getMessage());
             $tours = [];
         }
 
-        // Debug: if we just created a tour, verify it's present in the list or exists in DB
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
-        }
-        if (!empty($_SESSION['new_tour_id'])) {
-            $newId = (int) $_SESSION['new_tour_id'];
-            $foundInList = false;
-            foreach ($tours as $t) {
-                if (isset($t['id']) && (int)$t['id'] === $newId) {
-                    $foundInList = true;
-                    break;
-                }
-            }
-
-            $debug = [
-                'id' => $newId,
-                'foundInList' => $foundInList,
-                'direct' => null,
-                'message' => '',
-            ];
-
-            if ($foundInList) {
-                $debug['message'] = "Thêm tour thành công.";
-                error_log('TourController: ' . $debug['message']);
-            } else {
-                $debug['message'] = "Tour id {$newId} KHÔNG tìm thấy trong danh sách, sẽ kiểm tra trực tiếp.";
-                error_log('TourController: ' . $debug['message']);
-                try {
-                    $direct = $tourModel->find($newId);
-                    $debug['direct'] = $direct ?: null;
-                    if ($direct) {
-                        error_log('TourController: direct find returned tour: ' . json_encode($direct));
-                    } else {
-                        error_log('TourController: direct find returned NO ROW for id ' . $newId);
-                    }
-                } catch (Throwable $e) {
-                    error_log('TourController::index direct find error: ' . $e->getMessage());
-                    $debug['message'] .= ' Lỗi khi tìm trực tiếp.';
-                }
-            }
-
-            // Lưu kết quả debug vào session để view có thể hiển thị lên trang
-            $_SESSION['new_tour_debug'] = $debug;
-            // Xóa id debug cũ
-            unset($_SESSION['new_tour_id']);
         }
 
         try {
             $categories = $categoryModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourController::index category error: ' . $e->getMessage());
             $categories = [];
         }
 
@@ -120,7 +75,6 @@ class TourController
         try {
             $categories = $categoryModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourController::edit category error: ' . $e->getMessage());
             $categories = [];
         }
 
@@ -223,7 +177,6 @@ class TourController
                 exit;
             }
         } catch (Throwable $e) {
-            error_log('TourController::update error: ' . $e->getMessage());
             $_SESSION['error'] = 'Lỗi khi cập nhật tour.';
             header('Location: ' . BASE_URL . '?action=tours-edit&id=' . $id);
             exit;
@@ -241,7 +194,6 @@ class TourController
         try {
             $categories = $categoryModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourController::create category error: ' . $e->getMessage());
             $categories = [];
         }
 
@@ -250,7 +202,6 @@ class TourController
         try {
             $templates = $templateModel->getAll();
         } catch (Throwable $e) {
-            error_log('TourController::create template error: ' . $e->getMessage());
             $templates = [];
         }
 
@@ -259,7 +210,6 @@ class TourController
         try {
             $existingTours = $tourModel->listWithCategory([]);
         } catch (Throwable $e) {
-            error_log('TourController::create existing tours error: ' . $e->getMessage());
             $existingTours = [];
         }
 
@@ -321,7 +271,6 @@ class TourController
                 $filename = time() . '_' . bin2hex(random_bytes(6)) . ($ext ? ('.' . $ext) : '');
                 $target = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
                 if (!move_uploaded_file($file['tmp_name'], $target)) {
-                    error_log('TourController::store - move_uploaded_file failed for ' . $target);
                     $_SESSION['error'] = 'Không thể lưu file ảnh.';
                     header('Location: ' . BASE_URL . '?action=tours-create');
                     exit;
@@ -344,24 +293,10 @@ class TourController
             );
             if ($newId) {
                 $_SESSION['success'] = 'Thêm tour thành công.';
-                // Keep new inserted id for debugging check in index()
-                $_SESSION['new_tour_id'] = $newId;
             } else {
                 $_SESSION['error'] = 'Không thể lưu tour.';
-                // Lưu lỗi chi tiết vào session để hiển thị trên trang (debug)
-                $err = $tourModel->getLastError();
-                $_SESSION['new_tour_debug'] = [
-                    'id' => null,
-                    'foundInList' => false,
-                    'direct' => null,
-                    'message' => 'Lỗi khi insert. Xem chi tiết dưới.',
-                    'error' => $err,
-                    'post' => $_POST,
-                ];
             }
         } catch (Throwable $e) {
-            error_log('TourController::store exception: ' . $e->getMessage());
-            error_log('TourController::store POST data: ' . json_encode($_POST));
             $_SESSION['error'] = 'Lỗi khi lưu tour.';
         }
 
@@ -400,14 +335,9 @@ class TourController
             $tourModel->delete($id);
 
             // Resequence ids to be contiguous starting from 1
-            $ok = $tourModel->resequenceIds();
-            if (!$ok) {
-                error_log('TourController::delete - resequenceIds failed');
-            }
-
+            $tourModel->resequenceIds();
             $_SESSION['success'] = 'Đã xóa tour.';
         } catch (Throwable $e) {
-            error_log('TourController::delete error: ' . $e->getMessage());
             $_SESSION['error'] = 'Lỗi khi xóa tour.';
         }
 
@@ -471,8 +401,56 @@ class TourController
                 echo json_encode(['success' => false, 'message' => 'Tham số không hợp lệ.']);
             }
         } catch (Throwable $e) {
-            error_log('TourController::getTourInfo error: ' . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Lỗi khi lấy thông tin.']);
+        }
+        exit;
+    }
+
+    public function getItineraryJson(): void
+    {
+        $this->ensureAuthenticated();
+        header('Content-Type: application/json');
+
+        $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+        $bookingId = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : null;
+
+        if ($tourId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Tour ID không hợp lệ.']);
+            exit;
+        }
+
+        try {
+            $tourModel = new Tour();
+            $tour = $tourModel->find($tourId);
+            if (!$tour) {
+                echo json_encode(['success' => false, 'message' => 'Tour không tồn tại.']);
+                exit;
+            }
+
+            $itineraries = $tourModel->getItineraryByTourId($tourId, $bookingId);
+            
+            // Group by day
+            $groupedByDay = [];
+            foreach ($itineraries as $item) {
+                $dayNum = max(1, (int)($item['day_number'] ?? 1));
+                if (!isset($groupedByDay[$dayNum])) {
+                    $groupedByDay[$dayNum] = [];
+                }
+                $groupedByDay[$dayNum][] = $item;
+            }
+            ksort($groupedByDay);
+
+            echo json_encode([
+                'success' => true,
+                'tour' => [
+                    'id' => $tour['id'],
+                    'name' => $tour['name'],
+                ],
+                'itineraries' => $itineraries,
+                'groupedByDay' => $groupedByDay
+            ]);
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'message' => 'Lỗi khi lấy lịch trình.']);
         }
         exit;
     }
@@ -592,7 +570,6 @@ class TourController
             }
         } else {
             $errorMsg = 'Lỗi khi cập nhật dữ liệu.';
-            // Nếu model có lưu lastError, hiển thị ra để debug
             if (isset($tourModel->lastError) && !empty($tourModel->lastError)) {
                 $errorMsg .= ' Chi tiết: ' . $tourModel->lastError;
             }
@@ -673,7 +650,6 @@ class TourController
                 if ($keyword !== '') { $filters['keyword'] = $keyword; }
                 $tours = $tourModel->listWithCategory($filters);
             } catch (Throwable $e) {
-                error_log('TourController::logsList list tours error: ' . $e->getMessage());
                 $tours = [];
             }
             $tour = null; $logs = []; $itinerary = []; $guides = [];
@@ -684,13 +660,31 @@ class TourController
         $tourModel = new Tour();
         $logModel = new TourLog();
         $guideModel = new Guide();
+        $bookingModel = new Booking();
 
         try {
             $tour = $tourModel->find($tourId);
-            $logs = $logModel->getByTourId($tourId, $guideId ?: null);
-            $itinerary = $tourModel->getItineraryByTourId($tourId);
+            
+            // Lấy danh sách bookings của tour
+            $bookings = $bookingModel->listSimple(['tour_id' => $tourId]);
+            
+            // Lấy booking_id từ filter (nếu có)
+            $bookingIdFilter = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
+            
+            // Lấy nhật ký: nếu có booking_id filter thì lấy theo booking, không thì lấy theo tour
+            if ($bookingIdFilter > 0) {
+                $logs = $logModel->getByBookingId($bookingIdFilter);
+                // Lấy itinerary của booking cụ thể
+                $itinerary = $tourModel->getItineraryByTourId($tourId, $bookingIdFilter);
+            } else {
+                $logs = $logModel->getByTourId($tourId, $guideId ?: null);
+                // Lấy itinerary chung của tour
+                $itinerary = $tourModel->getItineraryByTourId($tourId);
+            }
+            
             $guides = $guideModel->listAssignedByTour($tourId);
             if (empty($guides)) { $guides = $guideModel->list(); }
+            
             if ($dayFilter > 0) {
                 $map = [];
                 foreach ($itinerary as $item) { $map[(int)$item['id']] = (int)($item['day_number'] ?? 0); }
@@ -710,10 +704,66 @@ class TourController
                 }));
             }
         } catch (Throwable $e) {
-            error_log('TourController::logsList error: ' . $e->getMessage());
-            $tour = null; $logs = []; $itinerary = []; $guides = [];
+            $tour = null; $logs = []; $itinerary = []; $guides = []; $bookings = [];
         }
 
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function logsEdit(): void
+    {
+        $this->ensureAuthenticated();
+        
+        $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+        $tourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+        
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tour-logs-list' . ($tourId > 0 ? '&tour_id=' . $tourId : ''));
+            exit;
+        }
+        
+        $logModel = new TourLog();
+        $log = $logModel->find($id);
+        
+        if (!$log) {
+            $_SESSION['error'] = 'Nhật ký không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tour-logs-list' . ($tourId > 0 ? '&tour_id=' . $tourId : ''));
+            exit;
+        }
+        
+        // Nếu tour_id không được truyền, lấy từ log
+        if ($tourId <= 0) {
+            $tourId = (int)($log['tour_id'] ?? 0);
+        }
+        
+        if ($tourId <= 0) {
+            $_SESSION['error'] = 'Tour ID không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tour-logs-list');
+            exit;
+        }
+        
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tourId);
+        
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tour-logs-list');
+            exit;
+        }
+        
+        // Lấy itinerary để có thể chọn ngày (nếu cần)
+        $itinerary = $tourModel->getItineraryByTourId($tourId);
+        
+        // Lấy danh sách bookings (nếu cần)
+        $bookingModel = new Booking();
+        $bookings = $bookingModel->listSimple(['tour_id' => $tourId]);
+        
+        $view = 'admin/tour-logs';
+        $title = 'Sửa nhật ký tour';
+        $hideNavbar = true;
+        $editingLog = $log;
+        
         require_once PATH_VIEW . 'main.php';
     }
 
@@ -745,7 +795,9 @@ class TourController
         $highlights = trim($_POST['highlights'] ?? '');
         $ratingCoordination = isset($_POST['rating_coordination']) ? (int)$_POST['rating_coordination'] : null;
         $ratingSpirit = isset($_POST['rating_spirit']) ? (int)$_POST['rating_spirit'] : null;
+        $ratingComment = trim($_POST['rating_comment'] ?? '');
         $dayNumber = isset($_POST['day_number']) ? (int)$_POST['day_number'] : 0;
+        $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
         $imageDbPath = null;
         if (!empty($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
             $file = $_FILES['image'];
@@ -775,12 +827,29 @@ class TourController
         }
 
         if ($role === 'hdv') {
-            $logType = 'daily';
-            if ($tourId <= 0 || ($logDate === '' && $dayNumber <= 0 && $itineraryId <= 0) || $note === '') {
-                $_SESSION['error'] = 'Vui lòng chọn ngày và nhập nội dung nhật ký.';
+            // HDV có thể chọn log_type từ form, mặc định là 'daily'
+            if ($logType === '') {
+                $logType = 'daily';
+            }
+            
+            if ($tourId <= 0 || $logDate === '' || $title === '' || $description === '') {
+                $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc (Tour, Ngày, Tiêu đề, Mô tả).';
                 header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
                 exit;
             }
+            
+            // Validate theo loại nhật ký
+            if ($logType === 'incident' && $handling === '') {
+                $_SESSION['error'] = 'Vui lòng nhập cách xử lý cho sự cố.';
+                header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
+                exit;
+            }
+            if ($logType === 'feedback' && $feedback === '') {
+                $_SESSION['error'] = 'Vui lòng nhập phản hồi của khách hàng.';
+                header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
+                exit;
+            }
+            
             if ($guideId <= 0) {
                 try {
                     $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
@@ -789,6 +858,29 @@ class TourController
                     $stmt->execute([':uid' => (int)($_SESSION['user']['id'] ?? 0)]);
                     $r = $stmt->fetch(); if ($r && isset($r['id'])) { $guideId = (int)$r['id']; $_SESSION['user']['guide_id'] = $guideId; }
                 } catch (Throwable $e) {}
+            }
+            
+            // Tự động lấy booking_id nếu chưa chọn
+            if ($bookingId <= 0 && $tourId > 0 && $guideId > 0) {
+                try {
+                    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+                    $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                    $hasAssign = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
+                    $hasBookings = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
+                    if ($hasAssign && $hasBookings) {
+                        $stmt = $pdo->prepare('SELECT b.id FROM bookings b 
+                                               INNER JOIN tour_assignments ta ON ta.booking_id = b.id 
+                                               WHERE b.tour_id = :tid AND (ta.guide_id = :gid OR ta.HDV_ID = :gid)
+                                               ORDER BY ta.assign_date DESC, b.start_date DESC 
+                                               LIMIT 1');
+                        $stmt->execute([':tid' => $tourId, ':gid' => $guideId]);
+                        $r = $stmt->fetch();
+                        if ($r && isset($r['id'])) {
+                            $bookingId = (int)$r['id'];
+                        }
+                    }
+                } catch (Throwable $e) {
+                }
             }
         } else {
             if ($tourId <= 0 || $logType === '' || $title === '') {
@@ -803,30 +895,40 @@ class TourController
             }
         }
 
-        if ($role === 'hdv') {
-            $fullDesc = $note;
-            if ($title === '' && ($itineraryId > 0 || $dayNumber > 0 || $logDate !== '')) { $title = 'Nhật ký ngày'; }
-            if ($title === '' && $note !== '') { $title = mb_substr($note, 0, 80); }
-            if ($dayNumber > 0) { $fullDesc = 'Ngày: ' . $dayNumber . "\n" . $fullDesc; }
-            if ($logDate !== '') { $fullDesc = 'Ngày: ' . $logDate . "\n" . $fullDesc; }
-        } else {
-            $parts = [];
-            if ($weather !== '') { $parts[] = 'Thời tiết: ' . $weather; }
-            if ($health !== '') { $parts[] = 'Sức khỏe khách: ' . $health; }
-            if ($activities !== '') { $parts[] = 'Hoạt động đặc biệt: ' . $activities; }
-            if ($handling !== '') { $parts[] = 'Cách xử lý: ' . $handling; }
-            if ($feedback !== '') { $parts[] = 'Phản hồi khách: ' . $feedback; }
-            if ($logType === 'rating') {
-                if ($ratingCoordination) { $parts[] = 'Đánh giá phối hợp: ' . $ratingCoordination . '/5'; }
-                if ($ratingSpirit) { $parts[] = 'Tinh thần làm việc: ' . $ratingSpirit . '/5'; }
-            }
-            if ($logType === 'timeline') {
-                if ($events !== '') { $parts[] = 'Sự kiện: ' . $events; }
-                if ($highlights !== '') { $parts[] = 'Hoạt động nổi bật: ' . $highlights; }
-                if ($feedback !== '') { $parts[] = 'Phản hồi khách: ' . $feedback; }
-            }
-            $fullDesc = trim(implode("\n", array_filter([$description, $parts ? implode("\n", $parts) : ''])));
+        // Xây dựng mô tả đầy đủ dựa trên loại nhật ký
+        $parts = [];
+        if (!empty($description)) { $parts[] = $description; }
+        
+        // Xử lý theo loại nhật ký
+        switch ($logType) {
+            case 'incident':
+                if (!empty($weather)) $parts[] = 'Thời tiết: ' . $weather;
+                if (!empty($health)) $parts[] = 'Sức khỏe khách: ' . $health;
+                if (!empty($activities)) $parts[] = 'Hoạt động đặc biệt: ' . $activities;
+                if (!empty($handling)) $parts[] = 'Cách xử lý: ' . $handling;
+                break;
+            case 'feedback':
+                if (!empty($feedback)) $parts[] = 'Phản hồi khách: ' . $feedback;
+                break;
+            case 'rating':
+                if (!empty($ratingCoordination)) $parts[] = 'Đánh giá phối hợp: ' . $ratingCoordination . '/5';
+                if (!empty($ratingSpirit)) $parts[] = 'Tinh thần làm việc: ' . $ratingSpirit . '/5';
+                if (!empty($ratingComment)) $parts[] = 'Bình luận đánh giá: ' . $ratingComment;
+                break;
+            case 'timeline':
+                if (!empty($events)) $parts[] = 'Sự kiện: ' . $events;
+                if (!empty($highlights)) $parts[] = 'Hoạt động nổi bật: ' . $highlights;
+                if (!empty($feedback)) $parts[] = 'Phản hồi khách: ' . $feedback;
+                break;
+            case 'daily':
+            default:
+                // Nhật ký ngày - có thể thêm thông tin thời tiết, hoạt động nếu có
+                if (!empty($weather)) $parts[] = 'Thời tiết: ' . $weather;
+                if (!empty($activities)) $parts[] = 'Hoạt động đặc biệt: ' . $activities;
+                break;
         }
+        
+        $fullDesc = trim(implode("\n", array_filter($parts)));
 
         $logModel = new TourLog();
         if ($role === 'hdv' && $guideId <= 0 && isset($_SESSION['user']['guide_id'])) {
@@ -841,6 +943,7 @@ class TourController
             'rating' => $rating,
         ];
         if ($guideId > 0) { $data['guide_id'] = $guideId; }
+        if ($bookingId > 0) { $data['booking_id'] = $bookingId; }
         if ($itineraryId > 0) { $data['itinerary_id'] = $itineraryId; }
         if ($logDate !== '') { $data['log_date'] = $logDate; }
         if ($imageDbPath) { $data['image_path'] = $imageDbPath; }
@@ -859,7 +962,11 @@ class TourController
         } else {
             $_SESSION['success'] = 'Không thể thêm nhật ký.';
         }
-        header('Location: ' . BASE_URL . ($role==='admin' ? ('?action=tour-logs-list&tour_id=' . $tourId) : ('?action=partner-logs&tour_id=' . $tourId)));
+        $redirectUrl = BASE_URL . ($role==='admin' ? ('?action=tour-logs-list&tour_id=' . $tourId) : ('?action=partner-logs&tour_id=' . $tourId));
+        if ($bookingId > 0) {
+            $redirectUrl .= '&booking_id=' . $bookingId;
+        }
+        header('Location: ' . $redirectUrl);
         exit;
     }
 
@@ -870,77 +977,157 @@ class TourController
             header('Location: ' . BASE_URL . '?action=tours');
             exit;
         }
+        
+        // Xác định role và redirect URL base
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $role = strtolower($_SESSION['user']['role'] ?? '');
+        $isAdmin = ($role === 'admin');
+        
         $id = (int)($_POST['id'] ?? 0);
         $tourId = (int)($_POST['tour_id'] ?? 0);
+        $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
         $title = trim($_POST['title'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $status = trim($_POST['status'] ?? 'pending');
-        $rating = isset($_POST['rating']) ? (int)$_POST['rating'] : null;
+        $rating = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : null;
         $guideId = isset($_POST['guide_id']) ? (int)$_POST['guide_id'] : 0;
         $itineraryId = isset($_POST['itinerary_id']) ? (int)$_POST['itinerary_id'] : 0;
         $logDate = trim($_POST['log_date'] ?? '');
+        
+        // Helper function để tạo redirect URL
+        $getRedirectUrl = function($tourId, $bookingId = 0) use ($isAdmin) {
+            $url = BASE_URL . ($isAdmin ? ('?action=tour-logs-list&tour_id=' . $tourId) : ('?action=partner-logs&tour_id=' . $tourId));
+            if ($bookingId > 0) {
+                $url .= '&booking_id=' . $bookingId;
+            }
+            return $url;
+        };
+        
+        // Helper function để redirect về trang edit khi có lỗi
+        $getEditUrl = function($id, $tourId, $bookingId = 0) use ($isAdmin) {
+            $url = BASE_URL . ($isAdmin ? ('?action=tour-logs-edit&id=' . $id . '&tour_id=' . $tourId) : ('?action=partner-logs&tour_id=' . $tourId . '&edit_id=' . $id));
+            if ($bookingId > 0) {
+                $url .= '&booking_id=' . $bookingId;
+            }
+            return $url;
+        };
+        
         if ($id <= 0 || $tourId <= 0) {
             $_SESSION['error'] = 'Dữ liệu không hợp lệ.';
-            header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
+            header('Location: ' . $getEditUrl($id, $tourId, $bookingId));
             exit;
         }
-        if ($title === '' && $description !== '') { $title = mb_substr($description, 0, 80); }
-        $logModel = new TourLog();
-        $existing = $logModel->find($id);
-        if ($existing && in_array($existing['log_type'] ?? '', ['incident','feedback','timeline'], true)) {
-            $currentI = (int)($existing['itinerary_id'] ?? 0);
-            if ($currentI <= 0 && $itineraryId <= 0) {
-                $_SESSION['error'] = 'Nhật ký loại này yêu cầu gắn với một ngày (lịch trình).';
-                header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
-                exit;
-            }
+        
+        if (empty($title) && empty($description)) {
+            $_SESSION['error'] = 'Vui lòng nhập tiêu đề hoặc mô tả.';
+            header('Location: ' . $getEditUrl($id, $tourId, $bookingId));
+            exit;
         }
         
-        $imageDbPath = null; $oldImage = null;
+        if ($title === '' && $description !== '') { 
+            $title = mb_substr($description, 0, 80); 
+        }
+        
+        $logModel = new TourLog();
+        $existing = $logModel->find($id);
+        
+        if (!$existing) {
+            $_SESSION['error'] = 'Nhật ký không tồn tại.';
+            header('Location: ' . $getEditUrl($id, $tourId, $bookingId));
+            exit;
+        }
+        
+        // Khi edit: giữ nguyên itinerary_id cũ nếu không có giá trị mới
+        // Xóa bỏ validation bắt buộc itinerary_id khi edit
+        $currentI = (int)($existing['itinerary_id'] ?? 0);
+        if ($itineraryId <= 0 && $currentI > 0) {
+            $itineraryId = $currentI; // Giữ nguyên itinerary_id cũ
+        }
+        
+        $imageDbPath = null; 
+        $oldImage = null;
+        
         if (!empty($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
-            $existing = $logModel->find($id);
-            if ($existing && !empty($existing['image_path'])) { $oldImage = $existing['image_path']; }
+            if ($existing && !empty($existing['image_path'])) { 
+                $oldImage = $existing['image_path']; 
+            }
             $file = $_FILES['image'];
             if ($file['error'] !== UPLOAD_ERR_OK) {
                 $_SESSION['error'] = 'Lỗi upload ảnh.';
-                header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
+                header('Location: ' . $getEditUrl($id, $tourId, $bookingId));
                 exit;
             }
-            $originalName = $file['name']; $ext = pathinfo($originalName, PATHINFO_EXTENSION); $ext = $ext ? strtolower($ext) : '';
+            $originalName = $file['name']; 
+            $ext = pathinfo($originalName, PATHINFO_EXTENSION); 
+            $ext = $ext ? strtolower($ext) : '';
             $allowed = ['jpg','jpeg','png','gif','webp'];
             if ($ext && !in_array($ext, $allowed)) {
                 $_SESSION['error'] = 'Định dạng ảnh không hợp lệ.';
-                header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
+                header('Location: ' . $getEditUrl($id, $tourId, $bookingId));
                 exit;
             }
-            if (!is_dir(PATH_ASSETS_UPLOADS)) { @mkdir(PATH_ASSETS_UPLOADS, 0777, true); }
+            if (!is_dir(PATH_ASSETS_UPLOADS)) { 
+                @mkdir(PATH_ASSETS_UPLOADS, 0777, true); 
+            }
             $filename = time() . '_' . bin2hex(random_bytes(6)) . ($ext ? ('.' . $ext) : '');
             $target = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $filename;
             if (!move_uploaded_file($file['tmp_name'], $target)) {
                 $_SESSION['error'] = 'Không thể lưu file ảnh.';
-                header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
+                header('Location: ' . $getEditUrl($id, $tourId, $bookingId));
                 exit;
             }
             $imageDbPath = 'assets/uploads/' . $filename;
         }
-        $data = [
-            'title' => $title,
-            'description' => $description,
-            'status' => $status,
-            'rating' => $rating,
-        ];
-        if ($guideId > 0) { $data['guide_id'] = $guideId; }
-        if ($itineraryId > 0) { $data['itinerary_id'] = $itineraryId; }
-        if ($logDate !== '') { $data['log_date'] = $logDate; }
-        if ($imageDbPath) { $data['image_path'] = $imageDbPath; }
-        $ok = $logModel->update($id, $data);
-        if ($ok && $imageDbPath && $oldImage) {
-            $oldFile = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($oldImage);
-            if (is_file($oldFile)) { @unlink($oldFile); }
+        
+        try {
+            $data = [
+                'title' => $title,
+                'description' => $description,
+                'status' => $status,
+                'rating' => $rating,
+            ];
+            if ($guideId > 0) { $data['guide_id'] = $guideId; }
+            // Chỉ cập nhật itinerary_id nếu có giá trị (đã được xử lý ở trên)
+            if ($itineraryId > 0) { 
+                $data['itinerary_id'] = $itineraryId; 
+            }
+            if ($logDate !== '') { $data['log_date'] = $logDate; }
+            if ($imageDbPath) { $data['image_path'] = $imageDbPath; }
+            
+            $ok = $logModel->update($id, $data);
+            
+            if (!$ok) {
+                $_SESSION['error'] = 'Không thể cập nhật nhật ký. Vui lòng thử lại.';
+                // Redirect về trang edit để người dùng có thể sửa lại
+                $editUrl = BASE_URL . ($isAdmin ? ('?action=tour-logs-edit&id=' . $id . '&tour_id=' . $tourId) : ('?action=partner-logs&tour_id=' . $tourId . '&edit_id=' . $id));
+                if ($bookingId > 0) {
+                    $editUrl .= '&booking_id=' . $bookingId;
+                }
+                header('Location: ' . $editUrl);
+                exit;
+            }
+            
+            if ($ok && $imageDbPath && $oldImage) {
+                $oldFile = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . basename($oldImage);
+                if (is_file($oldFile)) { 
+                    @unlink($oldFile); 
+                }
+            }
+            
+            $_SESSION['success'] = 'Cập nhật nhật ký thành công.';
+            header('Location: ' . $getRedirectUrl($tourId, $bookingId));
+            exit;
+        } catch (Throwable $e) {
+            error_log('TourController::logsUpdate error: ' . $e->getMessage());
+            $_SESSION['error'] = 'Có lỗi xảy ra khi cập nhật nhật ký: ' . $e->getMessage();
+            // Redirect về trang edit để người dùng có thể sửa lại
+            $editUrl = BASE_URL . ($isAdmin ? ('?action=tour-logs-edit&id=' . $id . '&tour_id=' . $tourId) : ('?action=partner-logs&tour_id=' . $tourId . '&edit_id=' . $id));
+            if ($bookingId > 0) {
+                $editUrl .= '&booking_id=' . $bookingId;
+            }
+            header('Location: ' . $editUrl);
+            exit;
         }
-        $_SESSION['success'] = $ok ? 'Cập nhật nhật ký thành công.' : 'Không thể cập nhật nhật ký.';
-        header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
-        exit;
     }
 
     public function logsDelete(): void

@@ -36,7 +36,6 @@ class Guide extends BaseModel
                 $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'active'");
             }
         } catch (Throwable $e) {
-            error_log('Guide::ensureStatusColumn error: ' . $e->getMessage());
         }
     }
 
@@ -47,7 +46,6 @@ class Guide extends BaseModel
                 $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN user_id INT NULL DEFAULT NULL");
             }
         } catch (Throwable $e) {
-            error_log('Guide::ensureUserIdColumn error: ' . $e->getMessage());
         }
     }
 
@@ -121,7 +119,6 @@ class Guide extends BaseModel
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (Throwable $e) {
-            error_log('Guide::listAssignedByTour error: ' . $e->getMessage());
             return [];
         }
     }
@@ -217,7 +214,6 @@ class Guide extends BaseModel
         try {
             return $stmt->execute();
         } catch (Throwable $e) {
-            error_log('Guide::delete error: ' . $e->getMessage());
             return false;
         }
     }
@@ -240,7 +236,6 @@ class Guide extends BaseModel
 
             return true;
         } catch (Throwable $e) {
-            error_log('Guide::resequenceIds error: ' . $e->getMessage());
             return false;
         }
     }
@@ -442,8 +437,6 @@ class Guide extends BaseModel
 
             return $expected;
         } catch (Throwable $e) {
-            error_log('Guide::getNextAvailableSequence error: ' . $e->getMessage());
-            // fallback to max+1
             $max = (int)$this->pdo->query(sprintf('SELECT MAX(%s) FROM %s', $column, $this->table))->fetchColumn();
             return $max + 1;
         }
@@ -488,7 +481,6 @@ class Guide extends BaseModel
             }
             return false;
         } catch (Throwable $e) {
-            error_log('Guide::createAccount error: ' . $e->getMessage());
             return false;
         }
     }
@@ -506,7 +498,6 @@ class Guide extends BaseModel
             $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
             return $stmt->execute();
         } catch (Throwable $e) {
-            error_log('Guide::ensureUserRoleIsHdv error: ' . $e->getMessage());
             return false;
         }
     }
@@ -532,7 +523,6 @@ class Guide extends BaseModel
             
             return $result;
         } catch (Throwable $e) {
-            error_log('Guide::updateAccountPassword error: ' . $e->getMessage());
             return false;
         }
     }
@@ -553,7 +543,6 @@ class Guide extends BaseModel
             $stmt->execute();
             return (int)$stmt->rowCount();
         } catch (Throwable $e) {
-            error_log('Guide::syncAllGuideRoles error: ' . $e->getMessage());
             return 0;
         }
     } 

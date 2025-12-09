@@ -31,7 +31,6 @@ class TourCategory extends BaseModel
             return $categories;
             
         } catch (PDOException $e) {
-            error_log("TourCategory::getAll() error: " . $e->getMessage());
             return [];
         }
     }

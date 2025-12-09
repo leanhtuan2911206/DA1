@@ -80,7 +80,6 @@ class HotelRoom extends BaseModel
             }
             return false;
         } catch (PDOException $e) {
-            error_log('HotelRoom::create error: ' . $e->getMessage());
             return false;
         }
     }
@@ -113,7 +112,6 @@ class HotelRoom extends BaseModel
             
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('HotelRoom::update error: ' . $e->getMessage());
             return false;
         }
     }
@@ -127,7 +125,6 @@ class HotelRoom extends BaseModel
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('HotelRoom::delete error: ' . $e->getMessage());
             return false;
         }
     }

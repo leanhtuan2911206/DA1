@@ -36,14 +36,17 @@
                         <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Loại nhật ký <span class="text-danger">*</span></label>
-                                <select class="form-select" name="log_type" required onchange="toggleLogSections(this.value)">
+                                <select class="form-select" name="log_type" required onchange="this.form.submit()">
                                     <option value="">-- Chọn loại --</option>
-                                    <option value="incident">Sự cố phát sinh</option>
-                                    <option value="feedback">Phản hồi khách hàng</option>
-                                    <option value="rating">Đánh giá HDV</option>
-                                    <option value="timeline">Lịch trình / Diễn biến</option>
-                                    <option value="daily">Nhật ký ngày</option>
+                                    <option value="incident" <?= $selectedLogType === 'incident' ? 'selected' : '' ?>>Sự cố phát sinh</option>
+                                    <option value="feedback" <?= $selectedLogType === 'feedback' ? 'selected' : '' ?>>Phản hồi khách hàng</option>
+                                    <option value="rating" <?= $selectedLogType === 'rating' ? 'selected' : '' ?>>Đánh giá HDV</option>
+                                    <option value="timeline" <?= $selectedLogType === 'timeline' ? 'selected' : '' ?>>Lịch trình / Diễn biến</option>
+                                    <option value="daily" <?= $selectedLogType === 'daily' ? 'selected' : '' ?>>Nhật ký ngày</option>
                                 </select>
+                                <?php if (!empty($selectedLogType)): ?>
+                                    <input type="hidden" name="log_type_preview" value="<?= htmlspecialchars($selectedLogType) ?>">
+                                <?php endif; ?>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">HDV</label>
@@ -67,13 +70,18 @@
                             </div>
                         </div>
 
+                        <?php 
+                        $selectedLogType = $_POST['log_type'] ?? $_GET['log_type'] ?? '';
+                        $showIncident = in_array($selectedLogType, ['incident', 'timeline', 'daily']);
+                        $showFeedback = in_array($selectedLogType, ['feedback', 'timeline']);
+                        $showRating = $selectedLogType === 'rating';
+                        ?>
                         <div class="mb-3" id="description_section">
                             <label class="form-label fw-bold">Mô tả chi tiết</label>
-                            <textarea class="form-control" name="description" id="description_field" rows="4" placeholder="Mô tả chi tiết về nhật ký..."></textarea>
+                            <textarea class="form-control" name="description" id="description_field" rows="4" placeholder="Mô tả chi tiết về nhật ký..."><?= htmlspecialchars($_POST['description'] ?? '') ?></textarea>
                         </div>
-
                         <!-- Phần diễn biến tour (hiển thị khi chọn loại phù hợp) -->
-                        <div id="section_incident" style="display: none;">
+                        <div id="section_incident" style="display: <?= $showIncident ? 'block' : 'none' ?>;">
                             <div class="card bg-light mb-3">
                                 <div class="card-header bg-info text-white">
                                     <h6 class="mb-0">📋 Diễn biến tour</h6>
@@ -102,7 +110,7 @@
                         </div>
 
                         <!-- Phần phản hồi khách hàng -->
-                        <div id="section_feedback" style="display: none;">
+                        <div id="section_feedback" style="display: <?= $showFeedback ? 'block' : 'none' ?>;">
                             <div class="card bg-light mb-3">
                                 <div class="card-header bg-success text-white">
                                     <h6 class="mb-0">💬 Phản hồi khách hàng</h6>
@@ -128,7 +136,7 @@
                         </div>
 
                         <!-- Phần đánh giá HDV -->
-                        <div id="section_rating" style="display: none;">
+                        <div id="section_rating" style="display: <?= $showRating ? 'block' : 'none' ?>;">
                             <div class="card bg-light mb-3">
                                 <div class="card-header bg-warning text-dark">
                                     <h6 class="mb-0">⭐ Đánh giá chất lượng HDV</h6>
@@ -203,47 +211,4 @@
     </div>
 </main>
 
-<script>
-    function toggleLogSections(logType) {
-        // Ẩn tất cả các section
-        document.getElementById('section_incident').style.display = 'none';
-        document.getElementById('section_feedback').style.display = 'none';
-        document.getElementById('section_rating').style.display = 'none';
-        
-        // Hiển thị section phù hợp
-        if (logType === 'incident' || logType === 'timeline' || logType === 'daily') {
-            document.getElementById('section_incident').style.display = 'block';
-        }
-        if (logType === 'feedback' || logType === 'timeline') {
-            document.getElementById('section_feedback').style.display = 'block';
-        }
-        if (logType === 'rating') {
-            document.getElementById('section_rating').style.display = 'block';
-            // Khi chọn rating, tự động điền mô tả từ rating_comment
-            const ratingComment = document.getElementById('rating_comment');
-            const descriptionField = document.getElementById('description_field');
-            if (ratingComment && descriptionField) {
-                ratingComment.addEventListener('input', function() {
-                    descriptionField.value = this.value;
-                });
-            }
-        }
-    }
-    
-    // Xử lý khi submit form - gộp rating_comment vào description nếu có
-    document.getElementById('logForm').addEventListener('submit', function(e) {
-        const logType = document.querySelector('select[name="log_type"]').value;
-        if (logType === 'rating') {
-            const ratingComment = document.getElementById('rating_comment').value;
-            if (ratingComment) {
-                const descriptionField = document.getElementById('description_field');
-                if (descriptionField.value) {
-                    descriptionField.value = descriptionField.value + '\n\n' + ratingComment;
-                } else {
-                    descriptionField.value = ratingComment;
-                }
-            }
-        }
-    });
-</script>
 

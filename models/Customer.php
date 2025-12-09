@@ -113,7 +113,6 @@ class Customer extends BaseModel
         try {
             $this->pdo->exec($alterSql);
         } catch (Throwable $e) {
-            error_log("Customer::ensureColumn {$column} error: " . $e->getMessage());
         }
     }
 

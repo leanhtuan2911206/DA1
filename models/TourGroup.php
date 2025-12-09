@@ -56,7 +56,6 @@ class TourGroup extends BaseModel
             $stmt = $this->pdo->query($sql);
             return $stmt->fetchAll();
         } catch (Throwable $e) {
-            error_log('TourGroup::getAll error: ' . $e->getMessage());
             return [];
         }
     }
@@ -107,7 +106,6 @@ class TourGroup extends BaseModel
             }
             return false;
         } catch (PDOException $e) {
-            error_log('TourGroup::create error: ' . $e->getMessage());
             return false;
         }
     }
@@ -136,7 +134,6 @@ class TourGroup extends BaseModel
             
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGroup::update error: ' . $e->getMessage());
             return false;
         }
     }
@@ -153,7 +150,6 @@ class TourGroup extends BaseModel
             $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             return $stmt->execute();
         } catch (PDOException $e) {
-            error_log('TourGroup::updateStatus error: ' . $e->getMessage());
             return false;
         }
     }
@@ -195,7 +191,6 @@ class TourGroup extends BaseModel
             try {
                 $this->pdo->rollBack();
             } catch (Throwable $_) {}
-            error_log('TourGroup::delete error: ' . $e->getMessage());
             return false;
         }
     }

@@ -177,12 +177,61 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
                                             </form>
                                         </td>
                                         <td>
-                                            <?php if (!empty(trim($guest['special_requests'] ?? ''))): ?>
-                                                <span class="badge bg-warning text-dark">⚠️</span>
-                                                <span class="small ms-1"><?= htmlspecialchars($guest['special_requests']) ?></span>
-                                            <?php else: ?>
-                                                <span class="text-muted">—</span>
-                                            <?php endif; ?>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <?php if (!empty(trim($guest['special_requests'] ?? ''))): ?>
+                                                    <span class="badge bg-warning text-dark">⚠️</span>
+                                                    <span class="small"><?= htmlspecialchars($guest['special_requests']) ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted small">—</span>
+                                                <?php endif; ?>
+                                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalSpecialRequests<?= $guest['id'] ?>" title="Cập nhật yêu cầu đặc biệt">
+                                                    ✏️
+                                                </button>
+                                            </div>
+                                            
+                                            <!-- Modal cập nhật yêu cầu đặc biệt -->
+                                            <div class="modal fade" id="modalSpecialRequests<?= $guest['id'] ?>" tabindex="-1" aria-labelledby="modalSpecialRequestsLabel<?= $guest['id'] ?>" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="modalSpecialRequestsLabel<?= $guest['id'] ?>">
+                                                                Cập nhật yêu cầu đặc biệt
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <form method="post" action="<?= BASE_URL ?>?action=tour-guest-update-special-requests">
+                                                            <div class="modal-body">
+                                                                <input type="hidden" name="id" value="<?= $guest['id'] ?>">
+                                                                <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
+                                                                
+                                                                <div class="mb-3">
+                                                                    <label class="form-label"><strong>Khách:</strong> <?= htmlspecialchars($guest['full_name']) ?></label>
+                                                                </div>
+                                                                
+                                                                <div class="mb-3">
+                                                                    <label for="special_requests_<?= $guest['id'] ?>" class="form-label">
+                                                                        Yêu cầu đặc biệt <small class="text-muted">(ăn chay, bệnh lý, dị ứng, v.v.)</small>
+                                                                    </label>
+                                                                    <textarea 
+                                                                        class="form-control" 
+                                                                        id="special_requests_<?= $guest['id'] ?>" 
+                                                                        name="special_requests" 
+                                                                        rows="4" 
+                                                                        placeholder="Ví dụ: Ăn chay, Dị ứng hải sản, Bệnh tiểu đường, Không ăn thịt bò, v.v."
+                                                                    ><?= htmlspecialchars($guest['special_requests'] ?? '') ?></textarea>
+                                                                    <div class="form-text">
+                                                                        Ghi nhận, cập nhật và nhắc lại các nhu cầu riêng biệt của khách để chuẩn bị phục vụ phù hợp suốt tour.
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                                                <button type="submit" class="btn btn-primary">Lưu cập nhật</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                         
                                         <td>

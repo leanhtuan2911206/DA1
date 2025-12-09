@@ -28,9 +28,11 @@ match ($action) {
     'tours-update'  => (new TourController)->update(),
     'tours-delete'  => (new TourController)->delete(),
     'tours-get-info' => (new TourController)->getTourInfo(),
+    'tours-get-itinerary' => (new TourController)->getItineraryJson(),
 
     // Nhật ký tour: trang quản trị xem/lọc, HDV ghi chép
     'tour-logs-list'   => (new TourController)->logsList(),
+    'tour-logs-edit'   => (new TourController)->logsEdit(),
     'tour-logs-store'  => (new TourController)->logsStore(),
     'tour-logs-update' => (new TourController)->logsUpdate(),
     'tour-logs-delete' => (new TourController)->logsDelete(),
@@ -94,11 +96,13 @@ match ($action) {
     'tour-guest-update'      => (new TourManagementController)->updateGuest(),
     'tour-guest-checkin'     => (new TourManagementController)->checkinGuest(),
     'tour-guest-assign-room' => (new TourManagementController)->assignRoom(),
+    'tour-guest-update-special-requests' => (new TourManagementController)->updateGuestSpecialRequests(),
     'tour-guest-delete'      => (new TourManagementController)->deleteGuest(),
     'tour-guests-sync'       => (new TourManagementController)->syncGuestsFromBooking(),
     'tour-guests-print'      => (new TourManagementController)->printList(),
     'partner-update-activity' => (new PartnerController)->updateActivity(),
     'partner-update-itinerary' => (new PartnerController)->updateItinerary(),
     'partner-guest-checkin' => (new PartnerController)->checkinGuest(),
+    'partner-guest-update-special-requests' => (new PartnerController)->updateGuestSpecialRequests(),
     'admin-revenue-data' => (new AdminController)->getRevenueData(),
 };

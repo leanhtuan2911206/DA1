@@ -46,7 +46,6 @@ class GuideController
                 }
             }
         } catch (Throwable $e) {
-            error_log('GuideController::index error: ' . $e->getMessage());
             $guides = [];
             $summary = ['total' => 0, 'active' => 0, 'inactive' => 0, 'on_leave' => 0];
             $_SESSION['error'] = $_SESSION['error'] ?? 'Không thể tải danh sách nhân sự.';
@@ -124,8 +123,7 @@ class GuideController
             
             $_SESSION['success'] = 'Thêm nhân sự và tạo tài khoản thành công.';
         } catch (Throwable $e) {
-            error_log('GuideController::store error: ' . $e->getMessage());
-            $_SESSION['error'] = $e->getMessage(); // Hiển thị lỗi cụ thể
+            $_SESSION['error'] = $e->getMessage();
             $_SESSION['guide_form_old'] = $_POST;
             header('Location: ' . BASE_URL . '?action=guides-create');
             exit;
@@ -214,7 +212,6 @@ class GuideController
 
             $_SESSION['success'] = 'Cập nhật nhân sự thành công.';
         } catch (Throwable $e) {
-            error_log('GuideController::update error: ' . $e->getMessage());
             $_SESSION['error'] = 'Không thể cập nhật nhân sự. Vui lòng thử lại.';
             $_SESSION['guide_form_old'] = $_POST;
             header('Location: ' . BASE_URL . '?action=guides-edit&id=' . $id);
@@ -243,7 +240,6 @@ class GuideController
             }
             $_SESSION['success'] = 'Đã xóa nhân sự.';
         } catch (Throwable $e) {
-            error_log('GuideController::delete error: ' . $e->getMessage());
             $_SESSION['error'] = 'Không thể xóa nhân sự.';
         }
 
@@ -317,8 +313,6 @@ class GuideController
             header('Location: ' . BASE_URL . '?action=guides');
             exit;
         } catch (Throwable $e) {
-            // Log the error for server-side debugging
-            error_log('GuideController::updateStatus error: ' . $e->getMessage());
 
             // If AJAX, return JSON response with error info
             if ($isAjax) {

@@ -21,7 +21,7 @@ class Assignment extends BaseModel
                 notes TEXT NULL
             )");
             $this->ensureColumns();
-        } catch (Throwable $e) { $this->lastError = $e->getMessage(); error_log('Assignment::ensureTableExists error: ' . $e->getMessage()); }
+        } catch (Throwable $e) { $this->lastError = $e->getMessage(); }
     }
 
     private function tableExists()
@@ -80,7 +80,6 @@ class Assignment extends BaseModel
             }
         } catch (Throwable $e) {
             $this->lastError = $e->getMessage();
-            error_log('Assignment::ensureColumns error: ' . $e->getMessage());
         }
     }
 
@@ -129,7 +128,7 @@ class Assignment extends BaseModel
     {
         $this->ensureTableExists();
         $this->ensureColumns();
-        if (!$this->tableExists()) { error_log('Assignment::insertSimple error: table not exists'); return false; }
+        if (!$this->tableExists()) { return false; }
         $sql = "INSERT INTO {$this->table} (booking_id, HDV_ID, assign_date, end_date, meeting_point, start_time, end_time, driver_id, support_id, notes, schedule_id) VALUES (:booking_id, :HDV_ID, :assign_date, :end_date, :meeting_point, :start_time, :end_time, :driver_id, :support_id, :notes, :schedule_id)";
         try {
             $stmt = $this->pdo->prepare($sql);
@@ -149,7 +148,7 @@ class Assignment extends BaseModel
             $ok = $stmt->execute();
             if (!$ok) { $this->lastError = json_encode($stmt->errorInfo()); }
             return $ok;
-        } catch (Throwable $e) { $this->lastError = $e->getMessage(); error_log('Assignment::insertSimple error: ' . $e->getMessage()); return false; }
+        } catch (Throwable $e) { $this->lastError = $e->getMessage(); return false; }
     }
 
     public function deleteByIdSimple($id)
@@ -226,7 +225,6 @@ class Assignment extends BaseModel
             }
             return $guideIds;
         } catch (Throwable $e) {
-            error_log('Assignment::getAssignedGuideIds error: ' . $e->getMessage());
             return [];
         }
     }
@@ -251,7 +249,6 @@ class Assignment extends BaseModel
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             return $result ?: null;
         } catch (Throwable $e) {
-            error_log('Assignment::getAssignmentByBookingId error: ' . $e->getMessage());
             return null;
         }
     }
@@ -281,7 +278,6 @@ class Assignment extends BaseModel
             $count = (int)$stmt->fetchColumn();
             return $count > 0;
         } catch (Throwable $e) {
-            error_log('Assignment::isGuideAssigned error: ' . $e->getMessage());
             return false;
         }
     }
