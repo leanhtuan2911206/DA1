@@ -30,18 +30,19 @@ $tours = isset($tours) && is_array($tours) ? $tours : [];
     <?php endif; ?>
 
     <div class="card-like">
-        <form method="post" action="<?= BASE_URL ?>?action=bookings-store">
+        <form method="post" action="<?= BASE_URL ?>?action=bookings-store" id="booking_form">
             <div class="row g-3">
                 <div class="col-12 col-md-6">
                     <label class="form-label">Tour <span class="text-danger">*</span></label>
-                    <select class="form-select" name="tour_id" required>
+                    <select class="form-select" name="tour_id" id="tour_id"  required>
                         <option value="">-- Chọn tour --</option>
                         <?php foreach ($tours as $tour): ?>
-                            <option value="<?= $tour['id'] ?>">
+                            <option value="<?= $tour['id'] ?>" data-price="<?= (float)$tour['price'] ?>">
                                 <?= htmlspecialchars(removeVNPrefix($tour['name'])) ?> - <?= number_format((float)$tour['price'], 0, ',', '.') ?>đ
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <div id="tour_price_info" class="form-text text-muted" style="display: none"></div>
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -66,7 +67,7 @@ $tours = isset($tours) && is_array($tours) ? $tours : [];
 
                 <div class="col-12 col-md-6">
                     <label class="form-label">Số người <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" name="total_people" min="1" value="1" required>
+                    <input type="number" class="form-control" name="total_people" id="total_people" min="1" value="1" required>
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -79,7 +80,9 @@ $tours = isset($tours) && is_array($tours) ? $tours : [];
 
                 <div class="col-12 col-md-6">
                     <label class="form-label">Số tiền đặt cọc</label>
-                    <input type="number" class="form-control" name="deposit_amount" min="0" step="0.01" value="0">
+                    <input type="number" class="form-control" name="deposit_amount" id="deposit_amount" min="0" step="0.01" value="0">
+                    <div id="deposit_error" class="text-danger small mt-1" style="display: none;"></div>
+                    <div id="deposit_info" class="form-text text-muted mt-1" style="display: none;"></div>
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -107,4 +110,103 @@ $tours = isset($tours) && is_array($tours) ? $tours : [];
         </form>
     </div>
 </main>
+<script>
+// Chờ trang load xong
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Lấy các phần tử HTML
+    var tourSelect = document.getElementById('tour_id');
+    var totalPeopleInput = document.getElementById('total_people');
+    var depositInput = document.getElementById('deposit_amount');
+    var errorDiv = document.getElementById('deposit_error');
+    var infoDiv = document.getElementById('deposit_info');
+    var form = document.getElementById('booking_form');
+    
+    // Biến lưu giá tour
+    var tourPrice = 0;
+    
+    // Hàm định dạng số tiền
+    function formatMoney(amount) {
+        return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
+    }
+    
+    // Hàm kiểm tra số tiền cọc
+    function checkDeposit() {
+        // Lấy giá trị
+        var people = parseInt(totalPeopleInput.value) || 0;
+        var deposit = parseFloat(depositInput.value) || 0;
+        
+        // Nếu chưa chọn tour hoặc chưa nhập số người thì không kiểm tra
+        if (tourPrice == 0 || people == 0) {
+            errorDiv.style.display = 'none';
+            infoDiv.style.display = 'none';
+            depositInput.classList.remove('is-invalid');
+            return;
+        }
+        
+        // Tính tổng tiền
+        var totalPrice = tourPrice * people;
+        
+        // Hiển thị tổng tiền
+        infoDiv.textContent = 'Tổng giá tour: ' + formatMoney(totalPrice);
+        infoDiv.style.display = 'block';
+        
+        // Kiểm tra số tiền cọc
+        if (deposit > totalPrice) {
+            // Hiển thị lỗi
+            errorDiv.textContent = 'Số tiền cọc (' + formatMoney(deposit) + ') vượt quá tổng giá tour (' + formatMoney(totalPrice) + ')!';
+            errorDiv.style.display = 'block';
+            depositInput.classList.add('is-invalid');
+        } else {
+            // Ẩn lỗi
+            errorDiv.style.display = 'none';
+            depositInput.classList.remove('is-invalid');
+        }
+    }
+    
+    // Khi chọn tour
+    tourSelect.addEventListener('change', function() {
+        var option = this.options[this.selectedIndex];
+        if (option.value) {
+            // Lấy giá tour từ thuộc tính data-price
+            tourPrice = parseFloat(option.getAttribute('data-price')) || 0;
+        } else {
+            tourPrice = 0;
+        }
+        // Kiểm tra lại
+        checkDeposit();
+    });
+    
+    // Khi thay đổi số người
+    totalPeopleInput.addEventListener('input', function() {
+        checkDeposit();
+    });
+    
+    // Khi thay đổi số tiền cọc
+    depositInput.addEventListener('input', function() {
+        checkDeposit();
+    });
+    
+    // Kiểm tra trước khi submit form
+    form.addEventListener('submit', function(e) {
+        var people = parseInt(totalPeopleInput.value) || 0;
+        var deposit = parseFloat(depositInput.value) || 0;
+        
+        if (tourPrice > 0 && people > 0) {
+            var totalPrice = tourPrice * people;
+            
+            // Nếu số tiền cọc vượt quá thì chặn submit
+            if (deposit > totalPrice) {
+                e.preventDefault(); // Chặn submit
+                errorDiv.textContent = 'Số tiền cọc (' + formatMoney(deposit) + ') vượt quá tổng giá tour (' + formatMoney(totalPrice) + ')!';
+                errorDiv.style.display = 'block';
+                depositInput.classList.add('is-invalid');
+                depositInput.focus(); // Focus vào ô input
+                return false;
+            }
+        }
+    });
+    
+});
+</script>
 

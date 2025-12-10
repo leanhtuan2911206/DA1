@@ -118,7 +118,28 @@ class BookingController
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
         }
-
+        // kiểm tra số tiền cọc ko vượt quá giá tour
+        $tourModel= new Tour();
+        $tour= $tourModel->find($tour_id);
+        if(!$tour){
+            $_SESSION['error']='Tour không tồn tại!';
+            header('Location: ' . BASE_URL . '?action=bookings-create');
+            exit;
+        }
+         if (!isset($tour['price']) || empty($tour['price'])) {
+            $_SESSION['error'] = 'Tour không có thông tin giá!';
+            header('Location: ' . BASE_URL . '?action=bookings-create');
+            exit;
+        }
+        
+        $tourPrice = (float)$tour['price'];
+        $totalAmount = $tourPrice * $total_people; // Tổng tiền = giá tour * số người
+        // kiểm tra
+        if($deposit_amount > 0 && $deposit_amount > $totalAmount){
+            $_SESSION['error'] = 'Số tiền cọc (' . number_format($deposit_amount, 0, ',', '.') . 'đ) không được vượt quá tổng giá tour (' . number_format($totalAmount, 0, ',', '.') . 'đ)!';
+            header('Location: ' . BASE_URL . '?action=bookings-create');
+            exit;
+        }
         // Tạo booking
         try {
             $bookingModel = new Booking();
@@ -513,7 +534,28 @@ class BookingController
             header('Location: ' . BASE_URL . '?action=bookings-edit&id=' . $id);
             exit;
         }
-
+         // kiểm tra số tiền cọc ko vượt quá giá tour
+        $tourModel= new Tour();
+        $tour= $tourModel->find($tour_id);
+        if(!$tour){
+            $_SESSION['error']='Tour không tồn tại!';
+            header('Location: ' . BASE_URL . '?action=bookings-create');
+            exit;
+        }
+         if (!isset($tour['price']) || empty($tour['price'])) {
+            $_SESSION['error'] = 'Tour không có thông tin giá!';
+            header('Location: ' . BASE_URL . '?action=bookings-create');
+            exit;
+        }
+        
+        $tourPrice = (float)$tour['price'];
+        $totalAmount = $tourPrice * $total_people; // Tổng tiền = giá tour * số người
+        // kiểm tra
+        if($deposit_amount > 0 && $deposit_amount > $totalAmount){
+            $_SESSION['error'] = 'Số tiền cọc (' . number_format($deposit_amount, 0, ',', '.') . 'đ) không được vượt quá tổng giá tour (' . number_format($totalAmount, 0, ',', '.') . 'đ)!';
+            header('Location: ' . BASE_URL . '?action=bookings-create');
+            exit;
+        }
         // Cập nhật booking
         try {
             $bookingModel = new Booking();

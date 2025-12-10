@@ -124,15 +124,14 @@ $filters = [
                                                 <a href="<?= BASE_URL ?>?action=tour-guests&group_id=<?= $group['id'] ?>" class="btn btn-sm btn-outline-primary" title="Danh sách khách">👥</a>
                                                 <a href="<?= BASE_URL ?>?action=tour-guests-print&group_id=<?= $group['id'] ?>" class="btn btn-sm btn-outline-secondary" title="In danh sách">🖨️</a>
 
-                                                <form method="post" action="<?= BASE_URL ?>?action=tour-group-update-status" style="margin:0;">
+                                                <form method="post" action="<?= BASE_URL ?>?action=tour-group-update-status" style="margin:0; display: inline-block;">
                                                     <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
-                                                    <select name="status" class="form-select form-select-sm" style="display:inline-block;width:auto;min-width:140px;">
+                                                    <select name="status" class="form-select form-select-sm"  onchange="this.form.submit()" style="min-width:140px;">
                                                         <option value="pending" <?= ($group['status'] ?? '') === 'pending' ? 'selected' : '' ?>>Chờ khởi hành</option>
                                                         <option value="in_progress" <?= ($group['status'] ?? '') === 'in_progress' ? 'selected' : '' ?>>Đang diễn hành</option>
                                                         <option value="completed" <?= ($group['status'] ?? '') === 'completed' ? 'selected' : '' ?>>Đã hoàn thành</option>
                                                         <option value="cancelled" <?= ($group['status'] ?? '') === 'cancelled' ? 'selected' : '' ?>>Hủy</option>
                                                     </select>
-                                                    <button type="submit" class="btn btn-sm btn-primary" style="margin-left:6px;">Cập nhật</button>
                                                 </form>
                                                                                                 <!-- Delete button triggers modal -->
                                                                                                 <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteGroupModal-<?= $group['id'] ?>" style="margin-left:6px;">🗑️ Xóa</button>

@@ -209,15 +209,18 @@ $statusBadges = [
                                 </td>
                                 <?php if ($statusColumnExists): ?>
                                 <td>
-                                    <select
-                                        class="form-select form-select-sm status-select"
-                                        data-id="<?= $guide['HDV_ID'] ?>"
-                                        data-current="<?= $statusKey ?>"
-                                        aria-label="Cập nhật trạng thái">
-                                        <option value="active" <?= $statusKey === 'active' ? 'selected' : '' ?>>Đang làm việc</option>
-                                        <option value="inactive" <?= $statusKey === 'inactive' ? 'selected' : '' ?>>Tạm dừng</option>
-                                        <option value="on_leave" <?= $statusKey === 'on_leave' ? 'selected' : '' ?>>Nghỉ phép</option>
-                                    </select>
+                                   <form method="post" action="<?= BASE_URL ?>?action=guides-update-status" style="display: inline;">
+                                        <input type="hidden" name="id" value="<?= $guide['HDV_ID'] ?>">
+                                        <select
+                                            name="status"
+                                            class="form-select form-select-sm"
+                                            onchange="this.form.submit()"
+                                            aria-label="Cập nhật trạng thái">
+                                            <option value="active" <?= $statusKey === 'active' ? 'selected' : '' ?>>Đang làm việc</option>
+                                            <option value="inactive" <?= $statusKey === 'inactive' ? 'selected' : '' ?>>Tạm dừng</option>
+                                            <option value="on_leave" <?= $statusKey === 'on_leave' ? 'selected' : '' ?>>Nghỉ phép</option>
+                                        </select>
+                                    </form>
                                 </td>
                                 <?php endif; ?>
                                 <td>
@@ -237,82 +240,4 @@ $statusBadges = [
             </table>
         </div>
     </div>
-    <?php if ($statusColumnExists): ?>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const endpoint = '<?= BASE_URL ?>?action=guides-update-status';
-            const summaryEls = {
-                total: document.getElementById('summary-total'),
-                active: document.getElementById('summary-active'),
-                inactive: document.getElementById('summary-inactive'),
-                on_leave: document.getElementById('summary-on-leave'),
-            };
-
-            const updateSummary = (summary) => {
-                if (!summary) return;
-                ['total', 'active', 'inactive', 'on_leave'].forEach((key) => {
-                    if (summaryEls[key] && Object.prototype.hasOwnProperty.call(summary, key)) {
-                        summaryEls[key].textContent = summary[key];
-                    }
-                });
-            };
-
-            const handleError = (message, select, detail) => {
-                let out = message || 'Không thể cập nhật trạng thái.';
-                if (detail) {
-                    out += '\n(Chi tiết: ' + detail + ')';
-                }
-                alert(out);
-                if (select && select.dataset.current) {
-                    select.value = select.dataset.current;
-                }
-            };
-
-            document.querySelectorAll('.status-select').forEach((select) => {
-                select.addEventListener('change', function () {
-                    const guideId = this.dataset.id;
-                    const badge = document.getElementById(`badge-${guideId}`);
-                    const newStatus = this.value;
-                    const payload = new URLSearchParams({ id: guideId, status: newStatus });
-                    const currentValue = this.dataset.current;
-
-                    this.disabled = true;
-
-                    fetch(endpoint, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: payload.toString(),
-                    })
-                        .then((res) => res.json())
-                        .then((data) => {
-                            if (!data || !data.success) {
-                                handleError(data?.message, select, data?.detail);
-                                return;
-                            }
-                            if (badge && data.badge) {
-                                badge.textContent = data.badge.label || '';
-                                badge.className = `badge rounded-pill ${data.badge.class || ''}`;
-                            }
-                            this.dataset.current = newStatus;
-                            updateSummary(data.summary);
-                        })
-                        .catch(() => {
-                            handleError('Kết nối thất bại, vui lòng thử lại.', select);
-                        })
-                        .finally(() => {
-                            this.disabled = false;
-                            if (this.dataset.current) {
-                                this.value = this.dataset.current;
-                            } else {
-                                this.value = currentValue;
-                            }
-                        });
-                });
-            });
-        });
-    </script>
-    <?php endif; ?>
 </main>
