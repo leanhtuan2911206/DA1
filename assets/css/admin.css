@@ -324,15 +324,22 @@ body {
     line-height: 1.4;
 }
 
-/* Form trong card-like */
+/* Form trong card-like - mặc định là block để Bootstrap grid hoạt động */
 .card-like form {
+    display: block;
+}
+
+/* Chỉ áp dụng flex cho form đặc biệt (như filter form không dùng grid) */
+.card-like form.filter-form,
+.card-like form.inline-form {
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
 }
 
-.card-like form .form-select {
+.card-like form.filter-form .form-select,
+.card-like form.inline-form .form-select {
     width: auto;
     min-width: 140px;
     flex: 0 0 auto;
