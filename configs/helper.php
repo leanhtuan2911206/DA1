@@ -36,3 +36,25 @@ if (!function_exists('removeVNPrefix')) {
         return trim($name);
     }
 }
+
+// Helper function để tạo QR code image URL
+if (!function_exists('getQRCodeImage')) {
+    function getQRCodeImage($data, $size = 200) {
+        if (empty($data)) {
+            return '';
+        }
+        
+        // Sử dụng QR Server API (miễn phí, không cần API key)
+        $encodedData = urlencode($data);
+        $size = (int)$size;
+        
+        // Đảm bảo size hợp lệ (tối thiểu 100, tối đa 1000)
+        if ($size < 100) $size = 100;
+        if ($size > 1000) $size = 1000;
+        
+        // Tạo URL QR code từ QR Server API
+        $qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size={$size}x{$size}&data={$encodedData}";
+        
+        return $qrUrl;
+    }
+}

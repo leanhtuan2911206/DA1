@@ -1187,4 +1187,148 @@ class TourController
         header('Location: ' . BASE_URL . '?action=partner-logs&tour_id=' . $tourId);
         exit;
     }
+    
+    // Hiển thị trang đăng ký tour từ QR code
+    public function qrBooking(): void
+    {
+        // Lấy ID tour từ URL
+        $tour_id = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
+        
+        // Kiểm tra ID hợp lệ
+        if ($tour_id <= 0) {
+            die('Tour không tồn tại!');
+        }
+
+        // Lấy thông tin tour từ database
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tour_id);
+        
+        // Kiểm tra tour có tồn tại không
+        if (!$tour) {
+            die('Tour không tồn tại!');
+        }
+
+        // Hiển thị form đăng ký
+        require_once PATH_VIEW . 'admin/tour-qr-booking.php';
+    }
+
+    // Xử lý đăng ký tour từ QR code
+    public function qrBookingStore(): void
+    {
+        // Bắt đầu session
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        // Lấy dữ liệu từ form
+        $tour_id = isset($_POST['tour_id']) ? (int)$_POST['tour_id'] : 0;
+        $customer_name = isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '';
+        $customer_phone = isset($_POST['customer_phone']) ? trim($_POST['customer_phone']) : '';
+        $customer_email = isset($_POST['customer_email']) ? trim($_POST['customer_email']) : '';
+        $total_people = isset($_POST['total_people']) ? (int)$_POST['total_people'] : 1;
+        $start_date = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
+        $booking_type = isset($_POST['booking_type']) ? $_POST['booking_type'] : 'individual';
+        $deposit_amount = isset($_POST['deposit_amount']) ? (float)$_POST['deposit_amount'] : 0;
+        $status = isset($_POST['status']) ? $_POST['status'] : 'pending';
+        $special_requests = isset($_POST['special_requests']) ? trim($_POST['special_requests']) : '';
+
+        // Kiểm tra thông tin bắt buộc
+        if (empty($tour_id) || empty($customer_name) || empty($customer_phone) || empty($start_date) || $total_people < 1) {
+            $_SESSION['error'] = 'Vui lòng điền đầy đủ thông tin bắt buộc!';
+            header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
+            exit;
+        }
+
+        // Lấy thông tin tour
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tour_id);
+        
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại!';
+            header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
+            exit;
+        }
+
+        // Kiểm tra giá tour
+        $tourPrice = (float)($tour['price'] ?? 0);
+        if ($tourPrice <= 0) {
+            $_SESSION['error'] = 'Tour không có thông tin giá!';
+            header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
+            exit;
+        }
+        
+        // Kiểm tra số tiền cọc không vượt quá tổng giá
+        $totalAmount = $tourPrice * $total_people;
+        if ($deposit_amount > $totalAmount) {
+            $_SESSION['error'] = 'Số tiền cọc (' . number_format($deposit_amount, 0, ',', '.') . 'đ) không được vượt quá tổng giá tour (' . number_format($totalAmount, 0, ',', '.') . 'đ)!';
+            header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
+            exit;
+        }
+
+        // Tạo booking
+        $bookingModel = new Booking();
+        $data = [
+            'tour_id' => $tour_id,
+            'start_date' => $start_date,
+            'customer_name' => $customer_name,
+            'customer_phone' => $customer_phone,
+            'customer_email' => $customer_email,
+            'total_people' => $total_people,
+            'booking_type' => $booking_type,
+            'special_requests' => $special_requests,
+            'deposit_amount' => $deposit_amount,
+            'status' => $status,
+            'changed_by' => null,
+        ];
+
+        $bookingId = $bookingModel->create($data);
+
+        // Kiểm tra kết quả
+        if (!$bookingId) {
+            $_SESSION['error'] = 'Có lỗi xảy ra khi đăng ký tour!';
+            header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
+            exit;
+        }
+
+        // Tự động tạo customer từ thông tin booking
+        try {
+            $customerModel = new Customer();
+            $existingCustomers = $customerModel->getByBooking($bookingId);
+            
+            // Chỉ tạo nếu chưa có customer nào
+            if (empty($existingCustomers) && !empty($customer_name)) {
+                // Xác định trạng thái thanh toán
+                $paymentStatus = 'unpaid';
+                if ($status === 'deposit') {
+                    $paymentStatus = 'deposit';
+                } elseif (in_array($status, ['paid', 'completed', 'confirmed'])) {
+                    $paymentStatus = 'paid';
+                }
+                
+                // Tạo customer
+                $customerData = [
+                    'booking_id' => $bookingId,
+                    'full_name' => $customer_name,
+                    'contact_phone' => $customer_phone ?: null,
+                    'email' => $customer_email ?: null,
+                    'payment_status' => $paymentStatus,
+                    'gender' => null,
+                    'date_of_birth' => null,
+                    'id_type' => null,
+                    'id_number' => null,
+                    'address' => null,
+                    'special_requests' => null,
+                ];
+                
+                $customerModel->create($customerData);
+            }
+        } catch (Throwable $e) {
+            // Bỏ qua lỗi khi tạo customer, booking đã tạo thành công rồi
+        }
+        
+        // Thông báo thành công
+        $_SESSION['success'] = 'Đăng ký tour thành công! Chúng tôi sẽ liên hệ với bạn sớm nhất.';
+        header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
+        exit;
+    }
 }

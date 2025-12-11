@@ -113,6 +113,7 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                         <th>Hành trình / Địa điểm</th>
                         <th>Giá tour</th>
                         <th>Doanh thu ước tính</th>
+                        <th style="width: 120px;">Mã QR</th>
                         <th>Trạng thái</th>
                         <th>Thao tác</th>
                     </tr>
@@ -187,6 +188,29 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                             ? number_format($estRevenue, 0, ',', '.') . 'đ'
                                             : '—';
                                     ?>
+                                </td>
+                                <td>
+                                    <?php
+                                        // Tạo URL đầy đủ cho QR code
+                                        $tourId = (int)$tour['id'];
+                                        $bookingUrl = BASE_URL . '?action=tour-qr-booking&tour_id=' . $tourId;
+                                        // Đảm bảo URL là absolute URL
+                                        if (strpos($bookingUrl, 'http') !== 0) {
+                                            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+                                            $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+                                            $bookingUrl = $protocol . $host . '/' . ltrim($bookingUrl, '/');
+                                        }
+                                        $qrImageUrl = getQRCodeImage($bookingUrl, 200);
+                                    ?>
+                                    <div class="text-center">
+                                        <img src="<?= htmlspecialchars($qrImageUrl) ?>" alt="QR Code Tour <?= $tourId ?>" style="width: 100px; height: 100px;" class="border rounded">
+                                        <div class="mt-2">
+                                            <a href="<?= htmlspecialchars($bookingUrl) ?>" target="_blank" class="btn btn-sm btn-outline-primary" title="Xem link đăng ký">
+                                                🔗 Link
+                                            </a>
+                                        </div>
+                                        <small class="text-muted d-block mt-1" style="font-size: 10px;">Quét để đăng ký</small>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge rounded-pill <?= $statusClass ?>">

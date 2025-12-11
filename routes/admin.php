@@ -29,6 +29,8 @@ match ($action) {
     'tours-delete'  => (new TourController)->delete(),
     'tours-get-info' => (new TourController)->getTourInfo(),
     'tours-get-itinerary' => (new TourController)->getItineraryJson(),
+    'tour-qr-booking' => (new TourController)->qrBooking(),
+    'tour-qr-booking-store' => (new TourController)->qrBookingStore(),
 
     // Nhật ký tour: trang quản trị xem/lọc, HDV ghi chép
     'tour-logs-list'   => (new TourController)->logsList(),
