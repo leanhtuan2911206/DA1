@@ -33,6 +33,14 @@ match ($action) {
     'tours-get-itinerary' => (new TourController)->getItineraryJson(),
     'tour-qr-booking' => (new TourController)->qrBooking(),
     'tour-qr-booking-store' => (new TourController)->qrBookingStore(),
+    // Quản lý phiên bản tour(theo mùa, khuyến mãi, đặc biệt)
+    'tours-versions' => (new TourController)->versions(),
+    'tours-version-create' => (new TourController)->versionCreate(),
+    'tours-version-store' => (new TourController)->versionStore(),
+    'tours-version-edit' => (new TourController)->versionEdit(),
+    'tours-version-update' => (new TourController)->versionUpdate(),
+    'tours-version-delete' => (new TourController)->versionDelete(),
+    'tours-get-active-version' => (new BookingController)->getActiveVersion(),
 
     // Nhật ký tour: trang quản trị xem/lọc, HDV ghi chép
     'tour-logs-list'   => (new TourController)->logsList(),

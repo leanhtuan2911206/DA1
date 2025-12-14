@@ -85,6 +85,40 @@ class BookingController
 
         require_once PATH_VIEW . 'main.php';
     }
+    
+    // API: Lấy phiên bản đang áp dụng theo ngày
+    public function getActiveVersion(): void
+    {
+        header('Content-Type: application/json');
+        
+        $tourId = (int)($_GET['tour_id'] ?? 0);
+        $date = trim($_GET['date'] ?? '');
+        
+        if ($tourId <= 0 || empty($date)) {
+            echo json_encode(['success' => false]);
+            exit;
+        }
+        
+        $versionModel = new TourVersion();
+        $version = $versionModel->getActiveVersionByDate($tourId, $date);
+        
+        if ($version) {
+            echo json_encode([
+                'success' => true,
+                'version' => [
+                    'id' => (int)$version['id'],
+                    'name' => $version['name'],
+                    'version_type' => $version['version_type'],
+                    'price' => $version['price'] ? (float)$version['price'] : null,
+                    'start_date' => $version['start_date'],
+                    'end_date' => $version['end_date'],
+                ]
+            ]);
+        } else {
+            echo json_encode(['success' => false]);
+        }
+        exit;
+    }
 
     public function store()
     {
@@ -99,6 +133,7 @@ class BookingController
 
         // Lấy dữ liệu từ form
         $tour_id = isset($_POST['tour_id']) ? (int)$_POST['tour_id'] : 0;
+        $tour_version_id=isset($_POST['tour_version_id']) && $_POST['tour_version_id'] !== '' ?(int)$_POST['tour_version_id']: null;
         $start_date = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
         $customer_name = isset($_POST['customer_name']) ? trim($_POST['customer_name']) : '';
         $customer_phone = isset($_POST['customer_phone']) ? trim($_POST['customer_phone']) : '';
@@ -118,24 +153,40 @@ class BookingController
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
         }
-        // kiểm tra số tiền cọc ko vượt quá giá tour
-        $tourModel= new Tour();
-        $tour= $tourModel->find($tour_id);
-        if(!$tour){
-            $_SESSION['error']='Tour không tồn tại!';
+        // Kiểm tra tour và lấy giá
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tour_id);
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại!';
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
         }
-         if (!isset($tour['price']) || empty($tour['price'])) {
+        
+        // Tự động tìm phiên bản đang áp dụng
+        $tourPrice = (float)$tour['price'];
+        $tour_version_id = null;
+        
+        if (!empty($start_date)) {
+            $versionModel = new TourVersion();
+            $activeVersion = $versionModel->getActiveVersionByDate($tour_id, $start_date);
+            
+            if ($activeVersion) {
+                $tour_version_id = (int)$activeVersion['id'];
+                if ($activeVersion['price'] && $activeVersion['price'] > 0) {
+                    $tourPrice = (float)$activeVersion['price'];
+                }
+            }
+        }
+        
+        if ($tourPrice <= 0) {
             $_SESSION['error'] = 'Tour không có thông tin giá!';
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
         }
         
-        $tourPrice = (float)$tour['price'];
         $totalAmount = $tourPrice * $total_people; // Tổng tiền = giá tour * số người
-        // kiểm tra
-        if($deposit_amount > 0 && $deposit_amount > $totalAmount){
+        // Kiểm tra số tiền cọc
+        if ($deposit_amount > 0 && $deposit_amount > $totalAmount) {
             $_SESSION['error'] = 'Số tiền cọc (' . number_format($deposit_amount, 0, ',', '.') . 'đ) không được vượt quá tổng giá tour (' . number_format($totalAmount, 0, ',', '.') . 'đ)!';
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
@@ -145,6 +196,7 @@ class BookingController
             $bookingModel = new Booking();
             $data = [
                 'tour_id' => $tour_id,
+                'tour_version_id' => $tour_version_id,
                 'start_date' => $start_date,
                 'customer_name' => $customer_name,
                 'customer_phone' => $customer_phone,

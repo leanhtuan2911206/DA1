@@ -4,6 +4,24 @@ class Booking extends BaseModel
 {
     protected $table = 'bookings';
 
+    public function __construct()
+    {
+         parent::__construct();
+         $this->ensureTourVersionColumn();
+    }
+    protected function ensureTourVersionColumn(){
+        try{
+            $hasColumn=(int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = '{$this->table}' AND column_name = 'tour_version_id'")->fetchColumn()>0;
+            if(!$hasColumn){
+                $this->pdo->exec("ALTER TABLE {$this->table} ADD COLUMN tour_version_id INT NULL AFTER tour_id");
+                $this->pdo->exec("ALTER TABLE {$this->table} ADD INDEX idx_tour_version_id (tour_version_id)");
+                $this->pdo->exec("ALTER TABLE {$this->table} ADD FOREIGN KEY (tour_version_id) REFERENCES tour_versions(id) ON DELETE SET NULL");
+            }
+
+        }catch(Throwable $e){
+            // bỏ qua lỗi nếu bảng chưa tồn tại hoặc đã có cột
+        }
+    }
     public function countAll(): int
     {
         $sql = "SELECT COUNT(*) FROM {$this->table}";
@@ -190,16 +208,17 @@ class Booking extends BaseModel
     {
         $sql = "
             INSERT INTO {$this->table} 
-            (tour_id, start_date, customer_name, customer_phone, customer_email, 
+            (tour_id, tour_version_id, start_date, customer_name, customer_phone, customer_email, 
              total_people, booking_type, special_requests, deposit_amount, status, created_at)
             VALUES 
-            (:tour_id, :start_date, :customer_name, :customer_phone, :customer_email,
+            (:tour_id, :tour_version_id, :start_date, :customer_name, :customer_phone, :customer_email,
              :total_people, :booking_type, :special_requests, :deposit_amount, :status, NOW())
         ";
 
         try {
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':tour_id', $data['tour_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':tour_version_id', $data['tour_version_id'] ?? null,$data['tour_version_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $stmt->bindValue(':start_date', $data['start_date'], PDO::PARAM_STR);
             $stmt->bindValue(':customer_name', $data['customer_name'], PDO::PARAM_STR);
             $stmt->bindValue(':customer_phone', $data['customer_phone'] ?? null, PDO::PARAM_STR);
@@ -235,6 +254,7 @@ class Booking extends BaseModel
         $sql = "
             UPDATE {$this->table} 
             SET tour_id = :tour_id,
+                tour_version_id = :tour_version_id,
                 start_date = :start_date,
                 customer_name = :customer_name,
                 customer_phone = :customer_phone,
@@ -252,6 +272,7 @@ class Booking extends BaseModel
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
             $stmt->bindValue(':tour_id', $data['tour_id'], PDO::PARAM_INT);
+            $stmt->bindValue(':tour_version_id', $data['tour_version_id'] ?? null,$data['tour_version_id'] ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $stmt->bindValue(':start_date', $data['start_date'], PDO::PARAM_STR);
             $stmt->bindValue(':customer_name', $data['customer_name'], PDO::PARAM_STR);
             $stmt->bindValue(':customer_phone', $data['customer_phone'] ?? null, PDO::PARAM_STR);
