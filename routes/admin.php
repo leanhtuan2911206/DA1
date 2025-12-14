@@ -9,6 +9,8 @@ match ($action) {
     'logout'    => (new AuthController)->logout(),
     'partner'   => (new PartnerController)->dashboard(),
     'partner-logs' => (new PartnerController)->logs(),
+    'partner-feedback' => (new PartnerController)->feedback(),
+    'partner-feedback-store' => (new PartnerController)->feedbackStore(),
     'tour-categories'  => (new TourCategoryController)->index(),
     'tours'             => (new TourController)->index(),
 
@@ -107,4 +109,6 @@ match ($action) {
     'partner-guest-checkin' => (new PartnerController)->checkinGuest(),
     'partner-guest-update-special-requests' => (new PartnerController)->updateGuestSpecialRequests(),
     'admin-revenue-data' => (new AdminController)->getRevenueData(),
+    'guide-feedbacks' => (new AdminController)->guideFeedbacks(),
+    'guide-feedbacks-update-status' => (new AdminController)->updateFeedbackStatus(),
 };

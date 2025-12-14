@@ -323,6 +323,100 @@ class AdminController
         // Biến $listCategories PHẢI được truyền vì file view cần nó.
         require_once PATH_VIEW . 'main.php'; 
     }
+
+    public function guideFeedbacks(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        $feedbackModel = new GuideFeedback();
+        $feedbackTypes = $feedbackModel->getFeedbackTypes();
+
+        $filters = [
+            'guide_id' => isset($_GET['guide_id']) ? (int)$_GET['guide_id'] : 0,
+            'feedback_type' => $_GET['type'] ?? '',
+            'status' => $_GET['status'] ?? '',
+            'tour_id' => isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0,
+        ];
+
+        // Lấy danh sách phản hồi
+        $feedbacks = $feedbackModel->getAll($filters);
+
+        // Lấy danh sách HDV để filter
+        $guides = [];
+        try {
+            $guideModel = new Guide();
+            $guides = $guideModel->list([]);
+        } catch (Throwable $e) {
+            $guides = [];
+        }
+
+        // Lấy danh sách tour để filter
+        $tours = [];
+        try {
+            $tourModel = new Tour();
+            $tours = $tourModel->listWithCategory([]);
+        } catch (Throwable $e) {
+            $tours = [];
+        }
+
+        $view = 'admin/guide-feedbacks';
+        $title = 'Phản hồi đánh giá từ HDV';
+        $hideNavbar = true;
+
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function updateFeedbackStatus(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (!isset($_SESSION['user'])) {
+            header('Location: ' . BASE_URL . '?action=login');
+            exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=guide-feedbacks');
+            exit;
+        }
+
+        $feedbackId = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $status = trim($_POST['status'] ?? '');
+
+        if ($feedbackId <= 0 || empty($status)) {
+            $_SESSION['error'] = 'Dữ liệu không hợp lệ';
+            header('Location: ' . BASE_URL . '?action=guide-feedbacks');
+            exit;
+        }
+
+        $validStatuses = ['pending', 'reviewed', 'resolved'];
+        if (!in_array($status, $validStatuses)) {
+            $_SESSION['error'] = 'Trạng thái không hợp lệ';
+            header('Location: ' . BASE_URL . '?action=guide-feedbacks');
+            exit;
+        }
+
+        $feedbackModel = new GuideFeedback();
+        $result = $feedbackModel->update($feedbackId, ['status' => $status]);
+
+        if ($result) {
+            $_SESSION['success'] = 'Đã cập nhật trạng thái phản hồi thành công.';
+        } else {
+            $_SESSION['error'] = 'Không thể cập nhật trạng thái phản hồi.';
+        }
+
+        header('Location: ' . BASE_URL . '?action=guide-feedbacks');
+        exit;
+    }
     
 
 }

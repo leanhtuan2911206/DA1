@@ -7,11 +7,13 @@ $detailHref      = BASE_URL . '?action=partner&tab=detail';
 $assignmentsHref = BASE_URL . '?action=partner&tab=assignments';
 $itineraryHref   = BASE_URL . '?action=partner&tab=itinerary';
 $logsHref        = BASE_URL . '?action=partner-logs';
+$feedbackHref    = BASE_URL . '?action=partner-feedback';
 
 $activeDetail      = ($currentAction === 'partner' && $currentTab === 'detail') ? 'active' : '';
 $activeAssignments = ($currentAction === 'partner' && $currentTab === 'assignments') ? 'active' : '';
 $activeItinerary   = ($currentAction === 'partner' && $currentTab === 'itinerary') ? 'active' : '';
 $activeLogs        = ($currentAction === 'partner-logs') ? 'active' : '';
+$activeFeedback    = ($currentAction === 'partner-feedback') ? 'active' : '';
 $uploadsDir = rtrim(PATH_ASSETS_UPLOADS, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 $logoFs     = $uploadsDir . 'logo.png';
 $logoUrl    = BASE_ASSETS_UPLOADS . 'logo.png';
@@ -37,6 +39,9 @@ $logoUrl    = BASE_ASSETS_UPLOADS . 'logo.png';
         </li>
         <li class="nav-item mb-2">
             <a class="nav-link <?= $activeLogs ?>" href="<?= $logsHref ?>">Nhật ký tour</a>
+        </li>
+        <li class="nav-item mb-2">
+            <a class="nav-link <?= $activeFeedback ?>" href="<?= $feedbackHref ?>">Phản hồi đánh giá</a>
         </li>
         <li class="nav-item mt-4 px-3">
             <a class="btn btn-sm btn-danger w-100" href="<?= BASE_URL ?>?action=logout">Đăng xuất</a>

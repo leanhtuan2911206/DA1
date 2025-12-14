@@ -472,7 +472,7 @@ function extractLogParts(string $desc): array {
     <?php endif; ?>
 
     <?php if ($currentView === 'guide'): ?>
-    <div class="card-like" id="section_guide">
+    <div class="card-like" id="section_guide" style="margin-bottom:0">
         <div class="p-3">
             <h5 class="mb-3">Nhật ký theo HDV</h5>
             <?php
@@ -521,55 +521,3 @@ function extractLogParts(string $desc): array {
     </div>
     <?php endif; ?>
 </main>
-
-    <?php if ($currentView === 'guide'): ?>
-    <div class="card-like" id="section_guide">
-        <div class="p-3">
-            <h5 class="mb-3">Nhật ký theo HDV</h5>
-            <?php
-            $logsByGuide = [];
-            foreach ($logs as $log) {
-                $g = trim((string)($log['guide_name'] ?? '—'));
-                if (!isset($logsByGuide[$g])) { $logsByGuide[$g] = []; }
-                $logsByGuide[$g][] = $log;
-            }
-            ?>
-            <?php if (empty($logsByGuide)): ?>
-                <div class="text-muted">Chưa có nhật ký theo HDV.</div>
-            <?php else: foreach ($logsByGuide as $guideName => $items): ?>
-                <div class="mb-3">
-                    <h6 class="mb-2">HDV: <?= htmlspecialchars($guideName) ?> (<?= count($items) ?> mục)</h6>
-                    <ul class="list-group">
-                        <?php foreach ($items as $log): ?>
-                            <li class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <strong><?= htmlspecialchars($log['title'] ?? '') ?></strong>
-                                        <div class="small text-muted"><?= htmlspecialchars($log['log_type'] ?? '') ?> · <?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></div>
-                                        <?php $parts = extractLogParts((string)($log['description'] ?? '')); ?>
-                                        <div class="mt-2">
-                                            <?php if ($parts['weather'] !== ''): ?><div class="small">Thời tiết: <span class="fw-semibold"><?= htmlspecialchars($parts['weather']) ?></span></div><?php endif; ?>
-                                            <?php if ($parts['health'] !== ''): ?><div class="small">Sức khỏe khách: <span class="fw-semibold"><?= htmlspecialchars($parts['health']) ?></span></div><?php endif; ?>
-                                            <?php if ($parts['activities'] !== ''): ?><div class="small">Hoạt động đặc biệt: <span class="fw-semibold"><?= htmlspecialchars($parts['activities']) ?></span></div><?php endif; ?>
-                                            <?php if ($parts['handling'] !== ''): ?><div class="small">Cách xử lý: <span class="fw-semibold"><?= htmlspecialchars($parts['handling']) ?></span></div><?php endif; ?>
-                                            <?php if ($parts['feedback'] !== ''): ?><div class="small">Phản hồi khách: <span class="fw-semibold"><?= htmlspecialchars($parts['feedback']) ?></span></div><?php endif; ?>
-                                            <?php if ($parts['coordination'] !== '' || $parts['spirit'] !== ''): ?>
-                                                <div class="small">Đánh giá HDV: <?php if ($parts['coordination'] !== ''): ?><span>Phối hợp <?= htmlspecialchars($parts['coordination']) ?></span><?php endif; ?><?php if ($parts['spirit'] !== ''): ?><span class="ms-2">Tinh thần <?= htmlspecialchars($parts['spirit']) ?></span><?php endif; ?></div>
-                                            <?php endif; ?>
-                                        </div>
-                                        <?php if (!empty($log['description'])): ?><div class="mt-1 small text-muted" style="white-space:pre-line;">
-                                            <?= htmlspecialchars($log['description']) ?>
-                                        </div><?php endif; ?>
-                                    </div>
-                                    <div class="text-nowrap"><?php if (!empty($log['rating'])): ?><span class="text-warning">★ <?= (int)$log['rating'] ?>/5</span><?php endif; ?></div>
-                                </div>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endforeach; endif; ?>
-        </div>
-    </div>
-    <?php endif; ?>
-</main>
-
