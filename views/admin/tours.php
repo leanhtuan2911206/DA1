@@ -126,7 +126,7 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($tourList as $tour): ?>
+                        <?php foreach ($tourList as $index => $tour): ?>
                             <?php
                                 $thumb = !empty($tour['image']) 
                                     ? BASE_URL . ltrim($tour['image'], '/')
@@ -163,7 +163,7 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                 }
                             ?>
                             <tr>
-                                <td class="text-muted"><?= htmlspecialchars((string)($tour['id'] ?? '')) ?></td>
+                                <td class="text-muted"><?= $index + 1 ?></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
                                         <img src="<?= htmlspecialchars($thumb) ?>" alt="" class="tour-thumb rounded">

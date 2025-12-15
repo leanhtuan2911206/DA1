@@ -132,7 +132,7 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
                         <div class="tour-details">
                             <h3 class="tour-name"><?= htmlspecialchars(removeVNPrefix($tour['name'] ?? '')) ?></h3>
                             <p class="tour-itinerary mb-3"><?= htmlspecialchars($tour['itinerary'] ?? '') ?></p>
-                            <div class="price"><?= number_format((float)($tour['price'] ?? 0), 0, ',', '.') ?>đ</div>
+                            <div class="price" id="tour-display-price" data-base-price="<?= (float)($tour['price'] ?? 0) ?>"><?= number_format((float)($tour['price'] ?? 0), 0, ',', '.') ?>đ</div>
                         </div>
                     </div>
                 </div>
@@ -167,6 +167,14 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Ngày khởi hành <span class="text-danger">*</span></label>
                                 <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3" id="version_auto_info" style="display: none;">
+                            <div class="alert alert-info">
+                                <strong>Phiên bản đang áp dụng:</strong> <span id="version_name_display"></span>
+                                <br>
+                                <small id="version_details_display"></small>
                             </div>
                         </div>
 
@@ -208,47 +216,104 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
             </div>
 
             <script>
-            // Kiểm tra số tiền cọc không vượt quá tổng giá tour
             document.addEventListener('DOMContentLoaded', function() {
-                var tourPrice = <?= (float)($tour['price'] ?? 0) ?>;
-                var totalPeopleInput = document.getElementById('total_people');
-                var depositInput = document.getElementById('deposit_amount');
-                var errorDiv = document.getElementById('deposit_error');
-                var infoDiv = document.getElementById('deposit_info');
-                
-                function formatMoney(amount) {
-                    return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
-                }
-                
-                function checkDeposit() {
-                    var people = parseInt(totalPeopleInput.value) || 0;
-                    var deposit = parseFloat(depositInput.value) || 0;
+                // 1. Khai báo các element (gom nhóm cho gọn)
+                const els = {
+                    start: document.querySelector('input[name="start_date"]'),
+                    tourId: document.querySelector('input[name="tour_id"]'),
+                    people: document.getElementById('total_people'),
+                    deposit: document.getElementById('deposit_amount'),
+                    price: document.getElementById('tour-display-price'),
+                    vInfo: document.getElementById('version_auto_info'),
+                    vName: document.getElementById('version_name_display'),
+                    vDetails: document.getElementById('version_details_display'),
+                    err: document.getElementById('deposit_error'),
+                    info: document.getElementById('deposit_info')
+                };
+
+                const basePrice = parseFloat(els.price.dataset.basePrice) || 0;
+                let currentPrice = basePrice;
+
+                // 2. Helper format tiền
+                const formatMoney = n => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
+
+                // 3. Tính toán tiền cọc & Tổng tiền
+                const checkDeposit = () => {
+                    const people = parseInt(els.people.value) || 0;
+                    const deposit = parseFloat(els.deposit.value) || 0;
                     
-                    if (tourPrice > 0 && people > 0) {
-                        var totalPrice = tourPrice * people;
-                        
-                        infoDiv.textContent = 'Tổng giá tour: ' + formatMoney(totalPrice);
-                        infoDiv.style.display = 'block';
-                        
-                        if (deposit > totalPrice) {
-                            errorDiv.textContent = 'Số tiền cọc (' + formatMoney(deposit) + ') vượt quá tổng giá tour (' + formatMoney(totalPrice) + ')!';
-                            errorDiv.style.display = 'block';
-                            depositInput.classList.add('is-invalid');
-                        } else {
-                            errorDiv.style.display = 'none';
-                            depositInput.classList.remove('is-invalid');
-                        }
+                    if (currentPrice <= 0 || people <= 0) {
+                        els.info.style.display = els.err.style.display = 'none';
+                        return;
                     }
-                }
+
+                    const total = currentPrice * people;
+                    els.info.style.display = 'block';
+                    els.info.textContent = `Tổng giá tour: ${formatMoney(total)}`;
+
+                    const isOver = deposit > total;
+                    els.err.style.display = isOver ? 'block' : 'none';
+                    els.err.textContent = `Số tiền cọc (${formatMoney(deposit)}) vượt quá tổng giá tour (${formatMoney(total)})!`;
+                    els.deposit.classList.toggle('is-invalid', isOver);
+                };
+
+                // 4. Cập nhật giao diện (Giá & Thông tin version)
+                const updateUI = (price, version = null) => {
+                    currentPrice = price;
+                    els.price.textContent = formatMoney(price);
+                    
+                    // Màu sắc: Hồng nếu dùng giá version, Xanh nếu dùng giá gốc
+                    const isSpecialPrice = version && parseFloat(version.price) > 0;
+                    els.price.style.color = isSpecialPrice ? '#d63384' : '#28a745';
+
+                    if (version) {
+                        els.vInfo.style.display = 'block';
+                        const types = { seasonal: 'Theo mùa', promotional: 'Khuyến mãi', special: 'Đặc biệt' };
+                        els.vName.textContent = `${version.name} (${types[version.version_type] || version.version_type})`;
+                        
+                        const details = [
+                            `Giá: ${isSpecialPrice ? formatMoney(price) : 'Dùng giá tour gốc'}`,
+                            version.start_date ? `Từ: ${version.start_date}` : '',
+                            version.end_date ? `Đến: ${version.end_date}` : ''
+                        ].filter(Boolean).join(' | ');
+                        
+                        els.vDetails.innerHTML = details;
+                    } else {
+                        els.vInfo.style.display = 'none';
+                    }
+                    checkDeposit();
+                };
+
+                // 5. Sự kiện đổi ngày -> Gọi API lấy version
+                els.start.addEventListener('change', function() {
+                    const date = this.value;
+                    if (!date) return updateUI(basePrice);
+
+                    fetch(`<?= BASE_URL ?>?action=tours-get-active-version&tour_id=${els.tourId.value}&date=${date}`)
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success && data.version) {
+                                const vPrice = parseFloat(data.version.price);
+                                updateUI(vPrice > 0 ? vPrice : basePrice, data.version);
+                            } else {
+                                updateUI(basePrice);
+                            }
+                        })
+                        .catch(() => updateUI(basePrice));
+                });
+
+                // 6. Sự kiện nhập liệu
+                [els.people, els.deposit].forEach(el => el.addEventListener('input', checkDeposit));
                 
-                totalPeopleInput.addEventListener('input', checkDeposit);
-                depositInput.addEventListener('input', checkDeposit);
+                checkDeposit(); // Chạy lần đầu
             });
             </script>
         <?php else: ?>
             <div class="alert alert-danger">Tour không tồn tại!</div>
         <?php endif; ?>
     </div>
+    
+
 </body>
 </html>
 

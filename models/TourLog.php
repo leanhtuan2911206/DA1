@@ -53,7 +53,6 @@ class TourLog extends BaseModel
     {
         $cols = ['tour_id','log_type','title','description','status','rating'];
         $place = [':tour_id',':log_type',':title',':description',':status',':rating'];
-        if (isset($data['booking_id'])) { $cols[] = 'booking_id'; $place[] = ':booking_id'; }
         if (isset($data['itinerary_id'])) { $cols[] = 'itinerary_id'; $place[] = ':itinerary_id'; }
         if (isset($data['log_date'])) { $cols[] = 'log_date'; $place[] = ':log_date'; }
         if (isset($data['guide_id'])) { $cols[] = 'guide_id'; $place[] = ':guide_id'; }
@@ -70,7 +69,6 @@ class TourLog extends BaseModel
         } else {
             $stmt->bindValue(':rating', null, PDO::PARAM_NULL);
         }
-        if (isset($data['booking_id'])) { $stmt->bindValue(':booking_id', (int)$data['booking_id'], PDO::PARAM_INT); }
         if (isset($data['itinerary_id'])) { $stmt->bindValue(':itinerary_id', (int)$data['itinerary_id'], PDO::PARAM_INT); }
         if (isset($data['log_date'])) { $stmt->bindValue(':log_date', $data['log_date']); }
         if (isset($data['guide_id'])) { $stmt->bindValue(':guide_id', (int)$data['guide_id'], PDO::PARAM_INT); }

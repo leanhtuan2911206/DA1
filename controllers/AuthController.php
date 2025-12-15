@@ -1,8 +1,5 @@
 <?php
 
-// Giả sử các file model và cấu hình đã được include/autoload
-// Ví dụ: require_once 'models/User.php';
-
 class AuthController
 {
     // Hiển thị form đăng nhập và xử lý POST
