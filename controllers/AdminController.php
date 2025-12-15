@@ -124,11 +124,52 @@ class AdminController
                 } catch (Throwable $e) {}
             }
 
-            $tours = $tourModel->listDashboard(12);
+            // Danh sách tour cho bảng quản lý (thuần PDO)
+            try {
+                $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
+                $pdo2 = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                $sqlTours = "
+                    SELECT 
+                        t.id,
+                        t.name,
+                        t.price,
+                        t.itinerary AS place,
+                        t.policy,
+                        t.created_at,
+                        tc.name AS type,
+                        COALESCE(t.tour_status, 'Hoạt động') AS status
+                    FROM tours AS t
+                    LEFT JOIN tour_categories AS tc ON tc.id = t.category_id
+                    ORDER BY t.created_at DESC
+                    LIMIT :limit
+                ";
+                $stmtTours = $pdo2->prepare($sqlTours);
+                $stmtTours->bindValue(':limit', 12, PDO::PARAM_INT);
+                $stmtTours->execute();
+                $tours = $stmtTours->fetchAll();
+            } catch (Throwable $_) { $tours = []; }
 
             $selectedMonth = (int) ($_GET['month'] ?? date('n'));
             $selectedYear  = (int) ($_GET['year']  ?? date('Y'));
-            $dailyCounts   = $bookingModel->dailyCountsByMonth($selectedYear, $selectedMonth);
+            // Số lượng booking theo ngày (thuần PDO)
+            $dailyCounts   = [];
+            try {
+                $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
+                $pdo3 = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                // Ưu tiên cột start_date, fallback created_at
+                $col = 'start_date';
+                try {
+                    $hasCol = (int)$pdo3->query("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'bookings' AND column_name = 'start_date'")->fetchColumn() > 0;
+                    if (!$hasCol) { $col = 'created_at'; }
+                } catch (Throwable $_) {}
+                $sqlCounts = "SELECT DAY($col) AS d, COUNT(*) AS c FROM bookings WHERE YEAR($col)=:y AND MONTH($col)=:m GROUP BY DAY($col) ORDER BY d";
+                $stmtCounts = $pdo3->prepare($sqlCounts);
+                $stmtCounts->bindValue(':y', $selectedYear, PDO::PARAM_INT);
+                $stmtCounts->bindValue(':m', $selectedMonth, PDO::PARAM_INT);
+                $stmtCounts->execute();
+                $rows = $stmtCounts->fetchAll();
+                foreach ($rows as $r) { $dailyCounts[(int)$r['d']] = (int)$r['c']; }
+            } catch (Throwable $_) { $dailyCounts = []; }
 
             $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $selectedMonth, $selectedYear);
             $chartLabels = [];

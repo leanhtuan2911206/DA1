@@ -18,27 +18,43 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
             background: white;
             border-radius: 15px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            max-width: 1000px;
+            max-width: 1150px;
+            width: 98%;
             margin: 0 auto;
             padding: 50px;
+            justify-content: center;
+            align-items: center;
         }
         .tour-info {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 30px;
-            margin-bottom: 30px;
+        }
+        .booking-body {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .tour-column {
+            flex: 1 1 45%;
+            min-width: 0;
+        }
+        .form-column {
+            flex: 1 1 55%;
+            min-width: 0;
         }
         .tour-image-wrapper {
             width: 100%;
-            height: 300px;
-            overflow: hidden;
             border-radius: 10px;
             margin-bottom: 20px;
+            background: #f0f0f0;
         }
         .tour-image {
             width: 100%;
-            height: 100%;
-            object-fit: cover;
+            height: auto;
+            object-fit: contain;
+            display: block;
+            border-radius: 10px;
         }
         .tour-details {
             display: flex;
@@ -72,9 +88,14 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
         @media (max-width: 768px) {
             .booking-card {
                 padding: 30px 20px;
+                width: 100%;
             }
-            .tour-image-wrapper {
-                height: 200px;
+            .booking-body {
+                flex-direction: column;
+            }
+            .tour-image {
+                width: 100%;
+                height: auto;
             }
         }
     </style>
@@ -100,85 +121,91 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
                     ? BASE_URL . ltrim($tour['image'], '/')
                     : BASE_ASSETS_UPLOADS . 'img/1.jpg';
             ?>
-            <div class="tour-info">
-                <?php if (!empty($tourImage)): ?>
-                    <div class="tour-image-wrapper">
-                        <img src="<?= htmlspecialchars($tourImage) ?>" alt="<?= htmlspecialchars($tour['name'] ?? 'Tour') ?>" class="tour-image">
+            <div class="booking-body">
+                <div class="tour-column">
+                    <div class="tour-info">
+                        <?php if (!empty($tourImage)): ?>
+                            <div class="tour-image-wrapper">
+                                <img src="<?= htmlspecialchars($tourImage) ?>" alt="<?= htmlspecialchars($tour['name'] ?? 'Tour') ?>" class="tour-image">
+                            </div>
+                        <?php endif; ?>
+                        <div class="tour-details">
+                            <h3 class="tour-name"><?= htmlspecialchars(removeVNPrefix($tour['name'] ?? '')) ?></h3>
+                            <p class="tour-itinerary mb-3"><?= htmlspecialchars($tour['itinerary'] ?? '') ?></p>
+                            <div class="price"><?= number_format((float)($tour['price'] ?? 0), 0, ',', '.') ?>đ</div>
+                        </div>
                     </div>
-                <?php endif; ?>
-                <div class="tour-details">
-                    <h3 class="tour-name"><?= htmlspecialchars(removeVNPrefix($tour['name'] ?? '')) ?></h3>
-                    <p class="tour-itinerary mb-3"><?= htmlspecialchars($tour['itinerary'] ?? '') ?></p>
-                    <div class="price"><?= number_format((float)($tour['price'] ?? 0), 0, ',', '.') ?>đ</div>
+                </div>
+
+                <div class="form-column">
+                    <form method="post" action="<?= BASE_URL ?>?action=tour-qr-booking-store">
+                        <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Họ tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="customer_name" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" name="customer_phone" required>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" name="customer_email">
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số người <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" name="total_people" id="total_people" min="1" value="1" required>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày khởi hành <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" name="start_date" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Loại booking <span class="text-danger">*</span></label>
+                                <select class="form-select" name="booking_type" required>
+                                    <option value="individual">Khách lẻ</option>
+                                    <option value="group">Đoàn (nhiều người, công ty, tổ chức)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số tiền đặt cọc</label>
+                                <input type="number" class="form-control" name="deposit_amount" id="deposit_amount" min="0" step="0.01" value="0">
+                                <div id="deposit_error" class="text-danger small mt-1" style="display: none;"></div>
+                                <div id="deposit_info" class="form-text text-muted mt-1" style="display: none;"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
+                            <select class="form-select" name="status" required>
+                                <option value="pending">Chờ xác nhận</option>
+                                <option value="confirmed">Đã xác nhận</option>
+                                <option value="deposit">Đã đặt cọc</option>
+                                <option value="completed">Hoàn thành</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Yêu cầu đặc biệt</label>
+                            <textarea class="form-control" name="special_requests" rows="3"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 btn-lg">Đăng ký ngay</button>
+                    </form>
                 </div>
             </div>
-
-            <form method="post" action="<?= BASE_URL ?>?action=tour-qr-booking-store">
-                <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Họ tên <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="customer_name" required>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Số điện thoại <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="customer_phone" required>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Email</label>
-                    <input type="email" class="form-control" name="customer_email">
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Số người <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" name="total_people" id="total_people" min="1" value="1" required>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Ngày khởi hành <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" name="start_date" required>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Loại booking <span class="text-danger">*</span></label>
-                        <select class="form-select" name="booking_type" required>
-                            <option value="individual">Khách lẻ</option>
-                            <option value="group">Đoàn (nhiều người, công ty, tổ chức)</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label">Số tiền đặt cọc</label>
-                        <input type="number" class="form-control" name="deposit_amount" id="deposit_amount" min="0" step="0.01" value="0">
-                        <div id="deposit_error" class="text-danger small mt-1" style="display: none;"></div>
-                        <div id="deposit_info" class="form-text text-muted mt-1" style="display: none;"></div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Trạng thái <span class="text-danger">*</span></label>
-                    <select class="form-select" name="status" required>
-                        <option value="pending">Chờ xác nhận</option>
-                        <option value="confirmed">Đã xác nhận</option>
-                        <option value="deposit">Đã đặt cọc</option>
-                        <option value="completed">Hoàn thành</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Yêu cầu đặc biệt</label>
-                    <textarea class="form-control" name="special_requests" rows="3"></textarea>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100 btn-lg">Đăng ký ngay</button>
-            </form>
 
             <script>
             // Kiểm tra số tiền cọc không vượt quá tổng giá tour
