@@ -2,24 +2,43 @@
 
 class PartnerController
 {
-    public function dashboard(): void
+    private function requireHDVAuth()
     {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
-        
         if (empty($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'hdv') { 
             header('Location: ' . BASE_URL . '?action=login'); exit; 
         }
+    }
 
+    private function getGuideId()
+    {
         $userId = $_SESSION['user']['id'];
-        $hdvModel = new HdvModel();
-        
         $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : 0;
         if ($guideId === 0) {
+            $hdvModel = new HdvModel();
             $guideId = $hdvModel->getGuideIdByUserId($userId);
             if ($guideId > 0) {
                 $_SESSION['user']['guide_id'] = $guideId;
             }
         }
+        return $guideId;
+    }
+
+    private function getPDO()
+    {
+        try {
+            $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
+            return new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+
+    public function dashboard(): void
+    {
+        $this->requireHDVAuth();
+        $guideId = $this->getGuideId();
+        $hdvModel = new HdvModel();
 
         $currentTab = $_GET['tab'] ?? 'detail';
         $assignments = [];
@@ -471,24 +490,10 @@ class PartnerController
         require_once PATH_VIEW . 'main.php';
     }
 
-    public function feedback(): void
+    public function feedback()
     {
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
-        
-        if (empty($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'hdv') { 
-            header('Location: ' . BASE_URL . '?action=login'); exit; 
-        }
-
-        $userId = $_SESSION['user']['id'];
-        $hdvModel = new HdvModel();
-        
-        $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : 0;
-        if ($guideId === 0) {
-            $guideId = $hdvModel->getGuideIdByUserId($userId);
-            if ($guideId > 0) {
-                $_SESSION['user']['guide_id'] = $guideId;
-            }
-        }
+        $this->requireHDVAuth();
+        $guideId = $this->getGuideId();
 
         if ($guideId <= 0) {
             $_SESSION['error'] = 'Tài khoản chưa liên kết hồ sơ HDV.';
@@ -496,22 +501,20 @@ class PartnerController
             exit;
         }
 
+        $hdvModel = new HdvModel();
         $feedbackModel = new GuideFeedback();
+        $bookingId = (int)($_GET['booking_id'] ?? 0);
+
         $filters = [
             'guide_id' => $guideId,
             'feedback_type' => $_GET['type'] ?? '',
             'status' => $_GET['status'] ?? '',
-            'booking_id' => isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0,
+            'booking_id' => $bookingId,
         ];
 
-        // Lấy danh sách assignments để chọn booking khi tạo phản hồi
         $assignments = $hdvModel->getMyAssignments($guideId);
-        
-        // Lấy danh sách phản hồi
         $feedbacks = $feedbackModel->getByGuideId($guideId, $filters);
 
-        // Lấy thông tin booking nếu có
-        $bookingId = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
         $bookingInfo = null;
         if ($bookingId > 0) {
             foreach ($assignments as $ass) {
@@ -530,82 +533,61 @@ class PartnerController
         require_once PATH_VIEW . 'main.php';
     }
 
-    public function feedbackStore(): void
+    public function feedbackStore()
     {
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $this->requireHDVAuth();
         
-        if (empty($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'hdv') { 
-            header('Location: ' . BASE_URL . '?action=login'); exit; 
-        }
-
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=partner-feedback');
             exit;
         }
 
-        $userId = $_SESSION['user']['id'];
-        $hdvModel = new HdvModel();
-        
-        $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : 0;
-        if ($guideId === 0) {
-            $guideId = $hdvModel->getGuideIdByUserId($userId);
-            if ($guideId > 0) {
-                $_SESSION['user']['guide_id'] = $guideId;
-            }
-        }
-
+        $guideId = $this->getGuideId();
         if ($guideId <= 0) {
             $_SESSION['error'] = 'Tài khoản chưa liên kết hồ sơ HDV.';
             header('Location: ' . BASE_URL . '?action=partner-feedback');
             exit;
         }
 
-        // Validate dữ liệu
         $title = trim($_POST['title'] ?? '');
         $content = trim($_POST['content'] ?? '');
         $feedbackType = trim($_POST['feedback_type'] ?? 'tour');
-        $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
-        $tourId = isset($_POST['tour_id']) ? (int)$_POST['tour_id'] : 0;
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $tourId = (int)($_POST['tour_id'] ?? 0);
         $supplierName = trim($_POST['supplier_name'] ?? '');
         $rating = isset($_POST['rating']) && $_POST['rating'] !== '' ? (int)$_POST['rating'] : null;
         $suggestions = trim($_POST['suggestions'] ?? '');
 
-        $errors = [];
-        if (empty($title)) {
-            $errors[] = 'Vui lòng nhập tiêu đề phản hồi.';
-        }
-        if (empty($content)) {
-            $errors[] = 'Vui lòng nhập nội dung phản hồi.';
-        }
-        if ($rating !== null && ($rating < 1 || $rating > 5)) {
-            $errors[] = 'Điểm đánh giá phải từ 1 đến 5.';
-        }
-
-        if (!empty($errors)) {
-            $_SESSION['error'] = implode('<br>', $errors);
+        if (empty($title) || empty($content)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ tiêu đề và nội dung phản hồi.';
             $_SESSION['feedback_form_old'] = $_POST;
             header('Location: ' . BASE_URL . '?action=partner-feedback' . ($bookingId > 0 ? '&booking_id=' . $bookingId : ''));
             exit;
         }
 
-        // Nếu có booking_id, lấy tour_id từ booking
+        if ($rating !== null && ($rating < 1 || $rating > 5)) {
+            $_SESSION['error'] = 'Điểm đánh giá phải từ 1 đến 5.';
+            $_SESSION['feedback_form_old'] = $_POST;
+            header('Location: ' . BASE_URL . '?action=partner-feedback' . ($bookingId > 0 ? '&booking_id=' . $bookingId : ''));
+            exit;
+        }
+
         if ($bookingId > 0 && $tourId <= 0) {
-            try {
-                $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-                $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                $stmt = $pdo->prepare('SELECT tour_id FROM bookings WHERE id = :id LIMIT 1');
-                $stmt->execute([':id' => $bookingId]);
-                $booking = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($booking && !empty($booking['tour_id'])) {
-                    $tourId = (int)$booking['tour_id'];
-                }
-            } catch (Throwable $e) {
-                // Ignore
+            $pdo = $this->getPDO();
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare('SELECT tour_id FROM bookings WHERE id = :id LIMIT 1');
+                    $stmt->execute([':id' => $bookingId]);
+                    $booking = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($booking && !empty($booking['tour_id'])) {
+                        $tourId = (int)$booking['tour_id'];
+                    }
+                } catch (Throwable $e) {}
             }
         }
 
-        // Kiểm tra booking có thuộc về HDV này không
         if ($bookingId > 0) {
+            $hdvModel = new HdvModel();
             $assignments = $hdvModel->getMyAssignments($guideId);
             $isValid = false;
             foreach ($assignments as $ass) {
@@ -636,12 +618,9 @@ class PartnerController
         ];
 
         $result = $feedbackModel->create($data);
-
-        if ($result) {
-            $_SESSION['success'] = 'Đã gửi phản hồi đánh giá thành công.';
-        } else {
-            $_SESSION['error'] = 'Không thể gửi phản hồi. Vui lòng thử lại.';
-        }
+        $_SESSION[$result ? 'success' : 'error'] = $result 
+            ? 'Đã gửi phản hồi đánh giá thành công.' 
+            : 'Không thể gửi phản hồi. Vui lòng thử lại.';
 
         header('Location: ' . BASE_URL . '?action=partner-feedback' . ($bookingId > 0 ? '&booking_id=' . $bookingId : ''));
         exit;

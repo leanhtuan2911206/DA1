@@ -220,12 +220,11 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                 <td>
                                     <div class="d-flex flex-column gap-2">
                                         <div class="d-flex gap-2">
-                                            <button type="button" 
+                                            <a href="<?= BASE_URL ?>?action=tours-detail&id=<?= $tour['id'] ?>" 
                                                 class="btn btn-sm btn-info text-white" 
-                                                title="Xem lịch trình chi tiết"
-                                                href="<?= BASE_URL ?>?action=tours-itinerary-view&tour_id=<?= $tour['id'] ?>">
+                                                title="Xem lịch trình chi tiết">
                                                 📄
-                                            </button>
+                                            </a>
                                             <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                             <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
                                         </div>
