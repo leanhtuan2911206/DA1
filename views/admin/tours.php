@@ -228,6 +228,13 @@ $filters = isset($filters) && is_array($filters) ? $filters : [
                                             <a href="<?= BASE_URL ?>?action=tours-edit&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                             <a href="<?= BASE_URL ?>?action=tours-delete&id=<?= $tour['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa tour này không?')">🗑️</a>
                                         </div>
+                                        <div>
+                                            <a href="<?= BASE_URL ?>?action=tours-versions&tour_id=<?= $tour['id'] ?>" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               title="Quản lý phiên bản tour (theo mùa, khuyến mãi, đặc biệt)">
+                                                Phiên bản tour
+                                            </a>
+                                        </div>
                                         <?php 
                                             $assignedCount = (int)($tour['assigned_guide_count'] ?? 0);
                                             $hasAssignment = !empty($tour['has_assignment']) || $assignedCount > 0;

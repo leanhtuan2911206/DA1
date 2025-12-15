@@ -47,7 +47,15 @@ $tours = isset($tours) && is_array($tours) ? $tours : [];
 
                 <div class="col-12 col-md-6">
                     <label class="form-label">Ngày khởi hành <span class="text-danger">*</span></label>
-                    <input type="date" class="form-control" name="start_date" required>
+                    <input type="date" class="form-control" name="start_date" id="start_date" required>
+                    <small class="text-muted"> Hệ thống sẽ tự động áp dụng phiên bản khuyến mãi/ đặc biệt nếu ngày khởi hành nằm trong thời gian áp dụng</small>
+                </div>
+                 <div class="col-12" id="version_auto_info" style="display: none;">
+                    <div class="alert alert-info mb-0">
+                        <strong>Phiên bản đang áp dụng:</strong> <span id="version_name_display"></span>
+                        <br>
+                        <small id="version_details_display"></small>
+                    </div>
                 </div>
 
                 <div class="col-12 col-md-6">
@@ -122,12 +130,95 @@ document.addEventListener('DOMContentLoaded', function() {
     var infoDiv = document.getElementById('deposit_info');
     var form = document.getElementById('booking_form');
     
+    
+    // Lấy các phần tử HTML
+    var startDateInput = document.getElementById('start_date');
+    var versionInfoDiv = document.getElementById('version_auto_info');
+    var versionNameDisplay = document.getElementById('version_name_display');
+    var versionDetailsDisplay = document.getElementById('version_details_display');
+    
     // Biến lưu giá tour
     var tourPrice = 0;
+    var currentVersionId = null;
     
     // Hàm định dạng số tiền
     function formatMoney(amount) {
         return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
+    }
+    
+    // Hàm kiểm tra và tải phiên bản tự động theo ngày
+    function checkAutoVersion() {
+        var tourId = tourSelect.value;
+        var startDate = startDateInput.value;
+        
+        if (!tourId || !startDate) {
+            versionInfoDiv.style.display = 'none';
+            currentVersionId = null;
+            // Dùng giá tour gốc
+            var option = tourSelect.options[tourSelect.selectedIndex];
+            tourPrice = parseFloat(option.getAttribute('data-price')) || 0;
+            checkDeposit();
+            return;
+        }
+        
+        // Gọi API để kiểm tra phiên bản đang áp dụng
+        fetch('<?= BASE_URL ?>?action=tours-get-active-version&tour_id=' + tourId + '&date=' + startDate)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.version) {
+                    // Có phiên bản đang áp dụng
+                    currentVersionId = data.version.id;
+                    var versionPrice = data.version.price ? parseFloat(data.version.price) : null;
+                    
+                    if (versionPrice && versionPrice > 0) {
+                        tourPrice = versionPrice;
+                    } else {
+                        // Dùng giá tour gốc
+                        var option = tourSelect.options[tourSelect.selectedIndex];
+                        tourPrice = parseFloat(option.getAttribute('data-price')) || 0;
+                    }
+                    
+                    // Hiển thị thông tin phiên bản
+                    var typeLabels = {
+                        'seasonal': 'Theo mùa',
+                        'promotional': 'Khuyến mãi',
+                        'special': 'Đặc biệt'
+                    };
+                    var typeLabel = typeLabels[data.version.version_type] || data.version.version_type;
+                    versionNameDisplay.textContent = data.version.name + ' (' + typeLabel + ')';
+                    
+                    var details = [];
+                    if (versionPrice && versionPrice > 0) {
+                        details.push('Giá: ' + formatMoney(versionPrice));
+                    } else {
+                        details.push('Giá: Dùng giá tour gốc');
+                    }
+                    if (data.version.start_date) {
+                        details.push('Từ: ' + data.version.start_date);
+                    }
+                    if (data.version.end_date) {
+                        details.push('Đến: ' + data.version.end_date);
+                    }
+                    versionDetailsDisplay.textContent = details.join(' | ');
+                    versionInfoDiv.style.display = 'block';
+                } else {
+                    // Không có phiên bản nào, dùng tour gốc
+                    currentVersionId = null;
+                    var option = tourSelect.options[tourSelect.selectedIndex];
+                    tourPrice = parseFloat(option.getAttribute('data-price')) || 0;
+                    versionInfoDiv.style.display = 'none';
+                }
+                checkDeposit();
+            })
+            .catch(error => {
+                console.error('Lỗi khi kiểm tra phiên bản:', error);
+                // Nếu lỗi, dùng giá tour gốc
+                currentVersionId = null;
+                var option = tourSelect.options[tourSelect.selectedIndex];
+                tourPrice = parseFloat(option.getAttribute('data-price')) || 0;
+                versionInfoDiv.style.display = 'none';
+                checkDeposit();
+            });
     }
     
     // Hàm kiểm tra số tiền cọc
@@ -166,17 +257,30 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Khi chọn tour
     tourSelect.addEventListener('change', function() {
+        var tourId= this.value;
         var option = this.options[this.selectedIndex];
-        if (option.value) {
-            // Lấy giá tour từ thuộc tính data-price
+       if (tourId && tourId != '') {
+            // Lấy giá tour từ thuộc tính data-price (giá gốc)
             tourPrice = parseFloat(option.getAttribute('data-price')) || 0;
+            // Kiểm tra phiên bản tự động nếu đã có ngày
+            if (startDateInput.value) {
+                checkAutoVersion();
+            } else {
+                checkDeposit();
+            }
         } else {
             tourPrice = 0;
+            versionInfoDiv.style.display = 'none';
+            checkDeposit();
         }
-        // Kiểm tra lại
-        checkDeposit();
     });
     
+    // Khi thay đổi ngày khởi hành
+    startDateInput.addEventListener('change', function() {
+        if (tourSelect.value) {
+            checkAutoVersion();
+        }
+    });
     // Khi thay đổi số người
     totalPeopleInput.addEventListener('input', function() {
         checkDeposit();
@@ -187,10 +291,24 @@ document.addEventListener('DOMContentLoaded', function() {
         checkDeposit();
     });
     
+    //  thêm hidden input dể lưu tour_version_id
+    var hiddenVersionInput= document.createElement('input');
+    hiddenVersionInput.type='hidden';
+    hiddenVersionInput.name='tour_version_id';
+    hiddenVersionInput.id='tour_version_id';
+    form.appendChild(hiddenVersionInput);
     // Kiểm tra trước khi submit form
     form.addEventListener('submit', function(e) {
         var people = parseInt(totalPeopleInput.value) || 0;
         var deposit = parseFloat(depositInput.value) || 0;
+        
+        // Cập nhật tour_version_id trước khi submit
+        if(currentVersionId){
+            hiddenVersionInput.value=currentVersionId;
+
+        }else{
+            hiddenVersionInput.value='';
+        }
         
         if (tourPrice > 0 && people > 0) {
             var totalPrice = tourPrice * people;

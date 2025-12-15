@@ -1331,4 +1331,250 @@ class TourController
         header('Location: ' . BASE_URL . '?action=tour-qr-booking&tour_id=' . $tour_id);
         exit;
     }
+    
+    /**
+     * Hiển thị trang quản lý phiên bản tour
+     */
+    public function versions(): void
+    {
+        $this->ensureAuthenticated();
+
+        $tourId = (int)($_GET['tour_id'] ?? 0);
+        if ($tourId <= 0) {
+            $_SESSION['error'] = 'ID tour không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tourId);
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        // Lấy tên danh mục
+        $categoryModel = new TourCategory();
+        $category = $categoryModel->find($tour['category_id'] ?? 0);
+        $tour['category_name'] = $category['name'] ?? 'Chưa phân loại';
+
+        $versionModel = new TourVersion();
+        $versions = $versionModel->getByTourId($tourId);
+
+        $view = 'admin/tour_versions';
+        $title = 'Quản lý phiên bản tour: ' . $tour['name'];
+        $hideNavbar = true;
+
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function versionCreate(): void
+    {
+        $this->ensureAuthenticated();
+
+        $tourId = (int)($_GET['tour_id'] ?? 0);
+        if ($tourId <= 0) {
+            $_SESSION['error'] = 'ID tour không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourModel = new Tour();
+        $tour = $tourModel->find($tourId);
+        if (!$tour) {
+            $_SESSION['error'] = 'Tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $view = 'admin/tour_versions_create';
+        $title = 'Tạo phiên bản tour: ' . $tour['name'];
+        $hideNavbar = true;
+
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function versionStore(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourId = (int)($_POST['tour_id'] ?? 0);
+        $versionType = trim($_POST['version_type'] ?? 'seasonal');
+        $name = trim($_POST['name'] ?? '');
+        $price = !empty($_POST['price']) ? (float)$_POST['price'] : null;
+        $itinerary = trim($_POST['itinerary'] ?? '');
+        $services = trim($_POST['services'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $startDate = trim($_POST['start_date'] ?? '');
+        $endDate = trim($_POST['end_date'] ?? '');
+        $status = trim($_POST['status'] ?? 'active');
+
+        if ($tourId <= 0 || empty($name)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc.';
+            header('Location: ' . BASE_URL . '?action=tours-version-create&tour_id=' . $tourId);
+            exit;
+        }
+
+        // Kiểm tra tour
+        $tourModel = new Tour();
+        if (!$tourModel->find($tourId)) {
+            $_SESSION['error'] = 'Tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        // Kiểm tra loại phiên bản
+        if (!in_array($versionType, ['seasonal', 'promotional', 'special'])) {
+            $versionType = 'seasonal';
+        }
+
+        $versionModel = new TourVersion();
+        $data = [
+            'tour_id' => $tourId,
+            'version_type' => $versionType,
+            'name' => $name,
+            'price' => $price,
+            'itinerary' => empty($itinerary) ? null : $itinerary,
+            'services' => empty($services) ? null : $services,
+            'description' => empty($description) ? null : $description,
+            'start_date' => empty($startDate) ? null : $startDate,
+            'end_date' => empty($endDate) ? null : $endDate,
+            'status' => $status,
+        ];
+
+        if ($versionModel->create($data)) {
+            $_SESSION['success'] = 'Tạo phiên bản tour thành công.';
+        } else {
+            $_SESSION['error'] = 'Không thể tạo phiên bản tour.';
+        }
+
+        header('Location: ' . BASE_URL . '?action=tours-versions&tour_id=' . $tourId);
+        exit;
+    }
+
+    public function versionEdit(): void
+    {
+        $this->ensureAuthenticated();
+
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID phiên bản không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $versionModel = new TourVersion();
+        $version = $versionModel->find($id);
+        if (!$version) {
+            $_SESSION['error'] = 'Phiên bản tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourModel = new Tour();
+        $tour = $tourModel->find($version['tour_id']);
+
+        $view = 'admin/tour_versions_edit';
+        $title = 'Sửa phiên bản tour: ' . ($tour['name'] ?? '');
+        $hideNavbar = true;
+
+        require_once PATH_VIEW . 'main.php';
+    }
+
+    public function versionUpdate(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $id = (int)($_POST['id'] ?? 0);
+        $versionType = trim($_POST['version_type'] ?? 'seasonal');
+        $name = trim($_POST['name'] ?? '');
+        $price = !empty($_POST['price']) ? (float)$_POST['price'] : null;
+        $itinerary = trim($_POST['itinerary'] ?? '');
+        $services = trim($_POST['services'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $startDate = trim($_POST['start_date'] ?? '');
+        $endDate = trim($_POST['end_date'] ?? '');
+        $status = trim($_POST['status'] ?? 'active');
+
+        if ($id <= 0 || empty($name)) {
+            $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin bắt buộc.';
+            header('Location: ' . BASE_URL . '?action=tours-version-edit&id=' . $id);
+            exit;
+        }
+
+        $versionModel = new TourVersion();
+        $version = $versionModel->find($id);
+        if (!$version) {
+            $_SESSION['error'] = 'Phiên bản tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        // Kiểm tra loại phiên bản
+        if (!in_array($versionType, ['seasonal', 'promotional', 'special'])) {
+            $versionType = 'seasonal';
+        }
+
+        $data = [
+            'version_type' => $versionType,
+            'name' => $name,
+            'price' => $price,
+            'itinerary' => empty($itinerary) ? null : $itinerary,
+            'services' => empty($services) ? null : $services,
+            'description' => empty($description) ? null : $description,
+            'start_date' => empty($startDate) ? null : $startDate,
+            'end_date' => empty($endDate) ? null : $endDate,
+            'status' => $status,
+        ];
+
+        if ($versionModel->update($id, $data)) {
+            $_SESSION['success'] = 'Cập nhật phiên bản tour thành công.';
+        } else {
+            $_SESSION['error'] = 'Không thể cập nhật phiên bản tour.';
+        }
+
+        header('Location: ' . BASE_URL . '?action=tours-versions&tour_id=' . $version['tour_id']);
+        exit;
+    }
+
+    public function versionDelete(): void
+    {
+        $this->ensureAuthenticated();
+
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) {
+            $_SESSION['error'] = 'ID không hợp lệ.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $versionModel = new TourVersion();
+        $version = $versionModel->find($id);
+        if (!$version) {
+            $_SESSION['error'] = 'Phiên bản tour không tồn tại.';
+            header('Location: ' . BASE_URL . '?action=tours');
+            exit;
+        }
+
+        $tourId = $version['tour_id'];
+        if ($versionModel->delete($id)) {
+            $_SESSION['success'] = 'Đã xóa phiên bản tour.';
+        } else {
+            $_SESSION['error'] = 'Không thể xóa phiên bản tour.';
+        }
+
+        header('Location: ' . BASE_URL . '?action=tours-versions&tour_id=' . $tourId);
+        exit;
+    }
 }
