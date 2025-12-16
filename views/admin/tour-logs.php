@@ -372,21 +372,24 @@ function extractLogParts(string $desc): array {
                                 <td><?= htmlspecialchars($log['guide_name'] ?? '') ?></td>
                                 <td><span class="badge <?= $typeInfo['badge'] ?>"><?= $typeInfo['text'] ?></span></td>
                                 <td><?= htmlspecialchars($log['title']) ?></td>
-                                <td class="text-center"><?php if (!empty($log['rating'])): ?><div class="text-warning">★ <?= (int)$log['rating'] ?>/5</div><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
-                                <td><span class="badge <?= $statusInfo['badge'] ?>"><?= $statusInfo['text'] ?></span></td>
+                                <td class="text-center log-rating-cell" data-log-id="<?= $log['id'] ?>"><?php if (!empty($log['rating'])): ?><div class="text-warning">★ <?= (int)$log['rating'] ?>/5</div><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
+                                <td><span class="badge log-status-badge <?= $statusInfo['badge'] ?>" data-log-id="<?= $log['id'] ?>"><?= $statusInfo['text'] ?></span></td>
                                 <td class="text-muted"><?= date('d/m/Y H:i', strtotime($log['created_at'])) ?></td>
                                 <td>
                                     <div class="d-flex gap-2">
                                         <?php if ($isAdmin): 
-                                            // Admin chỉ có thể đánh giá
+                                            // Admin: chỉ được đổi trạng thái & đánh giá (AJAX, không reload)
                                         ?>
-                                            <form method="post" action="<?= BASE_URL ?>?action=tour-logs-update" style="display:inline;">
-                                                <input type="hidden" name="id" value="<?= $log['id'] ?>">
-                                                <input type="hidden" name="tour_id" value="<?= $tour['id'] ?>">
-                                                <?php if ($selectedBookingId > 0): ?>
-                                                    <input type="hidden" name="booking_id" value="<?= $selectedBookingId ?>">
-                                                <?php endif; ?>
-                                                <select name="rating" class="form-select form-select-sm" style="display:inline-block;width:auto;min-width:100px;" onchange="this.form.submit()">
+                                            <div class="log-admin-controls" 
+                                                 data-log-id="<?= $log['id'] ?>"
+                                                 data-tour-id="<?= $tour['id'] ?>"
+                                                 data-booking-id="<?= $selectedBookingId ?>">
+                                                <select name="status" class="form-select form-select-sm mb-1 log-status-select" style="display:inline-block;width:auto;min-width:120px;">
+                                                    <option value="pending" <?= ($log['status'] ?? '') === 'pending' ? 'selected' : '' ?>>Chờ xử lý</option>
+                                                    <option value="in_progress" <?= ($log['status'] ?? '') === 'in_progress' ? 'selected' : '' ?>>Đang xử lý</option>
+                                                    <option value="resolved" <?= ($log['status'] ?? '') === 'resolved' ? 'selected' : '' ?>>Đã giải quyết</option>
+                                                </select>
+                                                <select name="rating" class="form-select form-select-sm log-rating-select" style="display:inline-block;width:auto;min-width:100px;">
                                                     <option value="">-- Đánh giá --</option>
                                                     <option value="1" <?= (isset($log['rating']) && (int)$log['rating'] === 1) ? 'selected' : '' ?>>1 - Rất kém</option>
                                                     <option value="2" <?= (isset($log['rating']) && (int)$log['rating'] === 2) ? 'selected' : '' ?>>2 - Kém</option>
@@ -394,7 +397,7 @@ function extractLogParts(string $desc): array {
                                                     <option value="4" <?= (isset($log['rating']) && (int)$log['rating'] === 4) ? 'selected' : '' ?>>4 - Tốt</option>
                                                     <option value="5" <?= (isset($log['rating']) && (int)$log['rating'] === 5) ? 'selected' : '' ?>>5 - Rất tốt</option>
                                                 </select>
-                                            </form>
+                                            </div>
                                         <?php else: ?>
                                             <a href="<?= BASE_URL ?>?action=tour-logs-edit&id=<?= $log['id'] ?>&tour_id=<?= $tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-sm btn-outline-secondary">✏️</a>
                                             <a href="<?= BASE_URL ?>?action=tour-logs-delete&id=<?= $log['id'] ?>&tour_id=<?= $tour['id'] ?><?= $selectedBookingId > 0 ? '&booking_id=' . $selectedBookingId : '' ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa nhật ký này?')">🗑️</a>
@@ -520,4 +523,72 @@ function extractLogParts(string $desc): array {
         </div>
     </div>
     <?php endif; ?>
+
+<?php if ($isAdmin): ?>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const STATUS_MAP = {
+        pending: { badge: 'bg-warning', text: 'Chờ xử lý' },
+        in_progress: { badge: 'bg-info', text: 'Đang xử lý' },
+        resolved: { badge: 'bg-success', text: 'Đã giải quyết' }
+    };
+
+    document.querySelectorAll('.log-admin-controls').forEach((ctrl) => {
+        const logId = ctrl.dataset.logId;
+        const statusSelect = ctrl.querySelector('.log-status-select');
+        const ratingSelect = ctrl.querySelector('.log-rating-select');
+        const statusBadge = document.querySelector(`.log-status-badge[data-log-id="${logId}"]`);
+        const ratingCell = document.querySelector(`.log-rating-cell[data-log-id="${logId}"]`);
+
+        const updateLog = () => {
+            const data = new URLSearchParams({
+                id: logId,
+                tour_id: ctrl.dataset.tourId,
+                booking_id: ctrl.dataset.bookingId || 0,
+                status: statusSelect.value,
+                rating: ratingSelect.value || ''
+            });
+            statusSelect.disabled = ratingSelect.disabled = true;
+            fetch('<?= BASE_URL ?>?action=tour-logs-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: data
+            })
+            .then(r => r.json().catch(() => ({ success: false })))
+            .then(res => {
+                if (res && res.success) {
+                    if (statusBadge && res.status) {
+                        const info = STATUS_MAP[res.status] || STATUS_MAP.pending;
+                        statusBadge.className = 'badge log-status-badge ' + info.badge;
+                        statusBadge.textContent = info.text;
+                    }
+                    if (ratingCell) {
+                        ratingCell.innerHTML = res.rating ? '<div class="text-warning">★ ' + res.rating + '/5</div>' : '<span class="text-muted">—</span>';
+                    }
+                } else {
+                    alert('Cập nhật thất bại. Vui lòng thử lại.');
+                    statusSelect.value = statusSelect.dataset.prev;
+                    ratingSelect.value = ratingSelect.dataset.prev;
+                }
+            })
+            .catch(() => {
+                alert('Lỗi kết nối. Vui lòng thử lại.');
+                statusSelect.value = statusSelect.dataset.prev;
+                ratingSelect.value = ratingSelect.dataset.prev;
+            })
+            .finally(() => {
+                statusSelect.disabled = ratingSelect.disabled = false;
+                statusSelect.dataset.prev = statusSelect.value;
+                ratingSelect.dataset.prev = ratingSelect.value;
+            });
+        };
+
+        statusSelect.dataset.prev = statusSelect.value;
+        ratingSelect.dataset.prev = ratingSelect.value;
+        statusSelect.addEventListener('change', (e) => { e.preventDefault(); updateLog(); });
+        ratingSelect.addEventListener('change', (e) => { e.preventDefault(); updateLog(); });
+    });
+});
+</script>
+<?php endif; ?>
 </main>

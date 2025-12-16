@@ -2,105 +2,75 @@
 
 class TourCategoryController
 {
-    public function index()
+    private function requireAuth()
     {
-        // 1. Kiểm tra đăng nhập (BẮT BUỘC cho trang admin)
-        if(session_status() === PHP_SESSION_NONE){
+        if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
-        if(!isset($_SESSION['user'])){
-            header('Location:' .BASE_URL .'?action=login');
+        if (!isset($_SESSION['user'])) {
+            header('Location:' . BASE_URL . '?action=login');
             exit;
         }
+    }
 
-        // 2. Thiết lập View và biến
-        $view = 'admin/tour-categories'; 
+    public function index()
+    {
+        $this->requireAuth();
+
+        $view = 'admin/tour-categories';
         $title = 'Quản lý Danh mục Tour';
-        $hideNavbar = true; // Ẩn navbar trên cùng, dùng sidebar
-
-        // 3. Lấy dữ liệu từ Model
+        $hideNavbar = true;
         $listCategories = [];
         try {
-            $model = new TourCategory(); 
-            $listCategories = $model->getAll(); 
+            $model = new TourCategory();
+            $listCategories = $model->getAll();
         } catch (Throwable $e) {
-            // echo "Error: " . $e->getMessage(); die;
             $listCategories = [];
         }
-
-        // 4. Tải Layout chính (truyền các biến $view, $title, $hideNavbar, $listCategories)
         require_once PATH_VIEW . 'main.php'; 
     }
     public function create()
     {
-        // 1. Kiểm tra đăng nhập
-        if(session_status() === PHP_SESSION_NONE){ session_start(); }
-        if(!isset($_SESSION['user'])){
-            header('Location:' .BASE_URL .'?action=login');
-            exit;
-        }
-
-        // 2. Thiết lập View và biến
-        $view = 'admin/tour-categories-create'; // Tên file view mới
+        $this->requireAuth();
+        $view = 'admin/tour-categories-create';
         $title = 'Thêm Danh mục Tour';
-        $hideNavbar = true; 
-        
-        // 3. Tải Layout chính
+        $hideNavbar = true;
         require_once PATH_VIEW . 'main.php'; 
     }
     public function store()
     {
-        // 1. Kiểm tra đăng nhập
-        if(session_status() === PHP_SESSION_NONE){ session_start(); }
-        if(!isset($_SESSION['user'])){
-            header('Location:' .BASE_URL .'?action=login');
-            exit;
-        }
-
-        // CHỈ XỬ LÝ KHI PHƯƠNG THỨC LÀ POST
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            
-            // 2. Lấy và làm sạch dữ liệu
-            $name = trim($_POST['name'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            
-            // 3. Kiểm tra dữ liệu hợp lệ (Validation cơ bản)
-            if (empty($name)) {
-                $_SESSION['error'] = 'Tên danh mục không được để trống.';
-                header('Location:' . BASE_URL . '?action=tour-categories-create');
-                exit;
-            }
-
-            // 4. Lưu vào Database
-            try {
-                $model = new TourCategory(); 
-                $model->insert($name, $description !== '' ? $description : null); // Dùng phương thức insert đã có trong TourCategory Model
-                
-                $_SESSION['success'] = "Thêm danh mục **\"" . htmlspecialchars($name) . "\"** thành công!";
-                
-            } catch (Throwable $e) {
-                $_SESSION['error'] = 'Lỗi database: Không thể thêm danh mục.';
-                header('Location:' . BASE_URL . '?action=tour-categories-create');
-                exit;
-            }
-
-            // 5. Chuyển hướng về trang danh sách
-            header('Location:' . BASE_URL . '?action=tour-categories');
-            exit;
-
-        } else {
-            // Nếu không phải POST, chuyển hướng về trang thêm mới
+        $this->requireAuth();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location:' . BASE_URL . '?action=tour-categories-create');
             exit;
         }
+        
+        $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+        $description = isset($_POST['description']) ? trim($_POST['description']) : '';
+        
+        if (empty($name)) {
+            $_SESSION['error'] = 'Tên danh mục không được để trống.';
+            header('Location:' . BASE_URL . '?action=tour-categories-create');
+            exit;
+        }
+
+        try {
+            $model = new TourCategory();
+            $descValue = $description !== '' ? $description : null;
+            $model->insert($name, $descValue);
+            $_SESSION['success'] = "Thêm danh mục \"" . htmlspecialchars($name) . "\" thành công!";
+        } catch (Throwable $e) {
+            $_SESSION['error'] = 'Lỗi database: Không thể thêm danh mục.';
+            header('Location:' . BASE_URL . '?action=tour-categories-create');
+            exit;
+        }
+
+        header('Location:' . BASE_URL . '?action=tour-categories');
+        exit;
     }
     public function edit()
     {
-        if(session_status() === PHP_SESSION_NONE){ session_start(); }
-        if(!isset($_SESSION['user'])){
-            header('Location:' .BASE_URL .'?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {
@@ -127,20 +97,15 @@ class TourCategoryController
 
     public function update()
     {
-        if(session_status() === PHP_SESSION_NONE){ session_start(); }
-        if(!isset($_SESSION['user'])){
-            header('Location:' .BASE_URL .'?action=login');
-            exit;
-        }
-
+        $this->requireAuth();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location:' . BASE_URL . '?action=tour-categories');
             exit;
         }
 
-        $id = isset($_POST['id']) ? (int) $_POST['id'] : 0;
-        $name = trim($_POST['name'] ?? '');
-        $description = trim($_POST['description'] ?? '');
+        $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+        $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+        $description = isset($_POST['description']) ? trim($_POST['description']) : '';
 
         if ($id <= 0) {
             $_SESSION['error'] = 'Danh mục không hợp lệ.';
@@ -175,11 +140,7 @@ class TourCategoryController
 
     public function delete()
     {
-        if(session_status() === PHP_SESSION_NONE){ session_start(); }
-        if(!isset($_SESSION['user'])){
-            header('Location:' .BASE_URL .'?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
         if ($id <= 0) {

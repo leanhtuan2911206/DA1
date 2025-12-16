@@ -149,8 +149,8 @@ class AdminController
                 $tours = $stmtTours->fetchAll();
             } catch (Throwable $_) { $tours = []; }
 
-            $selectedMonth = (int) ($_GET['month'] ?? date('n'));
-            $selectedYear  = (int) ($_GET['year']  ?? date('Y'));
+            $selectedMonth = isset($_GET['month']) ? (int)$_GET['month'] : (int)date('n');
+            $selectedYear = isset($_GET['year']) ? (int)$_GET['year'] : (int)date('Y');
             // Số lượng booking theo ngày (thuần PDO)
             $dailyCounts   = [];
             try {
@@ -180,9 +180,9 @@ class AdminController
             }
 
             $revPeriod = isset($_GET['period']) ? strtolower((string)$_GET['period']) : 'month';
-            $revYear = (int)($_GET['rev_year'] ?? $selectedYear);
-            $revMonth = (int)($_GET['rev_month'] ?? $selectedMonth);
-            $revQuarter = (int)($_GET['rev_quarter'] ?? 1);
+            $revYear = isset($_GET['rev_year']) ? (int)$_GET['rev_year'] : $selectedYear;
+            $revMonth = isset($_GET['rev_month']) ? (int)$_GET['rev_month'] : $selectedMonth;
+            $revQuarter = isset($_GET['rev_quarter']) ? (int)$_GET['rev_quarter'] : 1;
             $revTourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
             $toursList = [];
             try { $toursList = $this->fetchToursSimple(); } catch (Throwable $_) { $toursList = []; }
@@ -267,9 +267,9 @@ class AdminController
         header('Content-Type: application/json');
         
         $revPeriod = isset($_GET['period']) ? strtolower((string)$_GET['period']) : 'month';
-        $revYear = (int)($_GET['rev_year'] ?? date('Y'));
-        $revMonth = (int)($_GET['rev_month'] ?? date('n'));
-        $revQuarter = (int)($_GET['rev_quarter'] ?? 1);
+        $revYear = isset($_GET['rev_year']) ? (int)$_GET['rev_year'] : (int)date('Y');
+        $revMonth = isset($_GET['rev_month']) ? (int)$_GET['rev_month'] : (int)date('n');
+        $revQuarter = isset($_GET['rev_quarter']) ? (int)$_GET['rev_quarter'] : 1;
         $revTourId = isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0;
 
         $result = $this->calculateRevenueData($revPeriod, $revYear, $revMonth, $revQuarter, $revTourId);
@@ -303,8 +303,8 @@ class AdminController
 
         $filters = [
             'guide_id' => isset($_GET['guide_id']) ? (int)$_GET['guide_id'] : 0,
-            'feedback_type' => $_GET['type'] ?? '',
-            'status' => $_GET['status'] ?? '',
+            'feedback_type' => isset($_GET['type']) ? $_GET['type'] : '',
+            'status' => isset($_GET['status']) ? $_GET['status'] : '',
             'tour_id' => isset($_GET['tour_id']) ? (int)$_GET['tour_id'] : 0,
         ];
 

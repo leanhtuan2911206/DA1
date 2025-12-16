@@ -346,54 +346,38 @@ class TourController
 
         try {
             if ($type === 'category' && $id > 0) {
-                // Lấy template theo category_id
                 $templateModel = new TourTemplate();
                 $data = $templateModel->findByCategoryId($id);
-                if ($data) {
-                    echo json_encode([
-                        'success' => true,
+                $this->jsonResponse([
+                    'success' => !empty($data),
                         'itinerary' => $data['default_itinerary'] ?? '',
-                        'policy' => $data['default_policy'] ?? ''
+                    'policy' => $data['default_policy'] ?? '',
+                    'message' => empty($data) ? 'Không tìm thấy template cho danh mục này.' : ''
                     ]);
-                } else {
-                    echo json_encode([
-                        'success' => false,
-                        'message' => 'Không tìm thấy template cho danh mục này.',
-                        'itinerary' => '',
-                        'policy' => ''
-                    ]);
-                }
             } elseif ($type === 'template' && $id > 0) {
                 $templateModel = new TourTemplate();
                 $data = $templateModel->find($id);
-                if ($data) {
-                    echo json_encode([
-                        'success' => true,
+                $this->jsonResponse([
+                    'success' => !empty($data),
                         'itinerary' => $data['default_itinerary'] ?? '',
-                        'policy' => $data['default_policy'] ?? ''
+                    'policy' => $data['default_policy'] ?? '',
+                    'message' => empty($data) ? 'Template không tìm thấy.' : ''
                     ]);
-                } else {
-                    echo json_encode(['success' => false, 'message' => 'Template không tìm thấy.']);
-                }
             } elseif ($type === 'tour' && $id > 0) {
                 $tourModel = new Tour();
                 $data = $tourModel->find($id);
-                if ($data) {
-                    echo json_encode([
-                        'success' => true,
+                $this->jsonResponse([
+                    'success' => !empty($data),
                         'itinerary' => $data['itinerary'] ?? '',
-                        'policy' => $data['policy'] ?? ''
+                    'policy' => $data['policy'] ?? '',
+                    'message' => empty($data) ? 'Tour không tìm thấy.' : ''
                     ]);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'Tour không tìm thấy.']);
-                }
-            } else {
-                echo json_encode(['success' => false, 'message' => 'Tham số không hợp lệ.']);
+                $this->jsonResponse(['success' => false, 'message' => 'Tham số không hợp lệ.']);
             }
         } catch (Throwable $e) {
-            echo json_encode(['success' => false, 'message' => 'Lỗi khi lấy thông tin.']);
+            $this->jsonResponse(['success' => false, 'message' => 'Lỗi khi lấy thông tin.']);
         }
-        exit;
     }
 
     public function getItineraryJson(): void
@@ -405,21 +389,18 @@ class TourController
         $bookingId = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : null;
 
         if ($tourId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Tour ID không hợp lệ.']);
-            exit;
+            $this->jsonResponse(['success' => false, 'message' => 'Tour ID không hợp lệ.']);
         }
 
         try {
             $tourModel = new Tour();
             $tour = $tourModel->find($tourId);
             if (!$tour) {
-                echo json_encode(['success' => false, 'message' => 'Tour không tồn tại.']);
-                exit;
+                $this->jsonResponse(['success' => false, 'message' => 'Tour không tồn tại.']);
             }
 
             $itineraries = $tourModel->getItineraryByTourId($tourId, $bookingId);
             
-            // Group by day
             $groupedByDay = [];
             foreach ($itineraries as $item) {
                 $dayNum = max(1, (int)($item['day_number'] ?? 1));
@@ -430,19 +411,15 @@ class TourController
             }
             ksort($groupedByDay);
 
-            echo json_encode([
+            $this->jsonResponse([
                 'success' => true,
-                'tour' => [
-                    'id' => $tour['id'],
-                    'name' => $tour['name'],
-                ],
+                'tour' => ['id' => $tour['id'], 'name' => $tour['name']],
                 'itineraries' => $itineraries,
                 'groupedByDay' => $groupedByDay
             ]);
         } catch (Throwable $e) {
-            echo json_encode(['success' => false, 'message' => 'Lỗi khi lấy lịch trình.']);
+            $this->jsonResponse(['success' => false, 'message' => 'Lỗi khi lấy lịch trình.']);
         }
-        exit;
     }
 
     private function ensureAuthenticated(): void
@@ -455,6 +432,18 @@ class TourController
             header('Location: ' . BASE_URL . '?action=login');
             exit;
         }
+    }
+
+    private function isAjax(): bool
+    {
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    private function jsonResponse(array $data): void
+    {
+        echo json_encode($data);
+        exit;
     }
     public function detail()
     {
@@ -988,9 +977,12 @@ class TourController
         $itineraryId = isset($_POST['itinerary_id']) ? (int)$_POST['itinerary_id'] : 0;
         $logDate = trim($_POST['log_date'] ?? '');
         
-        // Admin chỉ có thể cập nhật rating, không được chỉnh sửa nội dung
         if ($isAdmin) {
+            $isAjax = $this->isAjax();
             if ($id <= 0 || $tourId <= 0) {
+                if ($isAjax) {
+                    $this->jsonResponse(['success' => false, 'message' => 'Dữ liệu không hợp lệ.']);
+                }
                 $_SESSION['error'] = 'Dữ liệu không hợp lệ.';
                 header('Location: ' . BASE_URL . '?action=tour-logs-list&tour_id=' . $tourId);
                 exit;
@@ -1000,29 +992,48 @@ class TourController
             $existing = $logModel->find($id);
             
             if (!$existing) {
+                if ($isAjax) {
+                    $this->jsonResponse(['success' => false, 'message' => 'Nhật ký không tồn tại.']);
+                }
                 $_SESSION['error'] = 'Nhật ký không tồn tại.';
                 header('Location: ' . BASE_URL . '?action=tour-logs-list&tour_id=' . $tourId);
                 exit;
             }
             
-            // Chỉ cập nhật rating
             try {
-                $ok = $logModel->update($id, ['rating' => $rating]);
-                if ($ok) {
-                    $_SESSION['success'] = 'Đánh giá nhật ký thành công.';
-                } else {
-                    $_SESSION['error'] = 'Không thể cập nhật đánh giá.';
+                $updateData = [
+                    'rating' => $rating !== null ? $rating : null,
+                    'status' => $status !== '' ? $status : null
+                ];
+                $ok = $logModel->update($id, $updateData);
+                
+                if ($isAjax) {
+                    $this->jsonResponse([
+                        'success' => $ok,
+                        'status' => $status,
+                        'rating' => $rating,
+                        'message' => $ok ? '' : 'Không thể cập nhật.'
+                    ]);
                 }
+                
+                $_SESSION[$ok ? 'success' : 'error'] = $ok 
+                    ? 'Đánh giá nhật ký thành công.' 
+                    : 'Không thể cập nhật đánh giá.';
             } catch (Throwable $e) {
+                if ($isAjax) {
+                    $this->jsonResponse(['success' => false, 'message' => 'Lỗi: ' . $e->getMessage()]);
+                }
                 $_SESSION['error'] = 'Có lỗi xảy ra khi cập nhật đánh giá.';
             }
             
+            if (!$isAjax) {
             $redirectUrl = BASE_URL . '?action=tour-logs-list&tour_id=' . $tourId;
             if ($bookingId > 0) {
                 $redirectUrl .= '&booking_id=' . $bookingId;
             }
             header('Location: ' . $redirectUrl);
             exit;
+            }
         }
         
         // Helper function để tạo redirect URL

@@ -13,16 +13,26 @@ class TourManagementController
         $tourModel = new Tour();
         $groupModel = new TourGroup();
 
-        $filters = [
-            'tour_id' => $_GET['tour_id'] ?? '',
-            'status' => $_GET['status'] ?? '',
-            'date_from' => $_GET['date_from'] ?? '',
-            'date_to' => $_GET['date_to'] ?? '',
-        ];
+        $filters = [];
+        if (isset($_GET['tour_id'])) {
+            $filters['tour_id'] = $_GET['tour_id'];
+        }
+        if (isset($_GET['status'])) {
+            $filters['status'] = $_GET['status'];
+        }
+        if (isset($_GET['date_from'])) {
+            $filters['date_from'] = $_GET['date_from'];
+        }
+        if (isset($_GET['date_to'])) {
+            $filters['date_to'] = $_GET['date_to'];
+        }
 
         try {
             $tours = $tourModel->listWithCategory([]);
-            $allGroups = $groupModel->getAll() ?? [];
+            $allGroups = $groupModel->getAll();
+            if (!is_array($allGroups)) {
+                $allGroups = [];
+            }
             
             // Lọc theo filter
             if (!empty($filters['tour_id'])) {
@@ -430,8 +440,9 @@ class TourManagementController
         if (empty($_SESSION['error'])) {
             $_SESSION['success'] = 'Cập nhật thông tin thành công';
             $guest = $guestModel->find($id);
-            if ($guest && trim($guest['special_requests'] ?? '') !== '') {
-                $idDoc = trim($guest['id_number'] ?? '');
+            $specialRequests = isset($guest['special_requests']) ? trim($guest['special_requests']) : '';
+            if ($guest && $specialRequests !== '') {
+                $idDoc = isset($guest['id_number']) ? trim($guest['id_number']) : '';
                 $extra = $idDoc !== '' ? (' · Số giấy tờ: ' . $idDoc) : '';
                 $_SESSION['warning_special'] = 'Ghi nhận đặc biệt cho khách #' . $guest['id'] . ' (' . $guest['full_name'] . ')' . $extra . ': ' . $guest['special_requests'];
             }
@@ -611,15 +622,15 @@ class TourManagementController
             $data = [
                 'group_id' => $group_id,
                 'full_name' => $customer['full_name'],
-                'phone' => $customer['contact_phone'] ?? null,
-                'gender' => $customer['gender'] ?? null,
-                'date_of_birth' => $customer['date_of_birth'] ?? null,
-                'id_type' => $customer['id_type'] ?? null,
-                'id_number' => $customer['id_number'] ?? null,
-                'email' => $customer['email'] ?? null,
-                'address' => $customer['address'] ?? null,
-                'payment_status' => $customer['payment_status'] ?? 'unpaid',
-                'special_requests' => $customer['special_requests'] ?? null,
+                'phone' => isset($customer['contact_phone']) ? $customer['contact_phone'] : null,
+                'gender' => isset($customer['gender']) ? $customer['gender'] : null,
+                'date_of_birth' => isset($customer['date_of_birth']) ? $customer['date_of_birth'] : null,
+                'id_type' => isset($customer['id_type']) ? $customer['id_type'] : null,
+                'id_number' => isset($customer['id_number']) ? $customer['id_number'] : null,
+                'email' => isset($customer['email']) ? $customer['email'] : null,
+                'address' => isset($customer['address']) ? $customer['address'] : null,
+                'payment_status' => isset($customer['payment_status']) ? $customer['payment_status'] : 'unpaid',
+                'special_requests' => isset($customer['special_requests']) ? $customer['special_requests'] : null,
             ];
 
             if ($guestModel->create($data)) {

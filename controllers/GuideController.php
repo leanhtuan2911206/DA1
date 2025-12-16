@@ -6,12 +6,19 @@ class GuideController
     {
         $this->ensureAuthenticated();
 
-        $filters = [
-            'keyword'  => trim($_GET['keyword'] ?? ''),
-            'status'   => $_GET['status'] ?? '',
-            'language' => trim($_GET['language'] ?? ''),
-            'gender'   =>  trim($_GET['gender'] ?? ''),
-        ];
+        $filters = [];
+        if (isset($_GET['keyword'])) {
+            $filters['keyword'] = trim($_GET['keyword']);
+        }
+        if (isset($_GET['status'])) {
+            $filters['status'] = $_GET['status'];
+        }
+        if (isset($_GET['language'])) {
+            $filters['language'] = trim($_GET['language']);
+        }
+        if (isset($_GET['gender'])) {
+            $filters['gender'] = trim($_GET['gender']);
+        }
 
         $guideModel = new Guide();
         $guideModel->ensureStatusColumn();
@@ -48,7 +55,9 @@ class GuideController
         } catch (Throwable $e) {
             $guides = [];
             $summary = ['total' => 0, 'active' => 0, 'inactive' => 0, 'on_leave' => 0];
-            $_SESSION['error'] = $_SESSION['error'] ?? 'Không thể tải danh sách nhân sự.';
+            if (!isset($_SESSION['error'])) {
+                $_SESSION['error'] = 'Không thể tải danh sách nhân sự.';
+            }
         }
 
         $view = 'admin/guides';
@@ -84,7 +93,7 @@ class GuideController
 
         // Lấy thông tin đăng nhập từ form
         $username = $data['contact']; // Dùng SĐT hoặc Email làm tên đăng nhập
-        $password = $_POST['password'] ?? ''; 
+        $password = isset($_POST['password']) ? $_POST['password'] : ''; 
         $fullName = $data['full_name'];
 
         if ($errors) {

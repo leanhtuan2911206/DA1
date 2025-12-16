@@ -2,6 +2,21 @@
 
 class CustomerController
 {
+    private function getPaymentStatus($booking)
+    {
+        if (!isset($booking['status'])) {
+            return 'unpaid';
+        }
+        $status = $booking['status'];
+        if ($status === 'deposit') {
+            return 'deposit';
+        }
+        if (in_array($status, ['paid', 'completed', 'confirmed'])) {
+            return 'paid';
+        }
+        return 'unpaid';
+    }
+
     public function index(): void
     {
         $this->ensureAuthenticated();
@@ -15,9 +30,10 @@ class CustomerController
             $bookings = [];
         }
 
-        $bookingId = isset($_GET['booking_id']) ? (int) $_GET['booking_id'] : 0;
+        $bookingId = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
         if ($bookingId <= 0 && !empty($bookings)) {
-            $bookingId = (int) ($bookings[0]['id'] ?? 0);
+            $firstBooking = $bookings[0];
+            $bookingId = isset($firstBooking['id']) ? (int)$firstBooking['id'] : 0;
         }
 
         $selectedBooking = null;
@@ -27,17 +43,14 @@ class CustomerController
             if ($selectedBooking) {
                 $customers = $customerModel->getByBooking($bookingId);
                 
-                // Nếu chưa có customer nào, tự động tạo từ thông tin booking
-                // Để đảm bảo tên người đặt tour luôn có trong danh sách
                 if (empty($customers) && !empty($selectedBooking['customer_name'])) {
                     try {
                         $customerData = [
                             'booking_id' => $bookingId,
                             'full_name' => $selectedBooking['customer_name'],
-                            'contact_phone' => $selectedBooking['customer_phone'] ?? null,
-                            'email' => $selectedBooking['customer_email'] ?? null,
-                            'payment_status' => $selectedBooking['status'] === 'deposit' ? 'deposit' : 
-                                                (in_array($selectedBooking['status'] ?? '', ['paid', 'completed', 'confirmed']) ? 'paid' : 'unpaid'),
+                            'contact_phone' => isset($selectedBooking['customer_phone']) ? $selectedBooking['customer_phone'] : null,
+                            'email' => isset($selectedBooking['customer_email']) ? $selectedBooking['customer_email'] : null,
+                            'payment_status' => $this->getPaymentStatus($selectedBooking),
                             'gender' => null,
                             'date_of_birth' => null,
                             'id_type' => null,
@@ -48,11 +61,9 @@ class CustomerController
                         
                         $customerId = $customerModel->create($customerData);
                         if ($customerId) {
-                            // Lấy lại danh sách customers sau khi tạo
                             $customers = $customerModel->getByBooking($bookingId);
                         }
-                    } catch (Throwable $e) {
-                    }
+                    } catch (Throwable $e) {}
                 }
             } else {
                 $_SESSION['error'] = 'Không tìm thấy booking đã chọn.';
@@ -87,11 +98,11 @@ class CustomerController
         if ($bookingId > 0) {
             $selectedBooking = $bookingModel->findWithTour($bookingId);
             
-            // Lấy payment_status từ khách đầu tiên trong booking (nếu có)
             if ($selectedBooking) {
                 $existingCustomers = $customerModel->getByBooking($bookingId);
                 if (!empty($existingCustomers)) {
-                    $defaultPaymentStatus = $existingCustomers[0]['payment_status'] ?? Customer::PAYMENT_STATUSES[0];
+                    $firstCustomer = $existingCustomers[0];
+                    $defaultPaymentStatus = isset($firstCustomer['payment_status']) ? $firstCustomer['payment_status'] : Customer::PAYMENT_STATUSES[0];
                 }
             }
         }

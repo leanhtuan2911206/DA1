@@ -217,7 +217,6 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
 
             <script>
             document.addEventListener('DOMContentLoaded', function() {
-                // 1. Khai báo các element (gom nhóm cho gọn)
                 const els = {
                     start: document.querySelector('input[name="start_date"]'),
                     tourId: document.querySelector('input[name="tour_id"]'),
@@ -230,53 +229,40 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
                     err: document.getElementById('deposit_error'),
                     info: document.getElementById('deposit_info')
                 };
-
                 const basePrice = parseFloat(els.price.dataset.basePrice) || 0;
                 let currentPrice = basePrice;
-
-                // 2. Helper format tiền
                 const formatMoney = n => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + 'đ';
 
-                // 3. Tính toán tiền cọc & Tổng tiền
                 const checkDeposit = () => {
                     const people = parseInt(els.people.value) || 0;
                     const deposit = parseFloat(els.deposit.value) || 0;
-                    
                     if (currentPrice <= 0 || people <= 0) {
                         els.info.style.display = els.err.style.display = 'none';
                         return;
                     }
-
                     const total = currentPrice * people;
                     els.info.style.display = 'block';
                     els.info.textContent = `Tổng giá tour: ${formatMoney(total)}`;
-
                     const isOver = deposit > total;
                     els.err.style.display = isOver ? 'block' : 'none';
                     els.err.textContent = `Số tiền cọc (${formatMoney(deposit)}) vượt quá tổng giá tour (${formatMoney(total)})!`;
                     els.deposit.classList.toggle('is-invalid', isOver);
                 };
 
-                // 4. Cập nhật giao diện (Giá & Thông tin version)
                 const updateUI = (price, version = null) => {
                     currentPrice = price;
                     els.price.textContent = formatMoney(price);
-                    
-                    // Màu sắc: Hồng nếu dùng giá version, Xanh nếu dùng giá gốc
                     const isSpecialPrice = version && parseFloat(version.price) > 0;
                     els.price.style.color = isSpecialPrice ? '#d63384' : '#28a745';
-
                     if (version) {
                         els.vInfo.style.display = 'block';
                         const types = { seasonal: 'Theo mùa', promotional: 'Khuyến mãi', special: 'Đặc biệt' };
                         els.vName.textContent = `${version.name} (${types[version.version_type] || version.version_type})`;
-                        
                         const details = [
                             `Giá: ${isSpecialPrice ? formatMoney(price) : 'Dùng giá tour gốc'}`,
                             version.start_date ? `Từ: ${version.start_date}` : '',
                             version.end_date ? `Đến: ${version.end_date}` : ''
                         ].filter(Boolean).join(' | ');
-                        
                         els.vDetails.innerHTML = details;
                     } else {
                         els.vInfo.style.display = 'none';
@@ -284,11 +270,9 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
                     checkDeposit();
                 };
 
-                // 5. Sự kiện đổi ngày -> Gọi API lấy version
                 els.start.addEventListener('change', function() {
                     const date = this.value;
                     if (!date) return updateUI(basePrice);
-
                     fetch(`<?= BASE_URL ?>?action=tours-get-active-version&tour_id=${els.tourId.value}&date=${date}`)
                         .then(r => r.json())
                         .then(data => {
@@ -302,10 +286,8 @@ $tour = isset($tour) && is_array($tour) ? $tour : null;
                         .catch(() => updateUI(basePrice));
                 });
 
-                // 6. Sự kiện nhập liệu
                 [els.people, els.deposit].forEach(el => el.addEventListener('input', checkDeposit));
-                
-                checkDeposit(); // Chạy lần đầu
+                checkDeposit();
             });
             </script>
         <?php else: ?>

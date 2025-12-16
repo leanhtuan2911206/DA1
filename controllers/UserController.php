@@ -2,7 +2,7 @@
 
 class UserController
 {
-    public function index()
+    private function requireAuth(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -11,6 +11,11 @@ class UserController
             header('Location: ' . BASE_URL . '?action=login');
             exit;
         }
+    }
+
+    public function index()
+    {
+        $this->requireAuth();
 
         $view = 'admin/users';
         $title = 'Quản lý tài khoản';
@@ -29,13 +34,7 @@ class UserController
 
     public function create()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         $view = 'admin/users-create';
         $title = 'Tạo tài khoản mới';
@@ -46,22 +45,16 @@ class UserController
 
     public function store()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=users-create');
             exit;
         }
 
-        $name = trim($_POST['name'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+        $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+        $password = isset($_POST['password']) ? $_POST['password'] : '';
 
         if ($name === '' || $email === '' || $password === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = 'Vui lòng nhập đầy đủ thông tin hợp lệ.';
@@ -103,13 +96,7 @@ class UserController
 
     public function edit()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if ($id <= 0) {
@@ -135,13 +122,7 @@ class UserController
 
     public function update()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=users');
@@ -149,9 +130,9 @@ class UserController
         }
 
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
-        $name = trim($_POST['name'] ?? '');
-        $email = trim($_POST['email'] ?? '');
-        $password = $_POST['password'] ?? '';
+        $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+        $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+        $password = isset($_POST['password']) ? $_POST['password'] : '';
 
         if ($id <= 0 || $name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $_SESSION['error'] = 'Dữ liệu không hợp lệ.';
@@ -193,13 +174,7 @@ class UserController
 
     public function delete()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
         if ($id <= 0) {
@@ -211,7 +186,11 @@ class UserController
         try {
             $userModel = new User();
             $deleted = $userModel->delete($id);
-            $_SESSION['success'] = $deleted ? 'Đã xóa tài khoản.' : 'Xóa tài khoản thất bại.';
+            if ($deleted) {
+                $_SESSION['success'] = 'Đã xóa tài khoản.';
+            } else {
+                $_SESSION['error'] = 'Xóa tài khoản thất bại.';
+            }
         } catch (Throwable $e) {
             $_SESSION['error'] = 'Đã xảy ra lỗi khi xóa.';
         }

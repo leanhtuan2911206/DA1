@@ -2,9 +2,8 @@
 
 class BookingController
 {
-    public function index()
+    private function requireAuth(): void
     {
-        // Kiểm tra đăng nhập
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -12,13 +11,15 @@ class BookingController
             header('Location: ' . BASE_URL . '?action=login');
             exit;
         }
+    }
 
-        // Thiết lập view
+    public function index()
+    {
+        $this->requireAuth();
+
         $view = 'admin/bookings';
         $title = 'Quản lý Booking';
         $hideNavbar = true;
-
-        // Lấy dữ liệu
         $bookingsGrouped = [];
         $tours = [];
         $filters = [
@@ -35,13 +36,8 @@ class BookingController
             $tourModel = new Tour();
             $assignmentModel = new Assignment();
             
-            // Lấy danh sách tour để hiển thị trong filter
             $tours = $tourModel->listWithCategory([]);
-            
-            // Lấy booking nhóm theo tour
             $bookingsGrouped = $bookingModel->getBookingsGroupedByTour($filters);
-            
-            // Thêm thông tin phân công cho mỗi booking
             foreach ($bookingsGrouped as &$tourGroup) {
                 foreach ($tourGroup['bookings'] as &$booking) {
                     $assignment = $assignmentModel->getAssignmentByBookingId($booking['id']);
@@ -61,21 +57,11 @@ class BookingController
 
     public function create()
     {
-        // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
-        // Thiết lập view
         $view = 'admin/bookings-create';
         $title = 'Tạo Booking Mới';
         $hideNavbar = true;
-
-        // Lấy danh sách tour
         $tours = [];
         try {
             $tourModel = new Tour();
@@ -86,7 +72,6 @@ class BookingController
         require_once PATH_VIEW . 'main.php';
     }
     
-    // API: Lấy phiên bản đang áp dụng theo ngày
     public function getActiveVersion(): void
     {
         header('Content-Type: application/json');
@@ -122,16 +107,8 @@ class BookingController
 
     public function store()
     {
-        // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
-        // Lấy dữ liệu từ form
         $tour_id = isset($_POST['tour_id']) ? (int)$_POST['tour_id'] : 0;
         $tour_version_id=isset($_POST['tour_version_id']) && $_POST['tour_version_id'] !== '' ?(int)$_POST['tour_version_id']: null;
         $start_date = isset($_POST['start_date']) ? trim($_POST['start_date']) : '';
@@ -153,7 +130,7 @@ class BookingController
             header('Location: ' . BASE_URL . '?action=bookings-create');
             exit;
         }
-        // Kiểm tra tour và lấy giá
+        
         $tourModel = new Tour();
         $tour = $tourModel->find($tour_id);
         if (!$tour) {
@@ -162,7 +139,6 @@ class BookingController
             exit;
         }
         
-        // Tự động tìm phiên bản đang áp dụng
         $tourPrice = (float)$tour['price'];
         $tour_version_id = null;
         
@@ -212,13 +188,10 @@ class BookingController
             $bookingId = $bookingModel->create($data);
 
             if ($bookingId) {
-                // Tự động tạo customer record đầu tiên từ thông tin booking
-                // Để khi xem danh sách khách hàng, tên người đặt tour tự động có trong đó
                 try {
                     $customerModel = new Customer();
                     $existingCustomers = $customerModel->getByBooking($bookingId);
                     
-                    // Chỉ tạo nếu chưa có customer nào trong booking
                     if (empty($existingCustomers) && !empty($customer_name)) {
                         $customerData = [
                             'booking_id' => $bookingId,
@@ -257,13 +230,7 @@ class BookingController
     public function edit()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy ID booking
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -306,13 +273,7 @@ class BookingController
     public function detail()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy ID booking
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -375,13 +336,7 @@ class BookingController
     public function createLog()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy booking_id từ GET
         $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
@@ -427,13 +382,7 @@ class BookingController
 
     public function storeLog()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=bookings');
@@ -552,13 +501,7 @@ class BookingController
     public function update()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy ID booking
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -649,13 +592,7 @@ class BookingController
     public function updateStatus()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy dữ liệu
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
@@ -711,13 +648,7 @@ class BookingController
     public function delete()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy ID booking
         $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -749,13 +680,7 @@ class BookingController
     public function createItinerary()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         // Lấy booking_id từ GET
         $booking_id = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
@@ -804,13 +729,7 @@ class BookingController
     public function storeItinerary()
     {
         // Kiểm tra đăng nhập
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        if (!isset($_SESSION['user'])) {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
+        $this->requireAuth();
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=bookings');

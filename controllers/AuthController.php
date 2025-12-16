@@ -12,8 +12,8 @@ class AuthController
         
         // Xử lý khi người dùng gửi form
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $email = trim($_POST['email'] ?? '');
-            $password = $_POST['password'] ?? '';
+            $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+            $password = isset($_POST['password']) ? $_POST['password'] : '';
 
             // Validation: Kiểm tra dữ liệu đầu vào
             // Cho phép đăng nhập bằng email hoặc số điện thoại (contact)
@@ -46,7 +46,7 @@ class AuthController
                     // Kiểm tra người dùng tồn tại và mật khẩu
                     $passwordValid = false;
                     if ($user) {
-                        $storedPassword = trim($user['password'] ?? '');
+                        $storedPassword = isset($user['password']) ? trim($user['password']) : '';
                         $inputPassword = trim($password);
                         
                         // Kiểm tra xem password có được hash hay chưa (bắt đầu bằng $2y$, $2a$, hoặc $2b$)

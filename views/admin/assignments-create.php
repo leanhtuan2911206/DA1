@@ -66,8 +66,14 @@ $prefBid = isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : 0;
                     <label class="form-label">Nhân sự hậu cần (tuỳ chọn)</label>
                     <select class="form-select" name="support_id">
                         <option value="">-- Chọn nhân sự --</option>
-                        <?php foreach (($guides ?? []) as $g): ?>
-                            <option value="<?= $g['HDV_ID'] ?>"><?= htmlspecialchars($g['HoTen'] ?? ('#'.$g['HDV_ID'])) ?></option>
+                        <?php 
+                            $busyGuideIds = isset($busyGuideIds) && is_array($busyGuideIds) ? $busyGuideIds : [];
+                            foreach (($guides ?? []) as $g): 
+                                $gid = (int)($g['HDV_ID'] ?? 0);
+                                $label = ($g['HoTen'] ?? ('#'.$gid));
+                                $suffix = in_array($gid, $busyGuideIds, true) ? ' (đang bận)' : '';
+                        ?>
+                            <option value="<?= $gid ?>"><?= htmlspecialchars($label . $suffix) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

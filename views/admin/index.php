@@ -403,18 +403,15 @@
         const tourSel = document.getElementById('revTourId');
         const yearInput = document.getElementById('revYear');
         
-        function syncVisibility(){
+        const syncVisibility = () => {
             const p = periodSel.value;
-            monthSel.style.display = p==='month' ? '' : 'none';
-            quarterSel.style.display = p==='quarter' ? '' : 'none';
-        }
+            monthSel.style.display = p === 'month' ? '' : 'none';
+            quarterSel.style.display = p === 'quarter' ? '' : 'none';
+        };
         syncVisibility();
-        periodSel.addEventListener('change', function() {
-            syncVisibility();
-            loadRevenueData();
-        });
+        periodSel.addEventListener('change', () => { syncVisibility(); loadRevenueData(); });
 
-        function loadRevenueData() {
+        const loadRevenueData = () => {
             const params = new URLSearchParams({
                 action: 'admin-revenue-data',
                 period: periodSel.value,
@@ -423,7 +420,6 @@
                 rev_quarter: quarterSel.value,
                 tour_id: tourSel.value
             });
-            
             fetch('<?= BASE_URL ?>?' + params.toString())
                 .then(response => response.json())
                 .then(data => {
@@ -431,26 +427,16 @@
                         console.error('Error:', data.error);
                         return;
                     }
-                    
-                    // Cập nhật biểu đồ
                     revenueChart.data.labels = data.labels;
                     revenueChart.data.datasets[0].data = data.values;
                     revenueChart.update();
-                    
-                    // Cập nhật tổng doanh thu
                     const totalFormatted = new Intl.NumberFormat('vi-VN').format(data.total);
                     document.getElementById('revenueTotal').textContent = totalFormatted + 'đ';
                 })
-                .catch(error => {
-                    console.error('Error loading revenue data:', error);
-                });
-        }
+                .catch(error => console.error('Error loading revenue data:', error));
+        };
 
-        // Thêm event listeners cho tất cả các filter
-        tourSel.addEventListener('change', loadRevenueData);
-        monthSel.addEventListener('change', loadRevenueData);
-        quarterSel.addEventListener('change', loadRevenueData);
-        yearInput.addEventListener('change', loadRevenueData);
+        [tourSel, monthSel, quarterSel, yearInput].forEach(el => el.addEventListener('change', loadRevenueData));
     </script>
 </main>
 

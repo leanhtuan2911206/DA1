@@ -28,8 +28,14 @@
                     <label class="form-label">Hướng dẫn viên</label>
                     <?php $curGid = $assignment['HDV_ID'] ?? ''; ?>
                     <select class="form-select" name="HDV_ID" required>
-                        <?php foreach (($guides ?? []) as $g): ?>
-                            <option value="<?= $g['HDV_ID'] ?>" <?= ((string)$curGid === (string)$g['HDV_ID']) ? 'selected' : '' ?>><?= htmlspecialchars($g['HoTen'] ?? ('#'.$g['HDV_ID'])) ?></option>
+                        <?php 
+                            $busyGuideIds = isset($busyGuideIds) && is_array($busyGuideIds) ? $busyGuideIds : [];
+                            foreach (($guides ?? []) as $g): 
+                                $gid = (int)($g['HDV_ID'] ?? 0);
+                                $label = ($g['HoTen'] ?? ('#'.$gid));
+                                $suffix = in_array($gid, $busyGuideIds, true) ? ' (đang bận)' : '';
+                        ?>
+                            <option value="<?= $gid ?>" <?= ((string)$curGid === (string)$gid) ? 'selected' : '' ?>><?= htmlspecialchars($label . $suffix) ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

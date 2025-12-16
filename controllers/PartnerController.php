@@ -2,7 +2,7 @@
 
 class PartnerController
 {
-    private function requireHDVAuth()
+    private function requireHDVAuth(): void
     {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
         if (empty($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'hdv') { 
@@ -10,11 +10,11 @@ class PartnerController
         }
     }
 
-    private function getGuideId()
+    private function getGuideId(): int
     {
-        $userId = $_SESSION['user']['id'];
-        $guideId = isset($_SESSION['user']['guide_id']) ? (int)$_SESSION['user']['guide_id'] : 0;
-        if ($guideId === 0) {
+        $userId = $_SESSION['user']['id'] ?? 0;
+        $guideId = (int)($_SESSION['user']['guide_id'] ?? 0);
+        if ($guideId === 0 && $userId > 0) {
             $hdvModel = new HdvModel();
             $guideId = $hdvModel->getGuideIdByUserId($userId);
             if ($guideId > 0) {
@@ -24,14 +24,26 @@ class PartnerController
         return $guideId;
     }
 
-    private function getPDO()
+
+    private function isAjax(): bool
     {
-        try {
-            $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
-            return new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-        } catch (Throwable $e) {
-            return null;
+        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    private function jsonResponse(array $data): void
+    {
+        echo json_encode($data);
+        exit;
+    }
+
+    private function parseInput(): array
+    {
+        if (!empty($_POST)) {
+            return $_POST;
         }
+        $input = json_decode(file_get_contents('php://input'), true);
+        return is_array($input) ? $input : [];
     }
 
     public function dashboard(): void
@@ -48,15 +60,11 @@ class PartnerController
         if ($guideId > 0) {
             $assignments = $hdvModel->getMyAssignments($guideId);
 
-            // Tự động chọn tour đầu tiên nếu chưa có booking_id và có assignments
-            // Chỉ tự động redirect nếu tab là 'detail' hoặc 'itinerary' hoặc không có tab
             $bookingId = $_GET['booking_id'] ?? 0;
             if ($bookingId <= 0 && !empty($assignments) && ($currentTab === 'detail' || $currentTab === 'itinerary' || !isset($_GET['tab']))) {
-                // Chọn tour đầu tiên (hoặc tour gần nhất theo assign_date)
                 $firstAssignment = $assignments[0];
                 $autoSelectedBookingId = isset($firstAssignment['booking_id']) ? (int)$firstAssignment['booking_id'] : 0;
                 if ($autoSelectedBookingId > 0) {
-                    // Tự động redirect đến tour đầu tiên với tab detail
                     $redirectTab = $currentTab === 'itinerary' ? 'itinerary' : 'detail';
                     header('Location: ' . BASE_URL . '?action=partner&tab=' . $redirectTab . '&booking_id=' . $autoSelectedBookingId);
                     exit;
@@ -90,94 +98,65 @@ class PartnerController
         
         require_once PATH_VIEW . 'main.php'; 
     }
-    // Thêm hàm này vào trong class PartnerController
+
     public function updateActivity(): void
     {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $isAjax = $this->isAjax();
         
-        // Kiểm tra đăng nhập
-        if (empty($_SESSION['user']) || $_SESSION['user']['role'] !== 'hdv') {
-            // Kiểm tra xem có phải AJAX request không
-            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+        if (empty($_SESSION['user']) || ($_SESSION['user']['role'] ?? '') !== 'hdv') {
             if ($isAjax) {
-                echo json_encode(['success' => false, 'message' => 'Unauthorized']); exit;
+                $this->jsonResponse(['success' => false, 'message' => 'Unauthorized']);
             }
             header('Location: ' . BASE_URL . '?action=login');
             exit;
         }
 
-        // Kiểm tra phương thức
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
             if ($isAjax) {
-                echo json_encode(['success' => false, 'message' => 'Method not allowed']); exit;
+                $this->jsonResponse(['success' => false, 'message' => 'Method not allowed']);
             }
             header('Location: ' . BASE_URL . '?action=partner&tab=itinerary');
             exit;
         }
 
-        // Lấy dữ liệu từ POST form hoặc JSON
-        $bookingId = 0;
-        $itineraryId = 0;
-        $status = 'pending';
-        
-        // Ưu tiên đọc từ $_POST (form submit)
-        if (!empty($_POST['booking_id']) && !empty($_POST['itinerary_id'])) {
-            $bookingId = (int)$_POST['booking_id'];
-            $itineraryId = (int)$_POST['itinerary_id'];
-            $status = trim($_POST['status'] ?? 'pending');
-        } else {
-            // Nếu không có POST, thử đọc từ JSON (AJAX)
-            $input = json_decode(file_get_contents('php://input'), true);
-            if ($input) {
-                $bookingId = (int)($input['booking_id'] ?? 0);
-                $itineraryId = (int)($input['itinerary_id'] ?? 0);
-                $status = trim($input['status'] ?? 'pending');
-            }
-        }
-
-        $isAjax = (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+        $input = $this->parseInput();
+        $bookingId = (int)($input['booking_id'] ?? $_POST['booking_id'] ?? 0);
+        $itineraryId = (int)($input['itinerary_id'] ?? $_POST['itinerary_id'] ?? 0);
+        $status = trim($input['status'] ?? $_POST['status'] ?? 'pending');
 
         if ($bookingId > 0 && $itineraryId > 0) {
             $hdvModel = new HdvModel();
             $result = $hdvModel->updateActivityStatus($bookingId, $itineraryId, $status);
             
             if ($isAjax) {
-                echo json_encode(['success' => $result]);
-            } else {
-                // Redirect về trang itinerary với thông báo
-                if ($result) {
-                    $_SESSION['success'] = 'Đã cập nhật trạng thái hoạt động thành công';
-                } else {
-                    $_SESSION['error'] = 'Không thể cập nhật trạng thái hoạt động';
-                }
-                $bookingCode = $bookingId;
-                header('Location: ' . BASE_URL . '?action=partner&tab=itinerary&booking_id=' . $bookingCode);
+                $this->jsonResponse(['success' => $result]);
             }
+            
+            $_SESSION[$result ? 'success' : 'error'] = $result 
+                ? 'Đã cập nhật trạng thái hoạt động thành công' 
+                : 'Không thể cập nhật trạng thái hoạt động';
+            header('Location: ' . BASE_URL . '?action=partner&tab=itinerary&booking_id=' . $bookingId);
         } else {
             if ($isAjax) {
-                echo json_encode(['success' => false, 'message' => 'Invalid data']);
-            } else {
-                $_SESSION['error'] = 'Dữ liệu không hợp lệ';
-                header('Location: ' . BASE_URL . '?action=partner&tab=itinerary');
+                $this->jsonResponse(['success' => false, 'message' => 'Invalid data']);
             }
+            $_SESSION['error'] = 'Dữ liệu không hợp lệ';
+            header('Location: ' . BASE_URL . '?action=partner&tab=itinerary');
         }
         exit;
     }
     
-    // Hàm cập nhật lịch trình (cho phép HDV chỉnh sửa)
     public function updateItinerary(): void
     {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
         
-        // Kiểm tra đăng nhập
         if (empty($_SESSION['user']) || $_SESSION['user']['role'] !== 'hdv') {
-            echo json_encode(['success' => false, 'message' => 'Unauthorized']); exit;
+            $this->jsonResponse(['success' => false, 'message' => 'Unauthorized']);
         }
 
-        // Lấy dữ liệu JSON gửi lên từ Javascript
-        $input = json_decode(file_get_contents('php://input'), true);
-        $itineraryId = isset($input['id']) ? (int)$input['id'] : 0;
+        $input = $this->parseInput();
+        $itineraryId = (int)($input['id'] ?? 0);
         $timeStart = trim($input['time_start'] ?? '');
         $title = trim($input['title'] ?? '');
         $description = trim($input['description'] ?? '');
@@ -187,106 +166,96 @@ class PartnerController
             $hdvModel = new HdvModel();
             try {
                 $result = $hdvModel->updateItinerary($itineraryId, $timeStart, $title, $description, $location);
-                if ($result === true) {
-                    echo json_encode(['success' => true, 'message' => 'Cập nhật thành công']);
-                } else {
-                    // Nếu result là string thì đó là lỗi
-                    $msg = is_string($result) ? $result : 'Lỗi cơ sở dữ liệu';
-                    echo json_encode(['success' => false, 'message' => $msg]);
-                }
+                $this->jsonResponse([
+                    'success' => $result === true,
+                    'message' => $result === true ? 'Cập nhật thành công' : (is_string($result) ? $result : 'Lỗi cơ sở dữ liệu')
+                ]);
             } catch (Throwable $e) {
-                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+                $this->jsonResponse(['success' => false, 'message' => $e->getMessage()]);
             }
         } else {
-            echo json_encode(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
+            $this->jsonResponse(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
         }
-        exit;
     }
     
-    // Hàm xử lý check-in khách
     public function checkinGuest(): void
     {
         if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $isAjax = $this->isAjax();
         
-        // Kiểm tra đăng nhập
         if (empty($_SESSION['user']) || $_SESSION['user']['role'] !== 'hdv') {
             header('Location: ' . BASE_URL . '?action=login');
             exit;
         }
         
-        // Kiểm tra phương thức POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            if ($isAjax) {
+                $this->jsonResponse(['success' => false, 'message' => 'Phương thức không hợp lệ']);
+            }
             header('Location: ' . BASE_URL . '?action=partner&tab=detail');
             exit;
         }
         
-        // Lấy dữ liệu từ form
-        $guestId = isset($_POST['guest_id']) ? (int)$_POST['guest_id'] : 0;
-        $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
-        $checkinStatus = isset($_POST['checkin_status']) ? trim($_POST['checkin_status']) : '';
+        $input = $this->parseInput();
+        $guestId = (int)($input['guest_id'] ?? $_POST['guest_id'] ?? 0);
+        $bookingId = (int)($input['booking_id'] ?? $_POST['booking_id'] ?? 0);
+        $checkinStatus = trim($input['checkin_status'] ?? $_POST['checkin_status'] ?? '');
         
-        // Kiểm tra dữ liệu hợp lệ
         if ($guestId <= 0 || $bookingId <= 0 || empty($checkinStatus)) {
+            if ($isAjax) {
+                $this->jsonResponse(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
+            }
             $_SESSION['error'] = 'Dữ liệu không hợp lệ';
             header('Location: ' . BASE_URL . '?action=partner&tab=detail&booking_id=' . $bookingId);
             exit;
         }
         
-        // Kiểm tra trạng thái check-in hợp lệ
         $validStatuses = ['not_arrived', 'arrived', 'checked_in'];
         if (!in_array($checkinStatus, $validStatuses)) {
+            if ($isAjax) {
+                $this->jsonResponse(['success' => false, 'message' => 'Trạng thái check-in không hợp lệ']);
+            }
             $_SESSION['error'] = 'Trạng thái check-in không hợp lệ';
             header('Location: ' . BASE_URL . '?action=partner&tab=detail&booking_id=' . $bookingId);
             exit;
         }
         
-        // Cập nhật trạng thái check-in
         $hdvModel = new HdvModel();
         $result = $hdvModel->updateGuestCheckin($guestId, $bookingId, $checkinStatus);
         
-        if ($result) {
-            $_SESSION['success'] = 'Đã cập nhật trạng thái check-in thành công';
-        } else {
-            $_SESSION['error'] = 'Không thể cập nhật trạng thái check-in';
+        if ($isAjax) {
+            $this->jsonResponse(['success' => (bool)$result]);
         }
         
-        // Quay lại trang chi tiết
+        $_SESSION[$result ? 'success' : 'error'] = $result 
+            ? 'Đã cập nhật trạng thái check-in thành công' 
+            : 'Không thể cập nhật trạng thái check-in';
         header('Location: ' . BASE_URL . '?action=partner&tab=detail&booking_id=' . $bookingId);
         exit;
     }
     
-    // Hàm xử lý cập nhật yêu cầu đặc biệt của khách
     public function updateGuestSpecialRequests(): void
     {
-        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $this->requireHDVAuth();
         
-        // Kiểm tra đăng nhập
-        if (empty($_SESSION['user']) || $_SESSION['user']['role'] !== 'hdv') {
-            header('Location: ' . BASE_URL . '?action=login');
-            exit;
-        }
-        
-        // Kiểm tra phương thức POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ' . BASE_URL . '?action=partner&tab=detail');
             exit;
         }
         
-        // Lấy dữ liệu từ form
-        $guestId = isset($_POST['guest_id']) ? (int)$_POST['guest_id'] : 0;
-        $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
-        $specialRequests = isset($_POST['special_requests']) ? trim($_POST['special_requests']) : '';
+        $guestId = (int)($_POST['guest_id'] ?? 0);
+        $bookingId = (int)($_POST['booking_id'] ?? 0);
+        $specialRequests = trim($_POST['special_requests'] ?? '');
         
-        // Kiểm tra dữ liệu hợp lệ
         if ($guestId <= 0 || $bookingId <= 0) {
             $_SESSION['error'] = 'Dữ liệu không hợp lệ';
             header('Location: ' . BASE_URL . '?action=partner&tab=detail&booking_id=' . $bookingId);
             exit;
         }
         
-        // Kiểm tra xem guest có thuộc booking này không (bảo mật)
         $hdvModel = new HdvModel();
-        $tripDetail = $hdvModel->getTripDetail($bookingId, $_SESSION['user']['guide_id'] ?? 0);
+        $guideId = $this->getGuideId();
+        $tripDetail = $hdvModel->getTripDetail($bookingId, $guideId);
         
         if (!$tripDetail) {
             $_SESSION['error'] = 'Không tìm thấy thông tin tour';
@@ -294,10 +263,9 @@ class PartnerController
             exit;
         }
         
-        // Kiểm tra guest có trong danh sách khách của tour này không
         $guestFound = false;
         foreach ($tripDetail['customer_list'] ?? [] as $customer) {
-            if (isset($customer['id']) && (int)$customer['id'] === $guestId) {
+            if ((int)($customer['id'] ?? 0) === $guestId) {
                 $guestFound = true;
                 break;
             }
@@ -309,17 +277,12 @@ class PartnerController
             exit;
         }
         
-        // Cập nhật yêu cầu đặc biệt
         $guestModel = new TourGuest();
-        $specialRequests = $specialRequests !== '' ? $specialRequests : null;
+        $result = $guestModel->updateSpecialRequests($guestId, $specialRequests !== '' ? $specialRequests : null);
         
-        if ($guestModel->updateSpecialRequests($guestId, $specialRequests)) {
-            $_SESSION['success'] = 'Cập nhật yêu cầu đặc biệt thành công';
-        } else {
-            $_SESSION['error'] = 'Không thể cập nhật yêu cầu đặc biệt';
-        }
-        
-        // Quay lại trang chi tiết
+        $_SESSION[$result ? 'success' : 'error'] = $result 
+            ? 'Cập nhật yêu cầu đặc biệt thành công' 
+            : 'Không thể cập nhật yêu cầu đặc biệt';
         header('Location: ' . BASE_URL . '?action=partner&tab=detail&booking_id=' . $bookingId);
         exit;
     }
@@ -343,32 +306,16 @@ class PartnerController
         $tours = [];
         $tour = null; $logs = []; $itinerary = []; $editingLog = null; $bookings = [];
         
-        // Lấy guide_id nếu chưa có trong session
-        if ($guideId <= 0 && isset($_SESSION['user']['id'])) {
-            try {
-                $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-                $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                $stmt = $pdo->prepare('SELECT HDV_ID FROM hdv WHERE user_id = :uid LIMIT 1');
-                $stmt->execute([':uid' => (int)$_SESSION['user']['id']]);
-                $r = $stmt->fetch();
-                if ($r && isset($r['HDV_ID'])) {
-                    $guideId = (int)$r['HDV_ID'];
-                    $_SESSION['user']['guide_id'] = $guideId;
-                } else {
-                }
-            } catch (Throwable $e) {
-            }
+        if ($guideId <= 0) {
+            $guideId = $this->getGuideId();
         }
         
-        // Lấy danh sách tours được phân công cho HDV - CHỈ lấy tours được phân công
         if ($guideId > 0) {
             try {
-                // Sử dụng HdvModel để lấy assignments (đã được kiểm chứng)
                 $hdvModel = new HdvModel();
                 $assignments = $hdvModel->getMyAssignments($guideId);
                 
                 if (!empty($assignments)) {
-                    // Lấy danh sách tour_id từ assignments
                     $tourIds = [];
                     foreach ($assignments as $ass) {
                         $tid = (int)($ass['tour_id'] ?? 0);
@@ -378,21 +325,15 @@ class PartnerController
                     }
                     
                     if (!empty($tourIds)) {
-                        // Lấy thông tin tours từ danh sách tour_id
                         $tourModel = new Tour();
                         $allTours = $tourModel->listWithCategory([]);
-                        
-                        // Lọc chỉ lấy tours được phân công
                         foreach ($allTours as $t) {
                             $tid = (int)($t['id'] ?? 0);
                             if ($tid > 0 && isset($tourIds[$tid])) {
                                 $tours[] = $t;
                             }
                         }
-                        
-                    } else {
                     }
-                } else {
                 }
             } catch (Throwable $e) {
                 $tours = [];
@@ -401,10 +342,7 @@ class PartnerController
             $tours = [];
         }
         if ($tourId > 0) {
-            // Kiểm tra xem tour này có trong danh sách tours được phân công không
             $isAssigned = false;
-            
-            // Kiểm tra nhanh: tour có trong danh sách $tours đã lấy ở trên không
             foreach ($tours as $t) {
                 if ((int)($t['id'] ?? 0) === $tourId) {
                     $isAssigned = true;
@@ -412,29 +350,18 @@ class PartnerController
                 }
             }
             
-            // Nếu không tìm thấy trong danh sách, kiểm tra lại bằng query
             if (!$isAssigned && $guideId > 0) {
                 try {
-                    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+                    $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_PORT, DB_NAME);
                     $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                    $hasAssign = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
-                    $hasBookings = (int)$pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
-                    
-                    if ($hasAssign && $hasBookings) {
-                        // Kiểm tra bằng HDV_ID (cột chính trong tour_assignments)
-                        $st = $pdo->prepare('SELECT COUNT(*) FROM tour_assignments ta 
-                                             JOIN bookings b ON b.id = ta.booking_id 
-                                             WHERE b.tour_id = :tid 
-                                             AND ta.HDV_ID = :gid');
-                        $st->execute([':tid' => $tourId, ':gid' => $guideId]);
-                        $count = (int)$st->fetchColumn();
-                        $isAssigned = $count > 0;
-                    }
-                } catch (Throwable $e) {
-                }
+                    $st = $pdo->prepare('SELECT COUNT(*) FROM tour_assignments ta 
+                                         JOIN bookings b ON b.id = ta.booking_id 
+                                         WHERE b.tour_id = :tid AND ta.HDV_ID = :gid');
+                    $st->execute([':tid' => $tourId, ':gid' => $guideId]);
+                    $isAssigned = (int)$st->fetchColumn() > 0;
+                } catch (Throwable $e) {}
             }
             
-            // Nếu tour không được phân công cho HDV này, không cho phép truy cập
             if (!$isAssigned) {
                 $_SESSION['error'] = 'Bạn không được phân công tour này. Chỉ có thể xem nhật ký các tour được phân công cho bạn.';
                 header('Location: ' . BASE_URL . '?action=partner-logs');
@@ -446,38 +373,22 @@ class PartnerController
                 $tour = $tourModel->find($tourId);
                 $itinerary = $tourModel->getItineraryByTourId($tourId);
                 
-                // Lấy danh sách bookings của tour được phân công cho HDV này
                 if ($guideId > 0) {
                     try {
-                        $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-                        $pdo2 = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                        $hasAssign2 = (int)$pdo2->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_assignments'")->fetchColumn() > 0;
-                        $hasBookings2 = (int)$pdo2->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'bookings'")->fetchColumn() > 0;
-                        if ($hasAssign2 && $hasBookings2) {
-                            $st = $pdo2->prepare('SELECT b.id, b.customer_name, b.start_date, ta.assign_date 
-                                                 FROM bookings b 
-                                                 INNER JOIN tour_assignments ta ON ta.booking_id = b.id 
-                                                 WHERE b.tour_id = :tid AND ta.HDV_ID = :gid
-                                                 ORDER BY ta.assign_date DESC, b.start_date DESC');
-                            $st->execute([':tid' => $tourId, ':gid' => $guideId]);
-                            $bookings = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-                        }
-                    } catch (Throwable $e) {
-                    }
+                        $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8mb4', DB_HOST, DB_PORT, DB_NAME);
+                        $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                        $st = $pdo->prepare('SELECT b.id, b.customer_name, b.start_date, ta.assign_date 
+                                             FROM bookings b 
+                                             INNER JOIN tour_assignments ta ON ta.booking_id = b.id 
+                                             WHERE b.tour_id = :tid AND ta.HDV_ID = :gid
+                                             ORDER BY ta.assign_date DESC, b.start_date DESC');
+                        $st->execute([':tid' => $tourId, ':gid' => $guideId]);
+                        $bookings = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
+                    } catch (Throwable $e) {}
                 }
                 
                 $logModel = new TourLog();
-                // Lấy nhật ký của HDV này cho tour
                 $logs = $logModel->getByTourId($tourId, $guideId);
-                // Fallback: raw query to ensure visibility
-                if (empty($logs)) {
-                    $dsn = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME . ';charset=utf8mb4';
-                    $pdo2 = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
-                    $st = $pdo2->prepare('SELECT * FROM tour_logs WHERE tour_id = :tid ORDER BY COALESCE(log_date, created_at) DESC');
-                    $st->execute([':tid' => $tourId]);
-                    $rows = $st->fetchAll(PDO::FETCH_ASSOC) ?: [];
-                    if (!empty($rows)) { $logs = $rows; }
-                }
                 if ($dayFilter > 0) {
                     $map = [];
                     foreach ($itinerary as $item) { $map[(int)$item['id']] = (int)($item['day_number'] ?? 0); }
@@ -492,8 +403,12 @@ class PartnerController
                 if ($editId > 0) {
                     try {
                         $editingLog = $logModel->find($editId);
-                        if ($editingLog && (int)($editingLog['tour_id'] ?? 0) !== $tourId) { $editingLog = null; }
-                    } catch (Throwable $e) { $editingLog = null; }
+                        if ($editingLog && (int)($editingLog['tour_id'] ?? 0) !== $tourId) {
+                            $editingLog = null;
+                        }
+                    } catch (Throwable $e) {
+                        $editingLog = null;
+                    }
                 }
             } catch (Throwable $e) {}
         }
@@ -583,17 +498,16 @@ class PartnerController
         }
 
         if ($bookingId > 0 && $tourId <= 0) {
-            $pdo = $this->getPDO();
-            if ($pdo) {
-                try {
-                    $stmt = $pdo->prepare('SELECT tour_id FROM bookings WHERE id = :id LIMIT 1');
-                    $stmt->execute([':id' => $bookingId]);
-                    $booking = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($booking && !empty($booking['tour_id'])) {
-                        $tourId = (int)$booking['tour_id'];
-                    }
-                } catch (Throwable $e) {}
-            }
+            try {
+                $dsn = sprintf('mysql:host=%s;port=%s;dbname=%s;charset=utf8', DB_HOST, DB_PORT, DB_NAME);
+                $pdo = new PDO($dsn, DB_USERNAME, DB_PASSWORD, DB_OPTIONS);
+                $stmt = $pdo->prepare('SELECT tour_id FROM bookings WHERE id = :id LIMIT 1');
+                $stmt->execute([':id' => $bookingId]);
+                $booking = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($booking && !empty($booking['tour_id'])) {
+                    $tourId = (int)$booking['tour_id'];
+                }
+            } catch (Throwable $e) {}
         }
 
         if ($bookingId > 0) {

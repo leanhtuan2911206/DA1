@@ -23,11 +23,16 @@ class ServiceController
         $view = 'admin/services';
         $title = 'Quản lý dịch vụ đoàn';
         $hideNavbar = true;
-        $filters = [
-            'booking_id' => isset($_GET['booking_id']) ? (int)$_GET['booking_id'] : null,
-            'type'       => trim($_GET['type'] ?? ''),
-            'status'     => trim($_GET['status'] ?? ''),
-        ];
+        $filters = [];
+        if (isset($_GET['booking_id']) && $_GET['booking_id'] !== '') {
+            $filters['booking_id'] = (int)$_GET['booking_id'];
+        }
+        if (isset($_GET['type'])) {
+            $filters['type'] = trim($_GET['type']);
+        }
+        if (isset($_GET['status'])) {
+            $filters['status'] = trim($_GET['status']);
+        }
 
         $list = [];
         $bookings = [];
@@ -94,13 +99,13 @@ class ServiceController
         $this->auth();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: ' . BASE_URL . '?action=services-create'); exit; }
         $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
-        $type = trim($_POST['service_type'] ?? '');
-        $supplier = trim($_POST['supplier_name'] ?? '');
-        $quantity = (int)($_POST['quantity'] ?? 1);
-        $status = trim($_POST['status'] ?? 'chờ');
-        $startTime = $this->normalizeDateTime($_POST['start_time'] ?? '');
-        $endTime = $this->normalizeDateTime($_POST['end_time'] ?? '');
-        $notes = trim($_POST['notes'] ?? '');
+        $type = isset($_POST['service_type']) ? trim($_POST['service_type']) : '';
+        $supplier = isset($_POST['supplier_name']) ? trim($_POST['supplier_name']) : '';
+        $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+        $status = isset($_POST['status']) ? trim($_POST['status']) : 'chờ';
+        $startTime = $this->normalizeDateTime(isset($_POST['start_time']) ? $_POST['start_time'] : '');
+        $endTime = $this->normalizeDateTime(isset($_POST['end_time']) ? $_POST['end_time'] : '');
+        $notes = isset($_POST['notes']) ? trim($_POST['notes']) : '';
         $masterVehicleId = isset($_POST['master_vehicle_id']) ? (int)$_POST['master_vehicle_id'] : null;
         $masterHotelId = isset($_POST['master_hotel_id']) ? (int)$_POST['master_hotel_id'] : null;
         $masterFlightId = isset($_POST['master_flight_id']) ? (int)$_POST['master_flight_id'] : null;
@@ -137,7 +142,8 @@ class ServiceController
                     }
                     $stmt->execute([$id]);
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                    return trim($row['n'] ?? '');
+                    $name = isset($row['n']) ? $row['n'] : '';
+                    return trim($name);
                 } catch (Throwable $e) { return ''; }
             };
 
@@ -168,9 +174,9 @@ class ServiceController
             }
 
             if ($masterVehicleId) {
-                $driverName = trim($_POST['driver_name'] ?? '');
-                $driverPhone = trim($_POST['driver_phone'] ?? '');
-                $licensePlate = trim($_POST['license_plate'] ?? '');
+                $driverName = isset($_POST['driver_name']) ? trim($_POST['driver_name']) : '';
+                $driverPhone = isset($_POST['driver_phone']) ? trim($_POST['driver_phone']) : '';
+                $licensePlate = isset($_POST['license_plate']) ? trim($_POST['license_plate']) : '';
                 $capacity = isset($_POST['driver_capacity']) ? trim((string)$_POST['driver_capacity']) : '';
                 if ($driverName !== '' || $driverPhone !== '' || $licensePlate !== '') {
                     try {
@@ -225,13 +231,13 @@ class ServiceController
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: ' . BASE_URL . '?action=services'); exit; }
         $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
         $bookingId = isset($_POST['booking_id']) ? (int)$_POST['booking_id'] : 0;
-        $type = trim($_POST['service_type'] ?? '');
-        $supplier = trim($_POST['supplier_name'] ?? '');
-        $quantity = (int)($_POST['quantity'] ?? 1);
-        $status = trim($_POST['status'] ?? 'chờ');
-        $startTime = $this->normalizeDateTime($_POST['start_time'] ?? '');
-        $endTime = $this->normalizeDateTime($_POST['end_time'] ?? '');
-        $notes = trim($_POST['notes'] ?? '');
+        $type = isset($_POST['service_type']) ? trim($_POST['service_type']) : '';
+        $supplier = isset($_POST['supplier_name']) ? trim($_POST['supplier_name']) : '';
+        $quantity = isset($_POST['quantity']) ? (int)$_POST['quantity'] : 1;
+        $status = isset($_POST['status']) ? trim($_POST['status']) : 'chờ';
+        $startTime = $this->normalizeDateTime(isset($_POST['start_time']) ? $_POST['start_time'] : '');
+        $endTime = $this->normalizeDateTime(isset($_POST['end_time']) ? $_POST['end_time'] : '');
+        $notes = isset($_POST['notes']) ? trim($_POST['notes']) : '';
         $masterVehicleId = isset($_POST['master_vehicle_id']) ? (int)$_POST['master_vehicle_id'] : null;
         $masterHotelId = isset($_POST['master_hotel_id']) ? (int)$_POST['master_hotel_id'] : null;
         $masterFlightId = isset($_POST['master_flight_id']) ? (int)$_POST['master_flight_id'] : null;
@@ -268,9 +274,9 @@ class ServiceController
             ]);
 
             if ($type === 'vehicle' && $masterVehicleId) {
-                $driverName = trim($_POST['driver_name'] ?? '');
-                $driverPhone = trim($_POST['driver_phone'] ?? '');
-                $licensePlate = trim($_POST['license_plate'] ?? '');
+                $driverName = isset($_POST['driver_name']) ? trim($_POST['driver_name']) : '';
+                $driverPhone = isset($_POST['driver_phone']) ? trim($_POST['driver_phone']) : '';
+                $licensePlate = isset($_POST['license_plate']) ? trim($_POST['license_plate']) : '';
                 $capacity = isset($_POST['driver_capacity']) ? trim((string)$_POST['driver_capacity']) : '';
                 if ($driverName !== '' || $driverPhone !== '' || $licensePlate !== '') {
                     try {

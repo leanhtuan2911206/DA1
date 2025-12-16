@@ -250,12 +250,14 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                 <div class="grid grid-3 gap-10 mt-2">
                     <div class="mini-card">
                         <div class="icon-wrap">👥</div>
-                        <div>
+                        <div id="checkin-summary"
+                             data-total="<?= (int)$cc ?>"
+                             data-checked="<?= (int)$checkedInCount ?>">
                             <div class="label">Số lượng khách</div>
-                            <div class="value"><?= $cc ?> người</div>
-                            <span class="status-pill <?= $checkinClass ?>"><?= $checkinText ?></span>
+                            <div class="value" id="checkin-total-label"><?= $cc ?> người</div>
+                            <span class="status-pill <?= $checkinClass ?>" id="checkin-status-pill"><?= $checkinText ?></span>
                             <?php if ($cc > 0): ?>
-                                <div class="text-muted small mt-1"><?= $checkedInCount ?>/<?= $cc ?> đã check-in</div>
+                                <div class="text-muted small mt-1" id="checkin-counter-text"><?= $checkedInCount ?>/<?= $cc ?> đã check-in</div>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -359,11 +361,14 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                         </td>
                                         <td>
                                             <?php if (isset($cus['id']) && $cus['id'] > 0): ?>
-                                                <form method="POST" action="<?= BASE_URL ?>?action=partner-guest-checkin">
+                                                <form method="POST" action="<?= BASE_URL ?>?action=partner-guest-checkin"
+                                                      class="guest-checkin-form"
+                                                      data-guest="<?= (int)$cus['id'] ?>"
+                                                      data-booking="<?= $trip_detail['booking_code'] ?? 0 ?>">
                                                     <input type="hidden" name="guest_id" value="<?= $cus['id'] ?>">
                                                     <input type="hidden" name="booking_id" value="<?= $trip_detail['booking_code'] ?? 0 ?>">
-                                                    <select name="checkin_status" class="form-select form-select-sm status-select" 
-                                                            onchange="this.form.submit()"
+                                                    <select name="checkin_status"
+                                                            class="form-select form-select-sm status-select guest-checkin-select"
                                                             style="width: 140px; font-weight: 600; 
                                                             <?= ($cus['checkin_status'] ?? '') === 'checked_in' ? 'color: #166534; background-color: #dcfce7; border-color: #bbf7d0;' : 
                                                                (($cus['checkin_status'] ?? '') === 'arrived' ? 'color: #1e40af; background-color: #dbeafe; border-color: #bfdbfe;' : 'color: #4b5563;') ?>">
@@ -603,7 +608,8 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
             
             $actualDates = [];
             $allDays = array_keys($groupedByDay);
-            $maxDayFromData = !empty($allDays) ? max($allDays) : 1;
+            // Nếu đã có lịch trình thì ưu tiên đúng số ngày theo dữ liệu, tránh tạo quá nhiều tab ngày chỉ vì thời gian phân công dài
+            $maxDayFromData = !empty($allDays) ? max($allDays) : 0;
             
             if ($assignDate) {
                 $date1 = new DateTime($assignDate);
@@ -613,14 +619,15 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                     $diff = $date1->diff($date2);
                     $maxDayFromEndDate = $diff->days + 1;
                 }
-                $maxDay = max($maxDayFromData, $maxDayFromEndDate);
+                // Nếu có dữ liệu lịch trình thì dùng số ngày theo dữ liệu, ngược lại mới fallback theo khoảng ngày phân công
+                $maxDay = $maxDayFromData > 0 ? $maxDayFromData : $maxDayFromEndDate;
                 for ($i = 1; $i <= $maxDay; $i++) {
                     $date = clone $date1;
                     $date->modify('+' . ($i - 1) . ' days');
                     $actualDates[$i] = $date->format('Y-m-d');
                 }
             } else {
-                $maxDay = $maxDayFromData;
+                $maxDay = $maxDayFromData > 0 ? $maxDayFromData : 1;
                 for ($i = 1; $i <= $maxDay; $i++) {
                     $actualDates[$i] = date('Y-m-d', strtotime('+' . ($i - 1) . ' days'));
                 }
@@ -738,55 +745,11 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                     if($stt==='completed') $done++;
                                     preg_match('/(\d{1,2}:\d{2})/', $item['time_start'] . ($item['title']??''), $m);
                                     $time = $m[1] ?? substr($item['time_start']??'',0,5);
-                                    $duration = '';
-                                    if (!empty($item['description'])) {
-                                        if (preg_match('/(\d+)\s*(?:giờ|h|hour)(?:\s*(\d+)\s*(?:phút|ph|minute))?/i', $item['description'], $dm)) {
-                                            $hours = (int)$dm[1];
-                                            $minutes = isset($dm[2]) ? (int)$dm[2] : 0;
-                                            if ($hours > 0 && $minutes > 0) {
-                                                $duration = $hours . ' giờ ' . $minutes . ' phút';
-                                            } elseif ($hours > 0) {
-                                                $duration = $hours . ' giờ';
-                                            } elseif ($minutes > 0) {
-                                                $duration = $minutes . ' phút';
-                                            }
-                                        } elseif (preg_match('/(\d+)\s*(?:phút|ph|minute)/i', $item['description'], $dm)) {
-                                            $duration = $dm[1] . ' phút';
-                                        }
-                                    }
-                                    if (empty($duration) && isset($dayItems[$idx + 1])) {
-                                        $nextItem = $dayItems[$idx + 1];
-                                        $nextTime = null;
-                                        if (!empty($nextItem['time_start'])) {
-                                            preg_match('/(\d{1,2}):(\d{2})/', $nextItem['time_start'], $nm);
-                                            if (!empty($nm)) {
-                                                $nextTime = (int)$nm[1] * 60 + (int)$nm[2];
-                                            }
-                                        }
-                                        if ($nextTime !== null) {
-                                            preg_match('/(\d{1,2}):(\d{2})/', $time, $tm);
-                                            if (!empty($tm)) {
-                                                $currentTime = (int)$tm[1] * 60 + (int)$tm[2];
-                                                $diff = $nextTime - $currentTime;
-                                                if ($diff > 0) {
-                                                    $hours = floor($diff / 60);
-                                                    $minutes = $diff % 60;
-                                                    if ($hours > 0 && $minutes > 0) {
-                                                        $duration = $hours . ' giờ ' . $minutes . ' phút';
-                                                    } elseif ($hours > 0) {
-                                                        $duration = $hours . ' giờ';
-                                                    } elseif ($minutes > 0) {
-                                                        $duration = $minutes . ' phút';
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
                                 ?>
                                     <tr style="<?= $stt==='completed' ? 'background:#f9fafb; opacity:0.75' : '' ?>">
                                         <td class="col-time">
                                             <div class="time-val">
-                                                <?= $time ?><?= !empty($duration) ? ' (' . $duration . ')' : '' ?>
+                                                <?= $time ?>
                                             </div>
                                         </td>
                                         <td class="col-act">
@@ -799,10 +762,14 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                         <td style="text-align: right;">
                                             <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
                                                 <!-- Dropdown trạng thái điểm danh -->
-                                                <form method="post" action="<?= BASE_URL ?>?action=partner-update-activity" style="display: inline;">
+                                                <form method="post" action="<?= BASE_URL ?>?action=partner-update-activity" style="display: inline;"
+                                                      class="activity-status-form"
+                                                      data-booking="<?= $trip_detail['booking_code'] ?? 0 ?>"
+                                                      data-itinerary="<?= $item['id'] ?>">
                                                     <input type="hidden" name="booking_id" value="<?= $trip_detail['booking_code'] ?? 0 ?>">
                                                     <input type="hidden" name="itinerary_id" value="<?= $item['id'] ?>">
-                                                    <select name="status" onchange="this.form.submit()" 
+                                                    <select name="status"
+                                                            class="activity-status-select"
                                                             style="padding: 6px 12px; border: 2px solid; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; min-width: 150px; <?= $stt === 'pending' ? 'background: #f3f4f6; border-color: #9ca3af; color: #6b7280;' : ($stt === 'doing' ? 'background: #dbeafe; border-color: #3b82f6; color: #1e40af;' : 'background: #dcfce7; border-color: #22c55e; color: #166534;') ?>">
                                                     <option value="pending" <?= $stt === 'pending' ? 'selected' : '' ?> style="background: #f3f4f6; color: #6b7280;"> CHƯA BẮT ĐẦU</option>
                                                     <option value="doing" <?= $stt === 'doing' ? 'selected' : '' ?> style="background: #dbeafe; color: #1e40af;"> ĐANG THỰC HIỆN</option>
@@ -871,6 +838,170 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
 
         <?php endif; ?>
     <?php endif; ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const STATUS_STYLE = {
+        pending:   { bg:'#f3f4f6', border:'#9ca3af', color:'#6b7280' },
+        doing:     { bg:'#dbeafe', border:'#3b82f6', color:'#1e40af' },
+        completed: { bg:'#dcfce7', border:'#22c55e', color:'#166534' },
+        arrived:   { bg:'#dbeafe', border:'#3b82f6', color:'#1e40af' },
+        checked_in:{ bg:'#dcfce7', border:'#22c55e', color:'#166534' },
+    };
+
+    const applyStatusStyle = (select) => {
+        const val = select.value;
+        const style = STATUS_STYLE[val] || STATUS_STYLE.pending;
+        select.style.background = style.bg;
+        select.style.borderColor = style.border;
+        select.style.color = style.color;
+
+        const row = select.closest('tr');
+        if (row) {
+            const isDone = val === 'completed';
+            row.style.background = isDone ? '#f9fafb' : '';
+            row.style.opacity = isDone ? '0.75' : '';
+        }
+    };
+
+    document.querySelectorAll('.activity-status-form').forEach((form) => {
+        const select = form.querySelector('.activity-status-select');
+        if (!select) return;
+        select.dataset.prev = select.value;
+        applyStatusStyle(select);
+
+        select.addEventListener('change', (e) => {
+            e.preventDefault();
+            const prev = select.dataset.prev;
+            const bookingId = form.dataset.booking || form.querySelector('input[name="booking_id"]')?.value;
+            const itineraryId = form.dataset.itinerary || form.querySelector('input[name="itinerary_id"]')?.value;
+            const status = select.value;
+            if (!bookingId || !itineraryId || !status) {
+                select.classList.add('is-invalid');
+                select.value = prev;
+                applyStatusStyle(select);
+                return;
+            }
+            select.disabled = true;
+            fetch('<?= BASE_URL ?>?action=partner-update-activity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({ booking_id: bookingId, itinerary_id: itineraryId, status })
+            })
+            .then(r => r.json().catch(() => ({ success: false })))
+            .then(res => {
+                const ok = res && res.success === true;
+                select.classList.toggle('is-invalid', !ok);
+                if (ok) {
+                    select.dataset.prev = status;
+                    applyStatusStyle(select);
+                } else {
+                    alert('Cập nhật trạng thái thất bại. Vui lòng thử lại.');
+                    select.value = prev;
+                    applyStatusStyle(select);
+                }
+            })
+            .catch(() => {
+                select.classList.add('is-invalid');
+                alert('Lỗi kết nối. Vui lòng thử lại.');
+                select.value = prev;
+                applyStatusStyle(select);
+            })
+            .finally(() => {
+                select.disabled = false;
+            });
+        });
+    });
+
+    // Check-in khách (không reload) + cập nhật summary
+    const CHECKIN_STYLE = {
+        checked_in: { color: '#166534', bg: '#dcfce7', border: '#bbf7d0' },
+        arrived: { color: '#1e40af', bg: '#dbeafe', border: '#bfdbfe' },
+        not_arrived: { color: '#4b5563', bg: '', border: '' }
+    };
+    const applyCheckinStyle = (el) => {
+        const style = CHECKIN_STYLE[el.value] || CHECKIN_STYLE.not_arrived;
+        el.style.color = style.color;
+        el.style.backgroundColor = style.bg;
+        el.style.borderColor = style.border;
+    };
+    const updateSummary = () => {
+        const allSelects = document.querySelectorAll('.guest-checkin-select');
+        let total = 0, checked = 0, arrived = 0;
+        allSelects.forEach(s => {
+            total++;
+            if (s.value === 'checked_in') checked++;
+            else if (s.value === 'arrived') arrived++;
+        });
+        const summary = document.getElementById('checkin-summary');
+        if (!summary) return;
+        summary.dataset.total = String(total);
+        summary.dataset.checked = String(checked);
+        const totalLabel = document.getElementById('checkin-total-label');
+        const counterText = document.getElementById('checkin-counter-text');
+        const pill = document.getElementById('checkin-status-pill');
+        if (totalLabel) totalLabel.textContent = total + ' người';
+        if (counterText) counterText.textContent = checked + '/' + total + ' đã check-in';
+        if (pill) {
+            const status = checked === total && total > 0 ? ['Đã check-in', 'status-ok'] :
+                          (checked > 0 || arrived > 0) && total > 0 ? ['Đang check-in', 'status-run'] :
+                          ['Chưa check-in', 'status-wait'];
+            pill.textContent = status[0];
+            pill.className = 'status-pill ' + status[1];
+        }
+    };
+
+    document.querySelectorAll('.guest-checkin-form').forEach((form) => {
+        const select = form.querySelector('.guest-checkin-select');
+        if (!select) return;
+        select.dataset.prev = select.value;
+        applyCheckinStyle(select);
+
+        select.addEventListener('change', (e) => {
+            e.preventDefault();
+            const prev = select.dataset.prev;
+            const bookingId = form.dataset.booking || form.querySelector('input[name="booking_id"]')?.value;
+            const guestId = form.dataset.guest || form.querySelector('input[name="guest_id"]')?.value;
+            const status = select.value;
+            if (!bookingId || !guestId || !status) {
+                select.classList.add('is-invalid');
+                select.value = prev;
+                applyCheckinStyle(select);
+                return;
+            }
+            select.disabled = true;
+            fetch('<?= BASE_URL ?>?action=partner-guest-checkin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({ guest_id: guestId, booking_id: bookingId, checkin_status: status })
+            })
+            .then(r => r.json().catch(() => ({ success: false })))
+            .then(res => {
+                const ok = res && res.success === true;
+                select.classList.toggle('is-invalid', !ok);
+                if (ok) {
+                    select.dataset.prev = status;
+                    applyCheckinStyle(select);
+                    updateSummary();
+                } else {
+                    alert('Cập nhật check-in thất bại. Vui lòng thử lại.');
+                    select.value = prev;
+                    applyCheckinStyle(select);
+                }
+            })
+            .catch(() => {
+                select.classList.add('is-invalid');
+                alert('Lỗi kết nối. Vui lòng thử lại.');
+                select.value = prev;
+                applyCheckinStyle(select);
+            })
+            .finally(() => {
+                select.disabled = false;
+            });
+        });
+    });
+});
+</script>
 
 <!-- Edit Itinerary Modal -->
 <style>
