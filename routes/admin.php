@@ -68,6 +68,7 @@ match ($action) {
     'customers-store'   => (new CustomerController)->store(),
     'customers-update'  => (new CustomerController)->update(),
     'customers-delete'  => (new CustomerController)->delete(),
+    'customers-sync-from-tour-guests' => (new CustomerController)->syncFromTourGuests(),
 
     'guides'         => (new GuideController)->index(),
     'guides-create'  => (new GuideController)->create(),
@@ -111,6 +112,7 @@ match ($action) {
     'tour-guest-update-special-requests' => (new TourManagementController)->updateGuestSpecialRequests(),
     'tour-guest-delete'      => (new TourManagementController)->deleteGuest(),
     'tour-guests-sync'       => (new TourManagementController)->syncGuestsFromBooking(),
+    'tour-guests-sync-to-customers' => (new TourManagementController)->syncCustomersFromTourGuests(),
     'tour-guests-print'      => (new TourManagementController)->printList(),
     'partner-update-activity' => (new PartnerController)->updateActivity(),
     'partner-update-itinerary' => (new PartnerController)->updateItinerary(),

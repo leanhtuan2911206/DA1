@@ -163,6 +163,15 @@ class TourGroup extends BaseModel
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    public function getByBooking(int $bookingId): ?array
+    {
+        $sql = "SELECT * FROM {$this->table} WHERE booking_id = :booking_id ORDER BY id DESC LIMIT 1";
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->bindValue(':booking_id', $bookingId, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
     public function delete(int $id): bool
     {
         try {

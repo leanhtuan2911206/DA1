@@ -45,6 +45,10 @@ $paymentStatuses = isset($paymentStatuses) && is_array($paymentStatuses)
                 <noscript><button class="btn btn-primary">Chọn</button></noscript>
             </form>
             <?php if ($selectedBooking): ?>
+                <form method="post" action="<?= BASE_URL ?>?action=customers-sync-from-tour-guests" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn đồng bộ khách từ đoàn khách sang danh sách khách hàng? Khách trùng tên sẽ được cập nhật, khách mới sẽ được thêm vào.');">
+                    <input type="hidden" name="booking_id" value="<?= $selectedBooking['id'] ?>">
+                    <button type="submit" class="btn btn-primary">📋 Đồng bộ từ Đoàn khách</button>
+                </form>
                 <a href="<?= BASE_URL ?>?action=customers-create&booking_id=<?= $selectedBooking['id'] ?>" class="btn btn-success">+ Thêm khách</a>
             <?php endif; ?>
         </div>

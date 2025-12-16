@@ -23,7 +23,11 @@ $rooms = isset($rooms) && is_array($rooms) ? $rooms : [];
             <div class="d-flex gap-2">
                 <form method="post" action="<?= BASE_URL ?>?action=tour-guests-sync" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn đồng bộ khách từ booking? Các khách trùng tên sẽ bị bỏ qua.');">
                     <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
-                    <button type="submit" class="btn btn-info text-white">🔄 Đồng bộ Booking</button>
+                    <button type="submit" class="btn btn-info text-white">🔄 Đồng bộ từ Booking</button>
+                </form>
+                <form method="post" action="<?= BASE_URL ?>?action=tour-guests-sync-to-customers" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn đồng bộ khách từ đoàn sang danh sách khách hàng? Khách trùng tên sẽ được cập nhật, khách mới sẽ được thêm vào.');">
+                    <input type="hidden" name="group_id" value="<?= $group['id'] ?>">
+                    <button type="submit" class="btn btn-primary">📋 Đồng bộ sang Khách hàng</button>
                 </form>
                 <a href="<?= BASE_URL ?>?action=tour-guest-add&group_id=<?= $group['id'] ?>" class="btn btn-success">+ Thêm khách</a>
                 <a href="<?= BASE_URL ?>?action=tour-guests-print&group_id=<?= $group['id'] ?>" class="btn btn-outline-secondary">🖨️ In danh sách</a>

@@ -380,6 +380,97 @@ class CustomerController
         exit;
     }
 
+    public function syncFromTourGuests(): void
+    {
+        $this->ensureAuthenticated();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . BASE_URL . '?action=customers');
+            exit;
+        }
+
+        $bookingId = isset($_POST['booking_id']) ? (int) $_POST['booking_id'] : 0;
+        if ($bookingId <= 0) {
+            $_SESSION['error'] = 'Dữ liệu không hợp lệ';
+            header('Location: ' . BASE_URL . '?action=customers');
+            exit;
+        }
+
+        $groupModel = new TourGroup();
+        $group = $groupModel->getByBooking($bookingId);
+        
+        if (!$group) {
+            $_SESSION['error'] = "Booking #{$bookingId} chưa có đoàn khách nào. Vui lòng tạo đoàn khách trước.";
+            header('Location: ' . BASE_URL . '?action=customers&booking_id=' . $bookingId);
+            exit;
+        }
+
+        $guestModel = new TourGuest();
+        $guests = $guestModel->getByGroup($group['id']);
+        
+        if (empty($guests)) {
+            $_SESSION['error'] = "Đoàn #{$group['id']} chưa có khách nào. Vui lòng thêm khách vào đoàn trước.";
+            header('Location: ' . BASE_URL . '?action=customers&booking_id=' . $bookingId);
+            exit;
+        }
+
+        $customerModel = new Customer();
+        $existingCustomers = $customerModel->getByBooking($bookingId);
+
+        $count = 0;
+        $updated = 0;
+        foreach ($guests as $guest) {
+            $name = trim($guest['full_name']);
+            if (empty($name)) continue;
+
+            $existingCustomer = null;
+            $nameLower = mb_strtolower($name);
+            foreach ($existingCustomers as $customer) {
+                if (mb_strtolower(trim($customer['full_name'])) === $nameLower) {
+                    $existingCustomer = $customer;
+                    break;
+                }
+            }
+
+            $data = [
+                'full_name' => $guest['full_name'],
+                'gender' => $guest['gender'] ?? null,
+                'date_of_birth' => $guest['date_of_birth'] ?? null,
+                'id_type' => $guest['id_type'] ?? null,
+                'id_number' => $guest['id_number'] ?? null,
+                'contact_phone' => $guest['phone'] ?? null,
+                'email' => $guest['email'] ?? null,
+                'address' => $guest['address'] ?? null,
+                'payment_status' => $guest['payment_status'] ?? 'unpaid',
+                'special_requests' => $guest['special_requests'] ?? null,
+            ];
+
+            if ($existingCustomer) {
+                if ($customerModel->update($existingCustomer['id'], $data)) {
+                    $updated++;
+                }
+            } else {
+                $data['booking_id'] = $bookingId;
+                if ($customerModel->create($data)) {
+                    $count++;
+                }
+            }
+        }
+
+        $total = count($guests);
+        if ($count > 0 || $updated > 0) {
+            $msg = "Đã đồng bộ $total khách: ";
+            if ($count > 0) $msg .= "thêm $count mới, ";
+            if ($updated > 0) $msg .= "cập nhật $updated.";
+            $_SESSION['success'] = rtrim($msg, ', ');
+        } else {
+            $_SESSION['success'] = "Đã tìm thấy $total khách nhưng không có thay đổi.";
+        }
+
+        header('Location: ' . BASE_URL . '?action=customers&booking_id=' . $bookingId);
+        exit;
+    }
+
     protected function ensureAuthenticated(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
