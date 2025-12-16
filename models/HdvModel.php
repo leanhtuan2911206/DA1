@@ -134,7 +134,7 @@ class HdvModel extends BaseModel {
                 // Mỗi booking chỉ hiển thị lịch trình riêng của nó
                 $sql = "SELECT * FROM tour_itineraries 
                         WHERE tour_id = ? AND booking_id = ?
-                        ORDER BY day_number ASC, time_start ASC";
+                        ORDER BY CAST(day_number AS UNSIGNED) ASC, id ASC";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([$tourId, $bookingId]);
                 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -349,18 +349,18 @@ class HdvModel extends BaseModel {
     
     // Hàm cập nhật lịch trình (cho phép HDV chỉnh sửa)
     public function updateItinerary($itineraryId, $timeStart, $title, $description, $location) {
+        // Bỏ updated_at vì có thể bảng không có cột này
         $sql = "UPDATE tour_itineraries 
                 SET time_start = ?, 
                     title = ?, 
                     description = ?, 
-                    location = ?,
-                    updated_at = NOW()
+                    location = ?
                 WHERE id = ?";
         try {
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute([$timeStart, $title, $description, $location, $itineraryId]);
         } catch (PDOException $e) {
-            return false;
+            return $e->getMessage();
         }
     }
     

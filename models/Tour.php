@@ -332,7 +332,7 @@ class Tour extends BaseModel
                 // Sử dụng nhiều cách so sánh để đảm bảo tìm được dữ liệu (xử lý cả string, int, và NULL)
                 $sql = "SELECT * FROM tour_itineraries 
                         WHERE tour_id = ? AND (booking_id = ? OR booking_id = CAST(? AS UNSIGNED) OR CAST(COALESCE(booking_id, 0) AS UNSIGNED) = ?)
-                        ORDER BY CAST(day_number AS UNSIGNED) ASC, time_start ASC";
+                        ORDER BY CAST(day_number AS UNSIGNED) ASC, id ASC";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([$tourId, $bookingId, $bookingId, $bookingId]);
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -342,7 +342,7 @@ class Tour extends BaseModel
                 // Lấy lịch trình chung của tour (booking_id IS NULL hoặc = 0)
                 $sql = "SELECT * FROM tour_itineraries 
                         WHERE tour_id = ? AND (booking_id IS NULL OR CAST(booking_id AS UNSIGNED) = 0)
-                        ORDER BY CAST(day_number AS UNSIGNED) ASC, time_start ASC";
+                        ORDER BY CAST(day_number AS UNSIGNED) ASC, id ASC";
                 $stmt = $this->pdo->prepare($sql);
                 $stmt->execute([$tourId]);
                 return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -356,7 +356,7 @@ class Tour extends BaseModel
     // Lấy danh sách item từ mẫu (template) dựa trên template_id
     public function getTemplateItems($templateId)
     {
-        $sql = "SELECT * FROM template_itineraries WHERE template_id = ? ORDER BY day_number ASC, time_start ASC";
+        $sql = "SELECT * FROM template_itineraries WHERE template_id = ? ORDER BY CAST(day_number AS UNSIGNED) ASC, id ASC";
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([$templateId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);

@@ -467,6 +467,7 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                 <th>Giờ kết thúc</th>
                                 <th>Ngày phân công</th>
                                 <th>Ngày kết thúc</th>
+                                <th>Trạng thái</th>
                                 <th>Ghi chú</th>
                                 <th>Thao tác</th>
                             </tr>
@@ -495,6 +496,44 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                     <td><?= htmlspecialchars($row['end_time'] ?? '—') ?></td>
                                     <td><?= htmlspecialchars($row['assign_date'] ?? '—') ?></td>
                                     <td><?= htmlspecialchars($row['end_date'] ?? '—') ?></td>
+                                    <td>
+                                        <?php
+                                        // Ưu tiên sử dụng cột status từ DB nếu có
+                                        $dbStatus = $row['status'] ?? '';
+                                        
+                                        $sttLabel = 'Chưa bắt đầu';
+                                        $sttClass = 'st-pending';
+                                        
+                                        if (!empty($dbStatus)) {
+                                            // Map status từ DB sang hiển thị
+                                            if ($dbStatus === 'completed' || strtolower($dbStatus) === 'hoàn thành') {
+                                                $sttLabel = 'Hoàn thành';
+                                                $sttClass = 'st-done';
+                                            } elseif ($dbStatus === 'active' || strtolower($dbStatus) === 'đang hoạt động') {
+                                                $sttLabel = 'Đang hoạt động';
+                                                $sttClass = 'st-doing';
+                                            } else {
+                                                // Pending hoặc giá trị khác
+                                                $sttLabel = 'Chưa bắt đầu';
+                                                $sttClass = 'st-pending';
+                                            }
+                                        } else {
+                                            // Fallback: Tự động tính toán dựa trên ngày tháng
+                                            $curDate = date('Y-m-d');
+                                            $aDate = $row['assign_date'] ?? '';
+                                            $eDate = $row['end_date'] ?? '';
+                                            
+                                            if (!empty($eDate) && $eDate < $curDate) {
+                                                $sttLabel = 'Hoàn thành';
+                                                $sttClass = 'st-done';
+                                            } elseif (!empty($aDate) && $aDate <= $curDate) {
+                                                $sttLabel = 'Đang hoạt động';
+                                                $sttClass = 'st-doing';
+                                            }
+                                        }
+                                        ?>
+                                        <span class="status-badge-tl <?= $sttClass ?>"><?= $sttLabel ?></span>
+                                    </td>
                                     <td><?= htmlspecialchars($row['notes'] ?? '—') ?></td>
                                     <td>
                                         <?php if (!empty($row['booking_id'])): ?>
@@ -771,8 +810,27 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
                                                 </select>
                                                 </form>
                                                 <!-- Nút chỉnh sửa -->
-                                                <a href="<?= BASE_URL ?>?action=partner-edit-itinerary&id=<?= $item['id'] ?>&booking_id=<?= $trip_detail['booking_code'] ?? 0 ?>&day=<?= $selectedDayNum ?>" 
+                                                <?php 
+                                                // Format time safely for input
+                                                $timeForInput = '';
+                                                if (!empty($item['time_start'])) {
+                                                    // Try to parse and format
+                                                    $ts = strtotime($item['time_start']);
+                                                    if ($ts) {
+                                                        $timeForInput = date('H:i', $ts);
+                                                    } else {
+                                                        // Fallback string slicing
+                                                        $timeForInput = substr($item['time_start'], 0, 5);
+                                                    }
+                                                }
+                                                ?>
+                                                <a href="javascript:void(0)" 
                                                    class="btn-edit-itinerary" 
+                                                   data-id="<?= $item['id'] ?>"
+                                                   data-time="<?= htmlspecialchars($timeForInput) ?>"
+                                                   data-title="<?= htmlspecialchars($item['title']??'') ?>"
+                                                   data-desc="<?= htmlspecialchars($item['description']??'') ?>"
+                                                   data-loc="<?= htmlspecialchars($item['location']??'') ?>"
                                                    style="padding: 4px 10px; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; font-size: 11px; cursor: pointer; color: #4b5563; text-decoration: none; display: inline-block;">
                                                     ✏️ Chỉnh sửa
                                                 </a>
@@ -813,4 +871,166 @@ $__tab = isset($_GET['tab']) ? $_GET['tab'] : (!empty($trip_detail) ? 'detail' :
 
         <?php endif; ?>
     <?php endif; ?>
+
+<!-- Edit Itinerary Modal -->
+<style>
+    .modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5); z-index: 1000;
+        display: none; align-items: center; justify-content: center;
+        backdrop-filter: blur(2px);
+    }
+    .modal-box {
+        background: #fff; width: 90%; max-width: 600px;
+        padding: 24px; border-radius: 16px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        animation: modalFadeIn 0.2s ease-out;
+    }
+    @keyframes modalFadeIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+        display: block; font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 6px;
+    }
+    .form-input {
+        width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 14px; line-height: 1.5; color: #111827;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        box-sizing: border-box;
+    }
+    .form-input:focus {
+        outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    .form-actions {
+        display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid #f3f4f6;
+    }
+    .btn-modal {
+        padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+        cursor: pointer; transition: all 0.2s; border: none;
+    }
+    .btn-cancel {
+        background: #fff; border: 1px solid #d1d5db; color: #4b5563;
+    }
+    .btn-cancel:hover { background: #f9fafb; border-color: #9ca3af; }
+    .btn-save {
+        background: #2563eb; color: #fff; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    }
+    .btn-save:hover { background: #1d4ed8; }
+</style>
+
+<div id="editItineraryModal" class="modal-overlay">
+    <div class="modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h3 style="margin: 0; font-size: 20px; font-weight: 700; color: #111827;">Chỉnh sửa hoạt động</h3>
+            <button type="button" onclick="document.getElementById('editItineraryModal').style.display='none'" 
+                    style="background:none; border:none; cursor:pointer; color:#6b7280; font-size:20px;">&times;</button>
+        </div>
+        
+        <form id="editItineraryForm">
+            <input type="hidden" name="id" id="edit_id">
+            
+            <div class="grid grid-2 gap-10">
+                <div class="form-group">
+                    <label class="form-label">Thời gian</label>
+                    <input type="time" name="time_start" id="edit_time" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tiêu đề hoạt động</label>
+                    <input type="text" name="title" id="edit_title" class="form-input" required placeholder="Nhập tên hoạt động...">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Địa điểm</label>
+                <input type="text" name="location" id="edit_loc" class="form-input" placeholder="Ví dụ: Sảnh khách sạn, Nhà hàng ABC...">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Mô tả chi tiết</label>
+                <textarea name="description" id="edit_desc" class="form-input" rows="4" placeholder="Nhập chi tiết về hoạt động..."></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn-modal btn-cancel" onclick="document.getElementById('editItineraryModal').style.display='none'">Hủy bỏ</button>
+                <button type="submit" class="btn-modal btn-save">Lưu thay đổi</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('editItineraryModal');
+    const form = document.getElementById('editItineraryForm');
+    
+    // Open Modal
+    document.querySelectorAll('.btn-edit-itinerary').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('edit_id').value = this.dataset.id;
+            
+            // Format time for input type="time" (HH:mm)
+            // PHP side already formatted it, but safe check
+            let timeVal = this.dataset.time;
+            if(timeVal && timeVal.length > 5) timeVal = timeVal.substring(0, 5);
+            document.getElementById('edit_time').value = timeVal;
+            
+            document.getElementById('edit_title').value = this.dataset.title;
+            document.getElementById('edit_desc').value = this.dataset.desc;
+            document.getElementById('edit_loc').value = this.dataset.loc;
+            
+            modal.style.display = 'flex';
+        });
+    });
+    
+    // Submit Form
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerText;
+        submitBtn.innerText = 'Đang lưu...';
+        submitBtn.disabled = true;
+        
+        const data = {
+            id: document.getElementById('edit_id').value,
+            time_start: document.getElementById('edit_time').value,
+            title: document.getElementById('edit_title').value,
+            description: document.getElementById('edit_desc').value,
+            location: document.getElementById('edit_loc').value
+        };
+        
+        fetch('<?= BASE_URL ?>?action=partner-update-itinerary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(res => {
+            if(res.success) {
+                // Show toast or alert? Alert for now as per request
+                alert('Cập nhật thành công!');
+                location.reload();
+            } else {
+                alert('Lỗi: ' + (res.message || 'Không thể cập nhật'));
+                submitBtn.innerText = originalText;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Đã xảy ra lỗi kết nối');
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
+        });
+    });
+    
+    // Close on click outside
+    modal.addEventListener('click', function(e) {
+        if(e.target === modal) modal.style.display = 'none';
+    });
+});
+</script>
 </main>

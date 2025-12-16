@@ -185,8 +185,18 @@ class PartnerController
 
         if ($itineraryId > 0 && !empty($title) && !empty($timeStart)) {
             $hdvModel = new HdvModel();
-            $result = $hdvModel->updateItinerary($itineraryId, $timeStart, $title, $description, $location);
-            echo json_encode(['success' => $result, 'message' => $result ? 'Cập nhật thành công' : 'Lỗi khi cập nhật']);
+            try {
+                $result = $hdvModel->updateItinerary($itineraryId, $timeStart, $title, $description, $location);
+                if ($result === true) {
+                    echo json_encode(['success' => true, 'message' => 'Cập nhật thành công']);
+                } else {
+                    // Nếu result là string thì đó là lỗi
+                    $msg = is_string($result) ? $result : 'Lỗi cơ sở dữ liệu';
+                    echo json_encode(['success' => false, 'message' => $msg]);
+                }
+            } catch (Throwable $e) {
+                echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            }
         } else {
             echo json_encode(['success' => false, 'message' => 'Dữ liệu không hợp lệ']);
         }
