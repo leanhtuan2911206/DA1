@@ -326,10 +326,10 @@ class Tour extends BaseModel
             $exists = (int)$this->pdo->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'tour_itineraries'")->fetchColumn() > 0;
             if (!$exists) { return []; }
             
-            // Nếu có booking_id, chỉ lấy lịch trình riêng của booking (KHÔNG fallback về lịch trình chung)
+            // Nếu có booking_id, chỉ lấy lịch trình riêng của booking
+            // TUYỆT ĐỐI KHÔNG fallback về lịch trình chung nếu booking đó chưa có lịch trình
+            // Để đảm bảo khi tạo booking mới cho tour không phải mẫu, nó sẽ rỗng
             if ($bookingId !== null && $bookingId > 0) {
-                // Chỉ lấy lịch trình riêng của booking
-                // Sử dụng nhiều cách so sánh để đảm bảo tìm được dữ liệu (xử lý cả string, int, và NULL)
                 $sql = "SELECT * FROM tour_itineraries 
                         WHERE tour_id = ? AND (booking_id = ? OR booking_id = CAST(? AS UNSIGNED) OR CAST(COALESCE(booking_id, 0) AS UNSIGNED) = ?)
                         ORDER BY CAST(day_number AS UNSIGNED) ASC, id ASC";
@@ -337,9 +337,11 @@ class Tour extends BaseModel
                 $stmt->execute([$tourId, $bookingId, $bookingId, $bookingId]);
                 $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 
+                // Trả về kết quả (có thể rỗng nếu chưa thêm lịch trình nào)
                 return $results;
             } else {
                 // Lấy lịch trình chung của tour (booking_id IS NULL hoặc = 0)
+                // Dùng cho trường hợp xem chi tiết tour mẫu, hoặc tour gốc
                 $sql = "SELECT * FROM tour_itineraries 
                         WHERE tour_id = ? AND (booking_id IS NULL OR CAST(booking_id AS UNSIGNED) = 0)
                         ORDER BY CAST(day_number AS UNSIGNED) ASC, id ASC";

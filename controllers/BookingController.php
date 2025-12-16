@@ -350,6 +350,9 @@ class BookingController
                 // Lấy lịch trình chi tiết theo booking_id để mỗi booking có lịch trình riêng
                 if ($tour) {
                     $itineraries = $tourModel->getItineraryByTourId($tour['id'], $booking['id']);
+                    
+                    // Nếu lịch trình rỗng (booking mới chưa có lịch trình), không fallback về lịch trình mẫu
+                    // Giữ nguyên mảng rỗng để giao diện hiển thị trống
                 }
             }
 
@@ -783,18 +786,12 @@ class BookingController
             exit;
         }
 
-        // Lấy dữ liệu mẫu (dựa theo category của tour hoặc template_id nếu có)
+        // Lấy dữ liệu mẫu (CHỈ lấy nếu tour này được tạo từ template cụ thể)
         $templateItems = [];
         if (!empty($tour['template_id'])) {
             $templateItems = $tourModel->getTemplateItems($tour['template_id']);
-        } elseif (!empty($tour['category_id'])) {
-            // Fallback: lấy template theo category
-            $templateModel = new TourTemplate();
-            $template = $templateModel->findByCategoryId($tour['category_id']);
-            if ($template) {
-                $templateItems = $tourModel->getTemplateItems($template['id']);
-            }
         }
+        // BỎ fallback lấy theo category để tránh hiện nhầm lịch trình của tour khác cùng danh mục
 
         // Thiết lập view
         $view = 'admin/bookings-itinerary-create';
